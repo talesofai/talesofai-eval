@@ -2,8 +2,6 @@ import { safeParseJson } from "../utils/safe-parse-json.ts";
 import OpenAI from "openai";
 import type { AssertionConfig, DimensionResult, EvalTrace } from "../types.ts";
 
-const DEFAULT_JUDGE_MODEL = "qwen3.5-plus";
-
 type LlmJudgeAssertion = Extract<AssertionConfig, { type: "llm_judge" }>;
 
 /**
@@ -22,7 +20,16 @@ export const scoreLlmJudgeAssertion = async (
     };
   }
 
-  const model = process.env["EVAL_JUDGE_MODEL"] ?? DEFAULT_JUDGE_MODEL;
+  const model = process.env["EVAL_JUDGE_MODEL"];
+  if (!model || model.trim().length === 0) {
+    return {
+      dimension: "llm_judge",
+      passed: false,
+      score: 0,
+      reason: "missing required EVAL_JUDGE_MODEL",
+    };
+  }
+
   const apiKey =
     process.env["EVAL_JUDGE_API_KEY"] ?? process.env["OPENAI_API_KEY"] ?? "";
   const baseURL =

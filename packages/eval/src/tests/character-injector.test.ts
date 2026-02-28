@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Apis, CharacterFromSelect } from "@agent-eval/apis";
-import type { AgentEvalCase } from "../types.ts";
+import type { AgentEvalCase, CharacterFromSelect } from "../types.ts";
 import {
   extractCharacterCount,
   injectAndReplaceCharacters,
@@ -23,20 +22,9 @@ const makeMockCharacter = (index: number): CharacterFromSelect => ({
   },
 });
 
-const createMockApis = (characters: CharacterFromSelect[]): Apis =>
-  ({
-    character: {
-      getRandomCharacters: async (num: number) => characters.slice(0, num),
-    },
-    manuscript: {
-      updateManuscriptAssign: async () => ({
-        assign_key: "test",
-        data: null,
-        ctime: new Date().toISOString(),
-        mtime: new Date().toISOString(),
-      }),
-    },
-  }) as unknown as Apis;
+const createMockProvider = (characters: CharacterFromSelect[]) => ({
+  getRandomCharacters: async (num: number) => characters.slice(0, num),
+});
 
 const createTestCase = (content: string): AgentEvalCase => ({
   type: "agent",
@@ -208,12 +196,12 @@ describe("mapToCharacterAssign", () => {
     assert.equal(assign.type, "character");
     assert.equal(assign.uuid, char.uuid);
     assert.equal(assign.name, char.name);
-    assert.equal(assign.age, char.biography.age);
-    assert.equal(assign.persona, char.biography.persona);
-    assert.equal(assign.interests, char.biography.interests);
-    assert.equal(assign.occupation, char.biography.occupation);
-    assert.equal(assign.description, char.biography.description);
-    assert.equal(assign.avatar_img, char.config.avatar_img);
+    assert.equal(assign.age, char.biography?.age);
+    assert.equal(assign.persona, char.biography?.persona);
+    assert.equal(assign.interests, char.biography?.interests);
+    assert.equal(assign.occupation, char.biography?.occupation);
+    assert.equal(assign.description, char.biography?.description);
+    assert.equal(assign.avatar_img, char.config?.avatar_img);
   });
 
   it("handles missing biography fields", () => {
@@ -241,11 +229,10 @@ describe("mapToCharacterAssign", () => {
 describe("injectAndReplaceCharacters", () => {
   it("returns same evalCase when no placeholders", async () => {
     const testCase = createTestCase("Hello world");
-    const apis = createMockApis([makeMockCharacter(0)]);
+    const apis = createMockProvider([makeMockCharacter(0)]);
 
     const result = await injectAndReplaceCharacters(
       testCase,
-      "manuscript-uuid",
       apis,
     );
 
@@ -256,11 +243,10 @@ describe("injectAndReplaceCharacters", () => {
     const testCase = createTestCase("Hello {@character}");
     const mockChar = makeMockCharacter(0);
     mockChar.name = "Alice";
-    const apis = createMockApis([mockChar]);
+    const apis = createMockProvider([mockChar]);
 
     const result = await injectAndReplaceCharacters(
       testCase,
-      "manuscript-uuid",
       apis,
     );
 
@@ -276,11 +262,10 @@ describe("injectAndReplaceCharacters", () => {
     const char1 = mockChars[1];
     assert.ok(char1);
     char1.name = "Bob";
-    const apis = createMockApis(mockChars);
+    const apis = createMockProvider(mockChars);
 
     const result = await injectAndReplaceCharacters(
       testCase,
-      "manuscript-uuid",
       apis,
     );
 
@@ -295,11 +280,10 @@ describe("injectAndReplaceCharacters", () => {
     const char1 = mockChars[1];
     assert.ok(char1);
     char1.name = "Charlie";
-    const apis = createMockApis(mockChars);
+    const apis = createMockProvider(mockChars);
 
     const result = await injectAndReplaceCharacters(
       testCase,
-      "manuscript-uuid",
       apis,
     );
 
@@ -328,11 +312,10 @@ describe("injectAndReplaceCharacters", () => {
 
     const mockChar = makeMockCharacter(0);
     mockChar.name = "Dave";
-    const apis = createMockApis([mockChar]);
+    const apis = createMockProvider([mockChar]);
 
     const result = await injectAndReplaceCharacters(
       testCase,
-      "manuscript-uuid",
       apis,
     );
 
@@ -363,11 +346,10 @@ describe("injectAndReplaceCharacters", () => {
 
     const mockChar = makeMockCharacter(0);
     mockChar.name = "Eve";
-    const apis = createMockApis([mockChar]);
+    const apis = createMockProvider([mockChar]);
 
     const result = await injectAndReplaceCharacters(
       testCase,
-      "manuscript-uuid",
       apis,
     );
 
@@ -378,89 +360,25 @@ describe("injectAndReplaceCharacters", () => {
     assert.equal(msg.content[0].text, "Hello Eve");
   });
 
-  it("writes character to manuscript assign", async () => {
+  it("throws when provider fails (fail-fast)", async () => {
     const testCase = createTestCase("Hello {@character}");
-    const mockChar = makeMockCharacter(0);
-    let assignKey: string | null = null;
-    let assignData: unknown = null;
-
-    const apis = {
-      character: {
-        getRandomCharacters: async () => [mockChar],
+    const provider = {
+      getRandomCharacters: async () => {
+        throw new Error("API Error");
       },
-      manuscript: {
-        updateManuscriptAssign: async (
-          _uuid: string,
-          key: string,
-          data: unknown,
-        ) => {
-          assignKey = key;
-          assignData = data;
-          return {
-            assign_key: key,
-            data,
-            ctime: new Date().toISOString(),
-            mtime: new Date().toISOString(),
-          };
-        },
-      },
-    } as unknown as Apis;
-
-    await injectAndReplaceCharacters(testCase, "manuscript-uuid", apis);
-
-    assert.equal(assignKey, "character");
-    assert.ok(assignData);
-    assert.equal((assignData as { type: string }).type, "character");
-  });
-
-  it("writes multiple characters with indexed keys based on requested count", async () => {
-    const testCase = createTestCase("Hello {@character_0} and {@character_1}");
-    const mockChars = [makeMockCharacter(0), makeMockCharacter(1)];
-    const keys: string[] = [];
-
-    const apis = {
-      character: {
-        getRandomCharacters: async (num: number) => mockChars.slice(0, num),
-      },
-      manuscript: {
-        updateManuscriptAssign: async (
-          _uuid: string,
-          key: string,
-          _data: unknown,
-        ) => {
-          keys.push(key);
-          return {
-            assign_key: key,
-            data: null,
-            ctime: new Date().toISOString(),
-            mtime: new Date().toISOString(),
-          };
-        },
-      },
-    } as unknown as Apis;
-
-    await injectAndReplaceCharacters(testCase, "manuscript-uuid", apis);
-
-    // Should use indexed keys when requesting multiple characters
-    assert.equal(keys.length, 2);
-    assert.ok(keys.includes("character_0"));
-    assert.ok(keys.includes("character_1"));
-  });
-
-  it("throws when API fails (fail-fast)", async () => {
-    const testCase = createTestCase("Hello {@character}");
-    const apis = {
-      character: {
-        getRandomCharacters: async () => {
-          throw new Error("API Error");
-        },
-      },
-    } as unknown as Apis;
+    };
 
     await assert.rejects(
-      async () =>
-        await injectAndReplaceCharacters(testCase, "manuscript-uuid", apis),
+      async () => await injectAndReplaceCharacters(testCase, provider),
       /API Error/,
+    );
+  });
+
+  it("throws when placeholders exist but provider is missing", async () => {
+    const testCase = createTestCase("Hello {@character}");
+    await assert.rejects(
+      async () => await injectAndReplaceCharacters(testCase),
+      /characterProvider is required/,
     );
   });
 
@@ -480,11 +398,10 @@ describe("injectAndReplaceCharacters", () => {
     };
 
     const mockChar = makeMockCharacter(0);
-    const apis = createMockApis([mockChar]);
+    const apis = createMockProvider([mockChar]);
 
     const result = await injectAndReplaceCharacters(
       testCase,
-      "manuscript-uuid",
       apis,
     );
 
@@ -503,9 +420,9 @@ describe("injectAndReplaceCharacters", () => {
 
     const mockChar = makeMockCharacter(0);
     mockChar.name = "Frank";
-    const apis = createMockApis([mockChar]);
+    const apis = createMockProvider([mockChar]);
 
-    await injectAndReplaceCharacters(testCase, "manuscript-uuid", apis);
+    await injectAndReplaceCharacters(testCase, apis);
 
     assert.equal(
       (testCase.input.messages[0] as { content: string }).content,

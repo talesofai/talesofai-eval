@@ -1,11 +1,5 @@
 import type { EvalCase } from "../types.ts";
 
-function caseNeedsMcp(evalCase: EvalCase): boolean {
-  if (evalCase.type === "agent") return true;
-  const atns = evalCase.input.allowed_tool_names;
-  return atns === undefined || atns.length > 0;
-}
-
 function hasEnvValue(key: string): boolean {
   const value = process.env[key];
   return Boolean(value && value.trim().length > 0);
@@ -17,6 +11,17 @@ function isMissingEnvValue(key: string): boolean {
 
 function hasEnvPair(first: string, second: string): boolean {
   return hasEnvValue(first) && hasEnvValue(second);
+}
+
+export function caseNeedsJudge(evalCase: EvalCase): boolean {
+  if (evalCase.criteria.llm_judge) {
+    return true;
+  }
+  return (
+    evalCase.criteria.assertions?.some(
+      (assertion) => assertion.type === "llm_judge",
+    ) ?? false
+  );
 }
 
 export function getMissingJudgeConfig(): string[] {
@@ -32,6 +37,10 @@ export function getMissingJudgeConfig(): string[] {
 
   if (!judgeApiKey || judgeApiKey.trim().length === 0) {
     missing.push("EVAL_JUDGE_API_KEY|OPENAI_API_KEY");
+  }
+
+  if (isMissingEnvValue("EVAL_JUDGE_MODEL")) {
+    missing.push("EVAL_JUDGE_MODEL");
   }
 
   return missing;
@@ -58,7 +67,6 @@ export function getMissingRunConfig(
   if (hasAgentCase) {
     required.add("OPENAI_BASE_URL");
     required.add("OPENAI_API_KEY");
-    required.add("EVAL_UPSTREAM_API_BASE_URL");
   }
 
   if (hasPlainCase) {
@@ -75,8 +83,10 @@ export function getMissingRunConfig(
     }
   }
 
-  if (cases.some(caseNeedsMcp)) {
-    required.add("EVAL_MCP_SERVER_BASE_URL");
+  if (cases.some(caseNeedsJudge)) {
+    for (const key of getMissingJudgeConfig()) {
+      required.add(key);
+    }
   }
 
   return [...required].filter((key) => {

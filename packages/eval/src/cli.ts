@@ -19,6 +19,7 @@ import {
   parseUnknownOption,
   pickCommandFromArgv,
 } from "./cli/helpers.ts";
+import { autoLoadEnvFiles } from "./cli/env-loader.ts";
 import { shouldUseJsonErrors } from "./cli-shared.ts";
 import { didYouMean, printCliError, unknownCommand } from "./errors.ts";
 
@@ -216,6 +217,7 @@ function installFatalSafetyNet(jsonMode: boolean): void {
 }
 
 async function main(argv: string[]): Promise<number> {
+  autoLoadEnvFiles();
   const jsonMode = shouldUseJsonErrors(argv);
   installFatalSafetyNet(jsonMode);
 
@@ -243,6 +245,11 @@ async function main(argv: string[]): Promise<number> {
     cli.parse(argv);
 
     if (!pending) {
+      if (argv.length <= 2) {
+        cli.outputHelp();
+        return 0;
+      }
+
       const helpFlags = new Set(["--help", "-h"]);
       const firstUnknownFlag = argv
         .slice(2)

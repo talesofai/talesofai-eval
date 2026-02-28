@@ -105,37 +105,19 @@ describe("collectDoctorChecks", () => {
     );
   });
 
-  it("mode=all (default): EVAL_UPSTREAM_API_BASE_URL missing → optional=true, ok=false", () => {
-    const checks = collectDoctorChecks({});
-    const c = checks.find((c) => c.key === "EVAL_UPSTREAM_API_BASE_URL");
-    assert.ok(c, "check should be present");
-    assert.equal(c.ok, false);
-    assert.equal(c.optional, true);
-  });
-
-  it("mode=all (default): EVAL_UPSTREAM_API_BASE_URL set → ok=true", () => {
-    const checks = collectDoctorChecks(
-      { EVAL_UPSTREAM_API_BASE_URL: "http://x" },
-      "all",
-    );
-    const c = checks.find((c) => c.key === "EVAL_UPSTREAM_API_BASE_URL");
-    assert.ok(c);
-    assert.equal(c.ok, true);
-  });
-
-  it("mode=agent: EVAL_UPSTREAM_API_BASE_URL missing → required (optional=false)", () => {
-    const checks = collectDoctorChecks({}, "agent");
-    const c = checks.find((c) => c.key === "EVAL_UPSTREAM_API_BASE_URL");
-    assert.ok(c, "check should be present in agent mode");
-    assert.equal(c.ok, false);
-    assert.ok(!c.optional, "should be required (not optional)");
-  });
-
-  it("mode=plain: no EVAL_UPSTREAM_API_BASE_URL check", () => {
-    const checks = collectDoctorChecks({}, "plain");
+  it("mode=all: no EVAL_UPSTREAM_API_BASE_URL check", () => {
+    const checks = collectDoctorChecks({}, "all");
     assert.ok(
       !checks.some((c) => c.key === "EVAL_UPSTREAM_API_BASE_URL"),
-      "EVAL_UPSTREAM_API_BASE_URL should be absent in plain mode",
+      "EVAL_UPSTREAM_API_BASE_URL should be absent in all mode",
+    );
+  });
+
+  it("mode=agent: no EVAL_UPSTREAM_API_BASE_URL check", () => {
+    const checks = collectDoctorChecks({}, "agent");
+    assert.ok(
+      !checks.some((c) => c.key === "EVAL_UPSTREAM_API_BASE_URL"),
+      "EVAL_UPSTREAM_API_BASE_URL should be absent in agent mode",
     );
   });
 

@@ -1,15 +1,19 @@
 import pc from "picocolors";
 import {
-  computeTraceMetrics,
-  stripTraceMetricsDebug,
-} from "../metrics/trace-metrics.ts";
-import { createManuscriptProxy } from "../runners/manuscript-proxy.ts";
-import {
   DEFAULT_ALLOWED_TOOL_NAMES,
   type EvalCase,
   type EvalResult,
   type EvalTrace,
 } from "../types.ts";
+import {
+  DEFAULT_PROXY_PORT,
+  DEFAULT_UPSTREAM_API_BASE_URL,
+} from "../constants.ts";
+import {
+  computeTraceMetrics,
+  stripTraceMetricsDebug,
+} from "../metrics/trace-metrics.ts";
+import { createManuscriptProxy } from "../runners/manuscript-proxy.ts";
 import { getNumberOption, isRecord } from "./helpers.ts";
 
 export function resolveDefaultConcurrency(totalTasks: number): number {
@@ -93,10 +97,12 @@ export async function maybeStartProxy(needed: boolean) {
     return null;
   }
 
-  const proxyPort = Number(process.env["EVAL_PROXY_PORT"] ?? "19000");
+  const proxyPort = Number(process.env["EVAL_PROXY_PORT"] ?? DEFAULT_PROXY_PORT);
+  const upstreamBaseURL =
+    process.env["EVAL_UPSTREAM_API_BASE_URL"] ?? DEFAULT_UPSTREAM_API_BASE_URL;
   const proxy = createManuscriptProxy({
     port: proxyPort,
-    upstreamBaseURL: process.env["EVAL_UPSTREAM_API_BASE_URL"],
+    upstreamBaseURL,
     upstreamToken: process.env["EVAL_UPSTREAM_X_TOKEN"],
     allowedToolNames: [...DEFAULT_ALLOWED_TOOL_NAMES],
   });

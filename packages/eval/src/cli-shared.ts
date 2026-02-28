@@ -53,24 +53,19 @@ export function collectDoctorChecks(
       hint: "Set OPENAI_API_KEY before running eval.",
     },
     {
+      key: "EVAL_JUDGE_MODEL",
+      requiredFor: "llm_judge,diff",
+      ok: isSet("EVAL_JUDGE_MODEL"),
+      hint: "Set EVAL_JUDGE_MODEL explicitly (no default).",
+    },
+    {
       key: "EVAL_MCP_SERVER_BASE_URL",
       requiredFor: "run,diff",
-      ok: isSet("EVAL_MCP_SERVER_BASE_URL"),
-      hint: "Set EVAL_MCP_SERVER_BASE_URL, e.g. http://127.0.0.1:13013",
+      ok: true,
+      hint: "Optional: defaults to https://mcp.talesofai.cn. Override with EVAL_MCP_SERVER_BASE_URL if needed.",
+      optional: true,
     },
   ];
-
-  // EVAL_UPSTREAM_API_BASE_URL: required for agent mode; optional warning in
-  // all mode (plain-only users don't need it); hidden in plain mode.
-  if (mode !== "plain") {
-    checks.push({
-      key: "EVAL_UPSTREAM_API_BASE_URL",
-      requiredFor: "agent run/diff",
-      ok: isSet("EVAL_UPSTREAM_API_BASE_URL"),
-      hint: "Agent cases require EVAL_UPSTREAM_API_BASE_URL for manuscript proxy upstream.",
-      optional: mode === "all",
-    });
-  }
 
   // EVAL_PLAIN_BASE_URL: always optional, informational for plain users;
   // hidden in agent mode.

@@ -45,6 +45,11 @@ import {
   type ToolCallRecord,
   type ToolCallStartRecord,
 } from "../types.ts";
+import {
+  DEFAULT_MCP_SERVER_BASE_URL,
+  DEFAULT_PROXY_PORT,
+  DEFAULT_UPSTREAM_API_BASE_URL,
+} from "../constants.ts";
 import { runConcurrently } from "../utils/concurrency.ts";
 import {
   makeAutoRecordDir,
@@ -52,6 +57,7 @@ import {
   resolveRunRecordDir,
 } from "../utils/recording.ts";
 import { resolveCasesFromArgs } from "./case-resolution.ts";
+import { caseNeedsJudge } from "./config-check.ts";
 import {
   getNumberOption,
   getStringArrayOption,
@@ -197,10 +203,12 @@ async function maybeStartProxy(needed: boolean) {
     return null;
   }
 
-  const proxyPort = Number(process.env["EVAL_PROXY_PORT"] ?? "19000");
+  const proxyPort = Number(process.env["EVAL_PROXY_PORT"] ?? DEFAULT_PROXY_PORT);
+  const upstreamBaseURL =
+    process.env["EVAL_UPSTREAM_API_BASE_URL"] ?? DEFAULT_UPSTREAM_API_BASE_URL;
   const proxy = createManuscriptProxy({
     port: proxyPort,
-    upstreamBaseURL: process.env["EVAL_UPSTREAM_API_BASE_URL"],
+    upstreamBaseURL,
     upstreamToken: process.env["EVAL_UPSTREAM_X_TOKEN"],
     allowedToolNames: [...DEFAULT_ALLOWED_TOOL_NAMES],
   });
@@ -426,12 +434,6 @@ function parseVariants(rawVariants: string[]): MatrixVariant[] {
   return variants;
 }
 
-function caseNeedsMcp(evalCase: EvalCase): boolean {
-  if (evalCase.type === "agent") return true;
-  const atns = evalCase.input.allowed_tool_names;
-  return atns === undefined || atns.length > 0;
-}
-
 function resolveDefaultConcurrency(totalTasks: number): number {
   return Math.max(1, Math.min(totalTasks, 8));
 }
@@ -476,6 +478,10 @@ function getMissingJudgeConfig(): string[] {
     missing.push("EVAL_JUDGE_API_KEY|OPENAI_API_KEY");
   }
 
+  if (isMissingEnvValue("EVAL_JUDGE_MODEL")) {
+    missing.push("EVAL_JUDGE_MODEL");
+  }
+
   return missing;
 }
 
@@ -500,7 +506,6 @@ function getMissingRunConfig(
   if (hasAgentCase) {
     required.add("OPENAI_BASE_URL");
     required.add("OPENAI_API_KEY");
-    required.add("EVAL_UPSTREAM_API_BASE_URL");
   }
 
   if (hasPlainCase) {
@@ -517,8 +522,10 @@ function getMissingRunConfig(
     }
   }
 
-  if (cases.some(caseNeedsMcp)) {
-    required.add("EVAL_MCP_SERVER_BASE_URL");
+  if (cases.some(caseNeedsJudge)) {
+    for (const key of getMissingJudgeConfig()) {
+      required.add(key);
+    }
   }
 
   return [...required].filter((key) => {
@@ -597,7 +604,8 @@ export async function runCommand(
 
   const runnerOpts = createRunnerOptions({
     reporter,
-    mcpServerBaseURL: process.env["EVAL_MCP_SERVER_BASE_URL"] ?? "",
+    mcpServerBaseURL:
+      process.env["EVAL_MCP_SERVER_BASE_URL"] ?? DEFAULT_MCP_SERVER_BASE_URL,
     proxyPort: proxy
       ? Number(process.env["EVAL_PROXY_PORT"] ?? "19000")
       : undefined,
@@ -765,7 +773,9 @@ export async function diffCommand(
         const candidateCase = applyOverrides(evalCase, candidateOverrides);
 
         const runnerOpts = {
-          mcpServerBaseURL: process.env["EVAL_MCP_SERVER_BASE_URL"] ?? "",
+          mcpServerBaseURL:
+            process.env["EVAL_MCP_SERVER_BASE_URL"] ??
+            DEFAULT_MCP_SERVER_BASE_URL,
           proxyPort: proxy
             ? Number(process.env["EVAL_PROXY_PORT"] ?? "19000")
             : undefined,
@@ -873,7 +883,8 @@ export async function matrixCommand(
   );
 
   const runnerOpts: RunnerOptions = {
-    mcpServerBaseURL: process.env["EVAL_MCP_SERVER_BASE_URL"] ?? "",
+    mcpServerBaseURL:
+      process.env["EVAL_MCP_SERVER_BASE_URL"] ?? DEFAULT_MCP_SERVER_BASE_URL,
     proxyPort: proxy
       ? Number(process.env["EVAL_PROXY_PORT"] ?? "19000")
       : undefined,

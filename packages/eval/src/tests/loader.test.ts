@@ -133,6 +133,29 @@ describe("parseInlineJson", () => {
     }
   });
 
+  it("parses oss agent inline JSON with system_prompt + model", () => {
+    const c = parseInlineJson(
+      JSON.stringify({
+        type: "agent",
+        id: "agent-inline-oss",
+        description: "test",
+        input: {
+          system_prompt: "you are {{name}}",
+          model: "gpt-5.2",
+          parameters: { name: "neo" },
+          messages: [{ role: "user", content: "hi" }],
+        },
+        criteria: {},
+      }),
+    );
+
+    assert.equal(c.type, "agent");
+    if (c.type === "agent") {
+      assert.equal(c.input.system_prompt, "you are {{name}}");
+      assert.equal(c.input.model, "gpt-5.2");
+    }
+  });
+
   it("parses valid inline JSON", () => {
     const c = parseInlineJson(
       JSON.stringify({
@@ -228,6 +251,21 @@ describe("buildFromFlags", () => {
     assert.equal(c.type, "agent");
     if (c.type === "agent") {
       assert.equal(c.input.preset_key, "verse_creator");
+    }
+  });
+
+  it("builds an oss agent case when systemPrompt is provided", () => {
+    const c = buildFromFlags({
+      type: "agent",
+      systemPrompt: "you are {{name}}",
+      model: "gpt-5.2",
+      parameters: { name: "neo" },
+      messages: ["user:hello"],
+    });
+    assert.equal(c.type, "agent");
+    if (c.type === "agent") {
+      assert.equal(c.input.system_prompt, "you are {{name}}");
+      assert.equal(c.input.model, "gpt-5.2");
     }
   });
 

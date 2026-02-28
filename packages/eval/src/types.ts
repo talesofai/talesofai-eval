@@ -1,3 +1,5 @@
+import type { Logger } from "pino";
+
 export type AnyAssistantMessage = {
   role: "assistant";
   reasoning_content?: string;
@@ -119,12 +121,33 @@ export type AgentAutoFollowup = {
   max_turns?: number;
 };
 
+export type CharacterFromSelect = {
+  uuid: string;
+  name: string;
+  biography?: {
+    age?: string | null;
+    interests?: string | null;
+    persona?: string | null;
+    description?: string | null;
+    occupation?: string | null;
+  } | null;
+  config?: {
+    avatar_img?: string | null;
+  } | null;
+};
+
+export interface CharacterProvider {
+  getRandomCharacters(count: number): Promise<CharacterFromSelect[]>;
+}
+
 export type AgentEvalCase = {
   type: "agent";
   id: string;
   description: string;
   input: {
     preset_key: string;
+    system_prompt?: string;
+    model?: string;
     preset_description?: string;
     parameters: Record<string, string | number | boolean>;
     messages: EvalMessage[];
@@ -333,7 +356,8 @@ export type RunnerOptions = {
   /** Tool call completed */
   onToolCall?: (call: ToolCallRecord) => void;
   /** Optional pino logger for debug output */
-  logger?: import("pino").Logger;
+  logger?: Logger;
+  characterProvider?: CharacterProvider;
 };
 
 // ─── Reporter ────────────────────────────────────────────────────────────────

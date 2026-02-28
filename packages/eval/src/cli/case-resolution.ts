@@ -16,6 +16,29 @@ import {
   getStringOption,
 } from "./helpers.ts";
 
+function getRebasedFilePatterns(pattern: string): string[] {
+  const rebased = pattern.replace(/^\.?\/?packages\/eval\//, "");
+  if (rebased === pattern) {
+    return [pattern];
+  }
+
+  const patterns = [pattern, rebased];
+  if (!rebased.startsWith("./")) {
+    patterns.push(`./${rebased}`);
+  }
+  return [...new Set(patterns)];
+}
+
+function matchFilesForPattern(pattern: string): string[] {
+  const matched = new Set<string>();
+  for (const candidate of getRebasedFilePatterns(pattern)) {
+    for (const file of globSync(candidate)) {
+      matched.add(file);
+    }
+  }
+  return [...matched];
+}
+
 export function resolveCasesFromArgs(options: Record<string, unknown>): {
   cases: EvalCase[];
   unmatchedFilePatterns: string[];
@@ -41,7 +64,7 @@ export function resolveCasesFromArgs(options: Record<string, unknown>): {
   const filePatterns = getStringArrayOption(options, "file");
   if (filePatterns) {
     for (const pattern of filePatterns) {
-      const matched = globSync(pattern);
+      const matched = matchFilesForPattern(pattern);
       if (matched.length === 0) {
         unmatchedFilePatterns.push(pattern);
       }

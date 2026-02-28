@@ -1,11 +1,4 @@
 import type { Server } from "node:http";
-import type {
-  Assign,
-  Manuscript,
-  ManuscriptAsset,
-  ManuscriptAssetArtifact,
-  ManuscriptRunningStatus,
-} from "@agent-eval/apis/types";
 import axios from "axios";
 import express, {
   type NextFunction,
@@ -13,6 +6,36 @@ import express, {
   type Response,
 } from "express";
 
+type Assign = unknown;
+type ManuscriptRunningStatus = string;
+
+type Manuscript = {
+  uuid: string;
+  entrance_type: string;
+  ctime: string;
+  mtime: string;
+  status: string;
+  running_status: ManuscriptRunningStatus | null;
+  verse_preset_uuid?: string | null;
+  conversation_uuid?: string;
+};
+
+type ManuscriptAssetArtifact = {
+  uuid: string;
+  url: string;
+  modality: string;
+  status: string;
+};
+
+type ManuscriptAsset = {
+  task_uuid: string;
+  artifact_uuid: string;
+  assign_key: string;
+  toolcall_uuid: string | null;
+  ctime: string;
+  is_import: boolean;
+  artifact: ManuscriptAssetArtifact;
+};
 // ─── In-memory store ─────────────────────────────────────────────────────────
 
 type StoredManuscript = Manuscript & {

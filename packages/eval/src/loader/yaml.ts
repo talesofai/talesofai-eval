@@ -153,32 +153,12 @@ const requiredAgentParameterKeys = [
   "reference_content_schema",
 ] as const;
 
-const agentCaseSchemaRaw = z.object({
-  type: z.literal("agent"),
-  id: z.string(),
-  description: z.string(),
-  input: z.object({
+const agentInputSchema = z
+  .object({
     preset_key: z.string().default(DEFAULT_AGENT_PRESET_KEY),
-    parameters: z
-      .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
-      .superRefine((parameters, ctx) => {
-        for (const key of requiredAgentParameterKeys) {
-          if (!(key in parameters)) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: `missing required parameter: ${key}`,
-            });
-            continue;
-          }
-
-          if (typeof parameters[key] !== "string") {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: `parameter must be string (empty string allowed): ${key}`,
-            });
-          }
-        }
-      }),
+    system_prompt: z.string().optional(),
+    model: z.string().optional(),
+    parameters: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
     messages: z.array(evalMessageSchema),
     allowed_tool_names: z.array(z.string()).optional(),
     need_approval_tool_names: z.array(z.string()).optional(),
@@ -188,7 +168,51 @@ const agentCaseSchemaRaw = z.object({
         max_turns: z.number().int().positive().optional(),
       })
       .optional(),
-  }),
+  })
+  .superRefine((input, ctx) => {
+    if (typeof input.system_prompt === "string") {
+      if (input.system_prompt.trim().length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "system_prompt must be a non-empty string",
+          path: ["system_prompt"],
+        });
+      }
+      if (!input.model) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "model is required when system_prompt is provided",
+          path: ["model"],
+        });
+      }
+      return;
+    }
+
+    for (const key of requiredAgentParameterKeys) {
+      if (!(key in input.parameters)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `missing required parameter: ${key}`,
+          path: ["parameters", key],
+        });
+        continue;
+      }
+
+      if (typeof input.parameters[key] !== "string") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `parameter must be string (empty string allowed): ${key}`,
+          path: ["parameters", key],
+        });
+      }
+    }
+  });
+
+const agentCaseSchemaRaw = z.object({
+  type: z.literal("agent"),
+  id: z.string(),
+  description: z.string(),
+  input: agentInputSchema,
   criteria: evalCriteriaSchemaRaw,
 });
 

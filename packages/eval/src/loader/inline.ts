@@ -69,6 +69,28 @@ export const buildFromFlags = (flags: {
 
   if (flags.type === "agent") {
     const parameters = flags.parameters ?? {};
+
+    if (typeof flags.systemPrompt === "string") {
+      if (!flags.model) {
+        throw new Error("agent case model is required when system prompt is set");
+      }
+
+      return {
+        type: "agent",
+        id,
+        description: `inline agent case ${id}`,
+        input: {
+          preset_key: flags.presetKey ?? DEFAULT_AGENT_PRESET_KEY,
+          system_prompt: flags.systemPrompt,
+          model: flags.model,
+          parameters,
+          messages,
+          allowed_tool_names: flags.allowedToolNames,
+        },
+        criteria,
+      };
+    }
+
     const missing = requiredAgentParameterKeys.filter(
       (key) => !(key in parameters),
     );

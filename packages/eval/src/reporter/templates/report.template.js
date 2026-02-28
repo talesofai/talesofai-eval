@@ -19,30 +19,27 @@ function formatDuration(ms) {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-// Render summary row (compact inline)
+// Truncate text to maxChars
+function truncateText(text, maxChars) {
+  if (!text || text.length <= maxChars) return text || "";
+  return text.slice(0, maxChars) + "…";
+}
+
+// Render summary row — compact single line
 function renderSummary(summary) {
   const container = document.getElementById("summary-row");
+  const passRate =
+    summary.total > 0 ? (summary.passed / summary.total) * 100 : 0;
+
   container.innerHTML = `
-        <div class="summary-item total">
-          <span class="value">${summary.total}</span>
-          <span class="label">total</span>
-        </div>
-        <div class="summary-item passed">
-          <span class="value">${summary.passed}</span>
-          <span class="label">passed</span>
-        </div>
-        <div class="summary-item failed">
-          <span class="value">${summary.failed}</span>
-          <span class="label">failed</span>
-        </div>
-        <div class="summary-item errored">
-          <span class="value">${summary.errored}</span>
-          <span class="label">errored</span>
-        </div>
-        <div class="summary-item">
-          <span class="value">${formatDuration(summary.duration_ms)}</span>
-          <span class="label">duration</span>
-        </div>
+        <span class="summary-pass-rate">${passRate.toFixed(1)}%</span>
+        <span class="summary-divider">—</span>
+        <div class="summary-stat"><span class="n">${summary.total}</span><span class="l">cases</span></div>
+        <div class="summary-stat"><span class="n passed">${summary.passed}</span><span class="l">passed</span></div>
+        <div class="summary-stat"><span class="n failed">${summary.failed}</span><span class="l">failed</span></div>
+        <div class="summary-stat"><span class="n errored">${summary.errored}</span><span class="l">errored</span></div>
+        <span class="summary-divider">·</span>
+        <div class="summary-stat"><span class="n">${formatDuration(summary.duration_ms)}</span><span class="l">total</span></div>
       `;
 }
 
@@ -223,15 +220,48 @@ function escapeHtml(text) {
 }
 
 // Toggle tool details
-function _toggleTool(header) {
+function toggleTool(header) {
   const item = header.closest(".tool-item");
   item.classList.toggle("expanded");
 }
 
-// Toggle case details
-function _toggleCase(header) {
+// Case data map for modal lookup
+const caseDataMap = new Map();
+
+// Open case detail modal
+function openCase(header) {
   const item = header.closest(".case-item");
-  item.classList.toggle("expanded");
+  const caseId = item.dataset.caseId;
+  const caseData = caseDataMap.get(caseId);
+  if (!caseData) return;
+  openModal(caseData);
+}
+
+function openModal(caseData) {
+  const row = caseData.row;
+  const firstUser = caseData.conversation.find((m) => m.role === "user");
+  const taskText = firstUser?.content || caseData.title;
+
+  const verdictSymbol =
+    row.status_class === "pass" ? "✓" : row.status_class === "err" ? "!" : "✗";
+
+  document.getElementById("modal-verdict").className = `card-verdict ${row.status_class}`;
+  document.getElementById("modal-verdict").textContent = `${verdictSymbol} ${row.judge_text}`;
+  document.getElementById("modal-meta").textContent = `${row.duration_text} · ${row.tokens_text}`;
+  document.getElementById("modal-title").textContent = taskText;
+  document.getElementById("modal-body").innerHTML = renderCaseDetailBody(caseData);
+
+  document.getElementById("case-modal").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal() {
+  document.getElementById("case-modal").classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+function handleModalBackdrop(e) {
+  if (e.target === document.getElementById("case-modal")) closeModal();
 }
 
 // Render case metrics
@@ -267,99 +297,86 @@ function renderCaseMetrics(metrics) {
       `;
 }
 
-// Render single case
-function renderCase(caseData) {
+// Render case detail body (used in modal)
+function renderCaseDetailBody(caseData) {
   const row = caseData.row;
   const result = caseData.result;
   const trace = result.trace;
   const hasError = !!result.error;
 
   return `
+    ${
+      hasError
+        ? `<div class="detail-section"><h3>Error</h3><div class="error-message">${escapeHtml(result.error)}</div></div>`
+        : ""
+    }
+
+    ${renderCaseMetrics(caseData.metrics_view)}
+
+    <div class="detail-section">
+      <h3>Conversation</h3>
+      ${renderConversation(caseData.conversation)}
+    </div>
+
+    <div class="detail-section">
+      <h3>Dimensions</h3>
+      ${renderDimensions(result.dimensions)}
+    </div>
+
+    <div class="detail-section">
+      <h3>Trace Summary</h3>
+      <div class="trace-summary">
+        <div class="trace-summary-item"><div class="key">Status</div><div class="value">${trace.status}</div></div>
+        <div class="trace-summary-item"><div class="key">Duration</div><div class="value">${formatDuration(trace.duration_ms)}</div></div>
+        <div class="trace-summary-item"><div class="key">Input Tokens</div><div class="value">${trace.usage.input_tokens}</div></div>
+        <div class="trace-summary-item"><div class="key">Output Tokens</div><div class="value">${trace.usage.output_tokens}</div></div>
+        <div class="trace-summary-item"><div class="key">Total Tokens</div><div class="value">${trace.usage.total_tokens}</div></div>
+        <div class="trace-summary-item"><div class="key">Tool Calls</div><div class="value">${trace.tools_called.length}</div></div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <h3>Tool Calls</h3>
+      ${renderToolTimeline(caseData.tool_calls)}
+    </div>
+
+    <div class="detail-section">
+      <h3>Final Response</h3>
+      <div class="final-response">${escapeHtml(trace.final_response || "")}</div>
+    </div>
+
+    <details class="raw-json">
+      <summary>View Raw Trace JSON</summary>
+      <pre>${escapeHtml(JSON.stringify(trace, null, 2))}</pre>
+    </details>
+
+    <details class="raw-json">
+      <summary>View Raw Result JSON</summary>
+      <pre>${escapeHtml(JSON.stringify(result, null, 2))}</pre>
+    </details>
+  `;
+}
+
+// Render single case — card header only (details open in modal)
+function renderCase(caseData) {
+  const row = caseData.row;
+  const result = caseData.result;
+
+  const firstUser = caseData.conversation.find((m) => m.role === "user");
+  const taskText = firstUser?.content || caseData.title;
+
+  const verdictSymbol =
+    row.status_class === "pass" ? "✓" : row.status_class === "err" ? "!" : "✗";
+
+  return `
         <div class="case-item" data-case-id="${escapeHtml(result.case_id)}" data-status="${row.status_class}" id="case-${escapeHtml(result.case_id)}">
-          <div class="case-header" onclick="toggleCase(this)">
-            <div class="case-title-section">
-              <span class="case-title">${escapeHtml(caseData.title)}</span>
-              <span class="case-subtitle">${escapeHtml(result.case_id)}</span>
+          <div class="case-header" onclick="openCase(this)">
+            <div class="card-verdict-row">
+              <span class="card-verdict ${row.status_class}">${verdictSymbol} ${row.judge_text}</span>
+              <span class="card-meta">${row.duration_text} · ${row.tokens_text}</span>
             </div>
-            <span class="case-status ${row.status_class}">${row.status_text}</span>
-            <span class="case-judge ${row.judge_class}">${row.judge_text}</span>
-            <span class="case-duration">${row.duration_text}</span>
-            <span class="case-tokens">${row.tokens_text}</span>
-            <span class="case-toggle">▶</span>
-          </div>
-          <div class="case-details">
-            ${
-              hasError
-                ? `
-              <div class="detail-section">
-                <h3>Error</h3>
-                <div class="error-message">${escapeHtml(result.error)}</div>
-              </div>
-            `
-                : ""
-            }
-
-            ${renderCaseMetrics(caseData.metrics_view)}
-
-            <div class="detail-section">
-              <h3>Conversation</h3>
-              ${renderConversation(caseData.conversation)}
-            </div>
-
-            <div class="detail-section">
-              <h3>Dimensions</h3>
-              ${renderDimensions(result.dimensions)}
-            </div>
-
-            <div class="detail-section">
-              <h3>Trace Summary</h3>
-              <div class="trace-summary">
-                <div class="trace-summary-item">
-                  <div class="key">Status</div>
-                  <div class="value">${trace.status}</div>
-                </div>
-                <div class="trace-summary-item">
-                  <div class="key">Duration</div>
-                  <div class="value">${formatDuration(trace.duration_ms)}</div>
-                </div>
-                <div class="trace-summary-item">
-                  <div class="key">Input Tokens</div>
-                  <div class="value">${trace.usage.input_tokens}</div>
-                </div>
-                <div class="trace-summary-item">
-                  <div class="key">Output Tokens</div>
-                  <div class="value">${trace.usage.output_tokens}</div>
-                </div>
-                <div class="trace-summary-item">
-                  <div class="key">Total Tokens</div>
-                  <div class="value">${trace.usage.total_tokens}</div>
-                </div>
-                <div class="trace-summary-item">
-                  <div class="key">Tool Calls</div>
-                  <div class="value">${trace.tools_called.length}</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="detail-section">
-              <h3>Tool Calls</h3>
-              ${renderToolTimeline(caseData.tool_calls)}
-            </div>
-
-            <div class="detail-section">
-              <h3>Final Response</h3>
-              <div class="final-response">${escapeHtml(trace.final_response || "")}</div>
-            </div>
-
-            <details class="raw-json">
-              <summary>View Raw Trace JSON</summary>
-              <pre>${escapeHtml(JSON.stringify(trace, null, 2))}</pre>
-            </details>
-
-            <details class="raw-json">
-              <summary>View Raw Result JSON</summary>
-              <pre>${escapeHtml(JSON.stringify(result, null, 2))}</pre>
-            </details>
+            <div class="card-task">${escapeHtml(taskText)}</div>
+            ${row.detail_text ? `<div class="card-reason">${escapeHtml(row.detail_text)}</div>` : ""}
           </div>
         </div>
       `;
@@ -372,6 +389,7 @@ function renderCaseList(cases) {
     container.innerHTML = '<div class="empty-state">No cases found</div>';
     return;
   }
+  for (const c of cases) caseDataMap.set(c.result.case_id, c);
   container.innerHTML = cases.map(renderCase).join("");
 }
 
@@ -395,6 +413,126 @@ function updateVisibility(cases) {
   });
 }
 
+// Render analysis section (score distribution + failure analysis)
+function renderAnalysis(data) {
+  const container = document.getElementById("analysis-section");
+  if (!container) return;
+
+  // --- Score distribution ---
+  const buckets = new Map();
+  for (const c of data.cases) {
+    const key = c.row.status_class === "err" ? "ERR" : c.row.judge_text;
+    buckets.set(key, (buckets.get(key) || 0) + 1);
+  }
+  const sortedBuckets = [...buckets.entries()].sort((a, b) => {
+    if (a[0] === "ERR") return 1;
+    if (b[0] === "ERR") return -1;
+    return parseFloat(b[0]) - parseFloat(a[0]);
+  });
+  const maxCount = Math.max(...sortedBuckets.map(([, n]) => n));
+
+  const distRows = sortedBuckets
+    .map(([score, count]) => {
+      const pct = Math.round((count / maxCount) * 100);
+      const isErr = score === "ERR";
+      const numScore = parseFloat(score);
+      const color = isErr
+        ? "var(--accent-warning)"
+        : numScore >= 0.6
+          ? "var(--accent-success)"
+          : numScore >= 0.3
+            ? "var(--accent-warning)"
+            : "var(--accent-danger)";
+      const labelClass = isErr ? "err" : numScore >= 0.6 ? "pass" : "fail";
+      return `
+        <div class="dist-row">
+          <span class="dist-label ${labelClass}">${score}</span>
+          <div class="dist-bar-wrap">
+            <div class="dist-bar-fill" style="width:${pct}%;background:${color};"></div>
+          </div>
+          <span class="dist-count">${count}</span>
+        </div>`;
+    })
+    .join("");
+
+  // --- Perf stats ---
+  const liveCases = data.cases.filter((c) => c.row.duration_ms > 0);
+  const durations = liveCases.map((c) => c.row.duration_ms);
+  const tokens = liveCases.map((c) => c.row.tokens_total);
+  const avgDur = formatDuration(
+    durations.reduce((a, b) => a + b, 0) / durations.length,
+  );
+  const maxDur = formatDuration(Math.max(...durations));
+  const avgTok = Math.round(
+    tokens.reduce((a, b) => a + b, 0) / tokens.length,
+  );
+  const maxTok = Math.max(...tokens);
+
+  // --- Failure analysis ---
+  const failures = data.cases
+    .filter(
+      (c) => c.row.status_class === "fail" || c.row.status_class === "err",
+    )
+    .sort((a, b) => {
+      const sa = parseFloat(a.row.judge_text) || 0;
+      const sb = parseFloat(b.row.judge_text) || 0;
+      return sa - sb;
+    })
+    .slice(0, 8);
+
+  const failureItems = failures
+    .map((c) => {
+      const firstUser = c.conversation.find((m) => m.role === "user");
+      const task = truncateText(firstUser?.content || c.result.case_id, 55);
+      const reason = c.row.detail_text || "(no reason)";
+      return `
+        <div class="failure-item">
+          <div class="failure-meta">
+            <span class="case-status ${c.row.status_class}">${c.row.status_text}</span>
+            <span class="failure-score-num ${c.row.judge_class}">${c.row.judge_text}</span>
+          </div>
+          <div class="failure-body">
+            <div class="failure-task">${escapeHtml(task)}</div>
+            <div class="failure-reason">${escapeHtml(reason)}</div>
+          </div>
+        </div>`;
+    })
+    .join("");
+
+  container.innerHTML = `
+    <div class="analysis-cols">
+      <div class="analysis-col">
+        <div class="analysis-col-title">Score Distribution</div>
+        <div class="score-dist">${distRows}</div>
+        <div class="perf-stats">
+          <div class="perf-stat">
+            <span class="perf-key">Avg Duration</span>
+            <span class="perf-val">${avgDur}</span>
+          </div>
+          <div class="perf-stat">
+            <span class="perf-key">Max Duration</span>
+            <span class="perf-val">${maxDur}</span>
+          </div>
+          <div class="perf-stat">
+            <span class="perf-key">Avg Tokens</span>
+            <span class="perf-val">${avgTok.toLocaleString()}</span>
+          </div>
+          <div class="perf-stat">
+            <span class="perf-key">Max Tokens</span>
+            <span class="perf-val">${maxTok.toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+      <div class="analysis-col analysis-col-grow">
+        <div class="analysis-col-title">
+          Failure Analysis
+          <span class="analysis-count">${failures.length} cases</span>
+        </div>
+        <div class="failure-list">${failureItems}</div>
+      </div>
+    </div>`;
+}
+
 // Initialize
 function init() {
   const data = decodePayload();
@@ -405,7 +543,6 @@ function init() {
   }
 
   renderSummary(data.summary);
-  renderMetrics(data.summary.metrics_summary);
   renderCaseList(data.cases);
 
   // Filter buttons
@@ -422,6 +559,11 @@ function init() {
   // Search input
   document.getElementById("search-input").addEventListener("input", () => {
     updateVisibility(data.cases);
+  });
+
+  // ESC to close modal
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal();
   });
 
   // Handle hash for deep linking

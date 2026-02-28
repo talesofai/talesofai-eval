@@ -10,23 +10,49 @@
 
 ## 安装与运行
 
-在 monorepo 根目录安装依赖：
+### 在 monorepo 内使用
 
 ```bash
 pnpm install
-```
-
-运行 CLI：
-
-```bash
 ./agent-eval --help
 ./agent-eval run --help
 ```
 
-或在 package 内：
+也可在 package 内：
 
 ```bash
 pnpm -C packages/eval agent-eval --help
+```
+
+### npm 安装后直接使用（推荐给外部用户）
+
+```bash
+npm i -g agent-eval
+agent-eval --help
+```
+
+或无需全局安装：
+
+```bash
+npx agent-eval --help
+```
+
+### 自动加载环境变量
+
+CLI 启动时会自动从当前目录向上查找并加载 `.env.local`、`.env`（不覆盖已存在环境变量）。
+建议先复制模板：
+
+```bash
+cp packages/eval/.env.example packages/eval/.env
+```
+
+### 路径兼容说明
+
+即使在 `pnpm -C packages/eval ...` 下，`--file` 也兼容以下两种写法：
+
+```bash
+--file "./cases/xxx.eval.yaml"
+--file "./packages/eval/cases/xxx.eval.yaml"
 ```
 
 ## Case 格式（.eval.yaml）
@@ -118,12 +144,14 @@ agent-eval matrix \
 - `EVAL_PLAIN_BASE_URL` / `EVAL_PLAIN_API_KEY`：plain runner 的 OpenAI compatible 配置
 
 ### agent（需要 MCP / proxy）
-- `EVAL_MCP_SERVER_BASE_URL`：MCP server base URL（例如 `http://localhost:8080`）
+- `EVAL_MCP_SERVER_BASE_URL`：可选，默认 `https://mcp.talesofai.cn`
+- `EVAL_UPSTREAM_X_TOKEN`：上游 API 鉴权 token（可在 https://www.neta.art/open/ 申请）
+- `EVAL_UPSTREAM_API_BASE_URL`：默认 `https://api.talesofai.cn`，一般无需手动设置
 
-### judge（llm_judge/diff 需要）
-- `EVAL_JUDGE_BASE_URL`
-- `EVAL_JUDGE_API_KEY`
-- `EVAL_JUDGE_MODEL`（默认 `qwen3.5-plus`）
+### judge（llm_judge/diff 必填）
+- `EVAL_JUDGE_MODEL`（必填，无默认值）
+- `EVAL_JUDGE_BASE_URL`（必填）
+- `EVAL_JUDGE_API_KEY`（必填）
 
 ### diff
 - `EVAL_DIFF_SYSTEM_PROMPT`：覆盖 diff judge 的 system prompt

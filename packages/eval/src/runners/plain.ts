@@ -10,6 +10,10 @@ import type {
   RunnerOptions,
   ToolCallRecord,
 } from "../types.ts";
+
+type PlainRunnableCase = Omit<PlainEvalCase, "type"> & {
+  type: "plain" | "agent";
+};
 import { extractMessageText } from "./message-utils.ts";
 
 const MAX_TURNS = 20;
@@ -35,7 +39,7 @@ export const resolvePlainApiKey = (
 };
 
 export const runPlain = async (
-  evalCase: PlainEvalCase,
+  evalCase: PlainRunnableCase,
   opts: RunnerOptions,
 ): Promise<EvalTrace> => {
   const startTime = Date.now();
@@ -298,7 +302,7 @@ export const runPlain = async (
 
   return {
     case_id: evalCase.id,
-    case_type: "plain",
+    case_type: evalCase.type,
     conversation,
     tools_called: toolsCalled,
     final_response: finalResponse,

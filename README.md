@@ -19,3 +19,18 @@ pnpm install
 pnpm build
 node packages/eval/dist/cli.js --help
 ```
+
+## npm direct usage
+
+```bash
+npm i -g agent-eval
+agent-eval --help
+# or
+npx agent-eval --help
+```
+
+Before running, create `.env` from template:
+
+```bash
+cp packages/eval/.env.example packages/eval/.env
+```

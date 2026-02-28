@@ -18,6 +18,7 @@ function runCli(args: string[], env?: Record<string, string>): CliResult {
     cwd: EVAL_ROOT,
     env: {
       ...process.env,
+      AGENT_EVAL_DISABLE_ENV_AUTOLOAD: "1",
       ...env,
     },
     encoding: "utf8",
@@ -66,6 +67,12 @@ describe("agent-eval CLI UX", () => {
 
   it("shows help for -h", () => {
     const result = runCli(["-h"]);
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /agent-eval/);
+  });
+
+  it("shows help when no args are provided", () => {
+    const result = runCli([]);
     assert.equal(result.status, 0);
     assert.match(result.stdout, /agent-eval/);
   });
@@ -158,6 +165,9 @@ describe("agent-eval CLI UX", () => {
       EVAL_PLAIN_API_KEY: "plain-key",
       EVAL_MCP_SERVER_BASE_URL: "",
       EVAL_UPSTREAM_API_BASE_URL: "",
+      EVAL_JUDGE_BASE_URL: "http://127.0.0.1:9/v1",
+      EVAL_JUDGE_API_KEY: "judge-key",
+      EVAL_JUDGE_MODEL: "judge-model",
     });
 
     assert.equal(result.status, 2);
@@ -191,6 +201,9 @@ describe("agent-eval CLI UX", () => {
         OPENAI_API_KEY: "test-key",
         EVAL_MCP_SERVER_BASE_URL: "",
         EVAL_UPSTREAM_API_BASE_URL: "",
+        EVAL_JUDGE_BASE_URL: "http://127.0.0.1:9/v1",
+        EVAL_JUDGE_API_KEY: "judge-key",
+        EVAL_JUDGE_MODEL: "judge-model",
       },
     );
 
@@ -283,33 +296,44 @@ describe("agent-eval CLI UX", () => {
     assert.equal(typeof payload.mode, "string");
   });
 
-  it("doctor default (all): EVAL_UPSTREAM_API_BASE_URL missing → ⚠️, exit 0", () => {
+  it("doctor default (all): no EVAL_UPSTREAM_API_BASE_URL row", () => {
     const result = runCli(["doctor"], {
       OPENAI_BASE_URL: "http://fake-llm",
       OPENAI_API_KEY: "fake-key",
+      EVAL_JUDGE_MODEL: "qwen3.5-plus",
       EVAL_MCP_SERVER_BASE_URL: "http://fake-mcp",
       EVAL_UPSTREAM_API_BASE_URL: "",
     });
     assert.equal(result.status, 0);
-    assert.match(result.stderr, /⚠/);
-    assert.match(result.stderr, /EVAL_UPSTREAM_API_BASE_URL/);
+    assert.doesNotMatch(result.stderr, /EVAL_UPSTREAM_API_BASE_URL/);
   });
 
-  it("doctor --mode agent: EVAL_UPSTREAM_API_BASE_URL missing → ❌, exit 2", () => {
+  it("doctor --mode agent: no EVAL_UPSTREAM_API_BASE_URL row", () => {
     const result = runCli(["doctor", "--mode", "agent"], {
       OPENAI_BASE_URL: "http://fake-llm",
       OPENAI_API_KEY: "fake-key",
+      EVAL_JUDGE_MODEL: "qwen3.5-plus",
       EVAL_MCP_SERVER_BASE_URL: "http://fake-mcp",
       EVAL_UPSTREAM_API_BASE_URL: "",
     });
-    assert.equal(result.status, 2);
-    assert.match(result.stderr, /EVAL_UPSTREAM_API_BASE_URL/);
+    assert.equal(result.status, 0);
+    assert.doesNotMatch(result.stderr, /EVAL_UPSTREAM_API_BASE_URL/);
   });
 
   it("report appears in help", () => {
     const result = runCli(["--help"]);
     assert.equal(result.status, 0);
     assert.match(result.stdout, /report/);
+  });
+
+  it("inspect resolves --file with ./packages/eval prefix under package cwd", () => {
+    const result = runCli([
+      "inspect",
+      "--file",
+      "./packages/eval/cases/online-f0b3ab11-de5d-4076-bdd8-0b4d216ae144.eval.yaml",
+    ]);
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /online-f0b3ab11-de5d-4076-bdd8-0b4d216ae144/);
   });
 
   it("report requires --from", () => {
@@ -376,6 +400,7 @@ describe("agent-eval CLI UX", () => {
     const result = runCli(["doctor", "--mode", "plain"], {
       OPENAI_BASE_URL: "http://fake-llm",
       OPENAI_API_KEY: "fake-key",
+      EVAL_JUDGE_MODEL: "qwen3.5-plus",
       EVAL_MCP_SERVER_BASE_URL: "http://fake-mcp",
       EVAL_PLAIN_BASE_URL: "",
     });
@@ -389,11 +414,18 @@ describe("agent-eval CLI UX", () => {
     const result = runCli(["doctor", "--format", "json", "--mode", "all"]);
     const payload = JSON.parse(result.stdout.trim());
     assert.equal(payload.mode, "all");
-    const upstreamCheck = payload.checks.find(
-      (c: { key: string }) => c.key === "EVAL_UPSTREAM_API_BASE_URL",
+    assert.equal(
+      payload.checks.some(
+        (c: { key: string }) => c.key === "EVAL_UPSTREAM_API_BASE_URL",
+      ),
+      false,
     );
-    assert.ok(upstreamCheck, "EVAL_UPSTREAM_API_BASE_URL should be in checks");
-    assert.equal(upstreamCheck.optional, true);
+
+    const plainBaseCheck = payload.checks.find(
+      (c: { key: string }) => c.key === "EVAL_PLAIN_BASE_URL",
+    );
+    assert.ok(plainBaseCheck, "EVAL_PLAIN_BASE_URL should be in checks");
+    assert.equal(plainBaseCheck.optional, true);
   });
 
   it("matrix appears in help", () => {

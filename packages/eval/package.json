@@ -8,9 +8,14 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-report-templates.mjs",
     "dev": "tsc -p tsconfig.build.json --watch",
     "prepublishOnly": "pnpm build",
     "agent-eval": "node dist/cli.js",
@@ -19,12 +24,11 @@
     "generate-schema": "node scripts/generate-schema.ts"
   },
   "dependencies": {
-    "@agent-eval/agent-runner": "workspace:*",
-    "@agent-eval/apis": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@openai/agents": "^0.4.4",
     "axios": "^1.13.2",
     "cac": "^6.7.14",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "html-minifier-terser": "^7.2.0",
     "openai": "^6.17.0",
