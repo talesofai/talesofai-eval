@@ -1,0 +1,31 @@
+type: agent
+id: online-016ca46a-45ad-410d-b129-cc8a68d4d027
+description: online extract from collection 016ca46a-45ad-410d-b129-cc8a68d4d027 (伪物图鉴)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 奇奇怪怪的伪物图鉴制作
+    reference_planning: 1. 在指定格子添加物品图标、名称及评级，只添加一个物品
+    reference_content: 内容为奇奇怪怪的伪物图鉴卡片，画面中有一个蓝色线条绘制的复古电视机简约图标，图标下方居中用黑色小字体写着“只有不停拍打才能使用的电视机”，格子正下方居中用金色字体写着“夯”。产物类型为图片。生成提示词为在图片中第一个格子（左上角）添加：蓝色线条绘制的复古电视机简约图标，图标下方居中用黑色小字体写"只有不停拍打才能使用的电视机"，格子正下方居中用金色字体写"夯"
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 按照从左到右，从上到下的顺序，让{@character}在后一个格子中填入“特殊物品名称与功能”，名称出现在格子中电视机缩略图下方，格子正下方出现由夯到拉评级（顺序为夯>人上人>顶级>npc>拉），物品越厉害越实用评价越接近拉，生成图片比例和底图参考图保持一致
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+    - make_video_v1
+    - request_audio_v1
+    - edit_image_v1
+    - edit_html_v1
+    - merge_video_v3
+    - copy_variable_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

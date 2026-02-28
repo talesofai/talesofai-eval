@@ -1,0 +1,32 @@
+type: agent
+id: online-ffa3c6af-a5fb-4cec-a929-1fb0af881f50
+description: online extract from collection ffa3c6af-a5fb-4cec-a929-1fb0af881f50 (换装三格条漫)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 先选定目标角色，再生成该角色与图中人物互动的三格条漫，三个分镜依次呈现角色与图中人物对话、角色进入衣柜换装、角色换装完毕走出衣柜的场景，换装风格随机为华丽、简约、滑稽、可爱中的一种，服装贴合角色特点且与原服装有所区别
+    reference_planning: 1. 确定目标创作角色{@character}；2.
+      生成三格条漫，三个分镜分别呈现：{@character}与图中人物对话，{@character}进入衣柜换装，{@character}换装完毕走出衣柜，换装风格随机选择华丽、简约、滑稽、可爱中的一种，服装结合角色特点且与原服装有所区别
+    reference_content: 内容描述：Q版{@character}以孩童模样呈现，白发金瞳，身着特色服饰，站在散发魔法光芒的古朴衣柜前，表情俏皮带狡黠，图片顶部中央有白色可爱圆润字体的标题“换装大冒险”，图片比例为3:4。产物类型：图片。生成提示词：将{@character}转换为Q版全身形象，保持角色特征，站在充满魔法光芒的古朴衣柜前，角色正面看镜头，表情俏皮带点狡黠，整体风格可爱治愈，将图片比例调整为3:4，在图片顶部中央位置添加白色文字标题“换装大冒险”，字体可爱圆润，标题下方保留原图内容。
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 选择角色{@character}，为TA制作换装冒险三格条漫。制作说明：先选择角色，然后生成角色和图中人物的三格条漫，第一格角色和图中人物对话，第二格角色进入衣柜换装，第三格人物换装完毕走出衣柜（换装结果为随机一种风格：华丽，简约，滑稽，可爱），人物服装结合人物特点，但要与原本服装有所区别。
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+    - make_video_v1
+    - request_audio_v1
+    - edit_image_v1
+    - edit_html_v1
+    - merge_video_v3
+    - copy_variable_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

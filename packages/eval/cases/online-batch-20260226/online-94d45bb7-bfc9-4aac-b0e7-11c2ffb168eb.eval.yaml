@@ -1,0 +1,27 @@
+type: agent
+id: online-94d45bb7-bfc9-4aac-b0e7-11c2ffb168eb
+description: online extract from collection 94d45bb7-bfc9-4aac-b0e7-11c2ffb168eb (角色主题汽车)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 包含角色信息、角色参考图和最终生成插画的单图图文模板
+    reference_planning: /*<group><assign>将选中角色的信息赋值给变量var_char</assign></group><group><assign>将选中角色的avatar_img赋值给变量ref_image</assign></group><group><edit_image>基于ref_image生成赋值给变量main_image的插画</edit_image></group><group><end></end></group>*/
+    reference_content: 'main_image:
+      生成一张图片：将19岁乖巧小奶狗邢思爱形象转化为可爱汽车，车身采用奶白色为主色调，车顶加装毛绒绒的白色狗耳朵造型装饰，前脸圆形大灯像无辜的狗狗眼睛，车牌位置设计成"四i小狗"字样，车门两侧印有pubg游戏元素和王者荣耀英雄图案，车轮轮毂采用骨头形状，车尾有小巧的狗尾巴天线，整体风格软萌可爱，要求图片比例3:4'
+    reference_content_schema: "var_char: character 选中的角色; ref_image: image 角色带的参考图;
+      main_image: image 最终生成图"
+  messages:
+    - role: user
+      content: 根据{@character}的性格和背景，使用对应车型，并融入其特征元素来捏一辆汽车
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

@@ -1,0 +1,37 @@
+type: agent
+id: online-27797c44-84e1-46e5-8fd4-526f65a43dea
+description: online extract from collection 27797c44-84e1-46e5-8fd4-526f65a43dea (摸鱼木鱼)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 包含标题、可交互图片、点击文字数值及计数器的电子木鱼玩具
+    reference_planning: /*<group>1. 调用 request_text tool，获取赋值给变量 Title
+      的内容。</group><group>2. 调用 request_character tool，获取赋值给变量 character
+      的内容。</group><group>3. 调用 make_image tool，生成赋值给变量 target_image
+      的图片。</group><group>4. 调用 request_text tool，获取赋值给变量 text_counter
+      的内容。</group><group>5. 调用 request_text tool，获取赋值给变量 text_total_count
+      的内容。</group><group>6. 调用 request_audio tool，获取赋值给变量 bgm
+      的内容。</group><group><end></end></group>*/
+    reference_content: 'Title: 摸鱼能摸多少分钟？; target_image:
+      {character}，/办公摸鱼风，手持蓝色渐变木鱼，背景是电脑屏幕显示"摸鱼时间"文档，眼神带着狡黠的笑意，周围有漂浮的咖啡杯和零食碎屑，空间魔法粒子变成键盘按键形状;
+      text_counter:
+      摸鱼+5分钟,带薪如厕+10分钟,老板不在×2!,下午茶时间+15分钟,摸鱼达人成就+30分钟,系统提示:今日额度已满!;
+      text_total_count: 今日摸鱼额度'
+    reference_content_schema: "Title: string 玩具的标题; target_image: image 可交互元素的url;
+      text_counter: string 点击跳出文字及数值; text_total_count: string 计数器总数"
+  messages:
+    - role: user
+      content: 以“作业没写完怎么办？”为主题，制作一个电子木鱼玩具，点击{@character}可交互元素会跳出不同文字和数值，还有特殊事件，计数器显示作业完成进度
+  allowed_tool_names:
+    - request_text_v1
+    - make_image_v1
+    - request_audio_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

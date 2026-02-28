@@ -1,0 +1,32 @@
+type: agent
+id: online-8882af2b-d711-45a4-93c3-a79084ca86e3
+description: online extract from collection 8882af2b-d711-45a4-93c3-a79084ca86e3 (圣诞树挂件)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 添加角色设计元素的圣诞树装饰挂件
+    reference_planning: 使用edit image工具，以圣诞树底图为参考，添加符合{@character} 特征的小型挂件，不修改底图其他部分。
+    reference_content: 一棵绿色圣诞树，树冠右侧有一个黑色哥特式蝴蝶结与紫色菱形宝石元素组成的吊坠形状挂件，尺寸约为树冠宽度的1/8，色彩与原图风格统一。产物类型：图片。生成提示词：保持圣诞树底图不变，在树冠右侧添加一个小型圣诞树挂件。挂件需提取参考图中角色的黑色哥特式蝴蝶结与紫色菱形宝石元素，设计成吊坠形状，尺寸约为树冠宽度的1/8，色彩与原图风格统一。
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 使用edit image工具，以当前圣诞树图片为底图，根据新{@character}
+        的角色设计元素和特征生成新的美观圣诞树装饰挂件，禁止直接使用角色形象，要求符合角色特色且不是蝴蝶结，装饰品不要太大，禁止对此图进行添加装饰物以外的修改，装饰品之间不要替换或重叠，位置随机分布，生成图片比例和底图参考图保持一致，使用新角色参考图辅助生成。
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+    - make_video_v1
+    - request_audio_v1
+    - edit_image_v1
+    - edit_html_v1
+    - merge_video_v3
+    - copy_variable_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

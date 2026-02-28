@@ -1,0 +1,72 @@
+type: agent
+id: online-e6c836d2-5d0b-4c1e-9caf-0930324e10b0
+description: online extract from collection e6c836d2-5d0b-4c1e-9caf-0930324e10b0 (财神爷纯净换装)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 用户为所选角色进行COS换装生成（服装套装模式）。用户先上传COS参考图（服装、角色造型或主题图片），再选择角色，系统通过
+      edit_image
+      将参考图的服装元素应用到角色身上，直接生成并输出换装结果图。**核心特点：角色的面部必须清晰可见，保持原有的五官和表情，服装作为套装穿在角色身上。**
+      无UI界面，无抽卡动画，纯粹的图片生成功能。
+    reference_planning: >-
+      /*
+
+      <group>
+
+      1. 调用 request_character tool，选择赋值给变量 main_character 的角色。
+         - 提示：请选择要换装的角色
+         - 输出：main_character变量
+         - 说明：选择要进行换装的角色
+      </group>
+
+
+      <group>
+
+      2. 调用 assign tool，获取赋值给变量 character_ref_image 的角色头像图。
+         - 变量名：character_ref_image
+         - 类型：image
+         - 值：包含main_character的uuid和avatar image的url
+         - 输出：character_ref_image变量
+         - 说明：从main_character提取uuid和avatar url，构建image类型变量，用作edit_image的参考图B
+         - 注意：必须使用<value><uuid>和<url>的格式，不能使用copy_from
+      </group>
+
+
+      <group>
+
+      3. 调用 edit_image tool，直接生成赋值给变量 main_image 的最终换装图。
+         - 参考图A：user_uploaded_image（用户上传的梗图参考）
+         - 参考图B：character_ref_image（角色头像）
+         - 编辑提示词：将参考图B中的角色变成参考图A中财神爷梗图的样子。【梗图核心】让角色穿上潮流财神装扮，传统与现代融合，这是梗的关键！【变化要求】1)服装转换：身穿红金配色的官袍，富贵喜庆 2)头饰元素：佩戴金色官帽或财神帽 3)道具持有：手持金元宝（必须保留） 4)潮流元素：必须佩戴墨镜，展现嘻哈潮流风格 5)配饰添加：可添加金链、戒指等嘻哈配饰 6)表情姿态：笑容满面，招财进宝的喜感姿势 7)质感统一：传统与现代结合，既有古典元素又有潮流感。【识别度平衡】保留角色的面部特征和发型发色，让人能认出"这是XX变成了潮流财神"。【风格统一】传统+嘻哈风格，富贵喜庆，潮流财神。竖构图3:4，完整身或3/4身，简洁或喜庆背景。
+         - 输出：main_image变量
+         - 说明：生成财神爷造型梗图COS，让角色变身财神爷造型
+      </group>
+
+
+      <group>
+
+      <end></end>
+
+      </group>
+
+      */
+    reference_content: ""
+    reference_content_schema: "main_image: image 换装后的角色图片（直接通过edit_image生成并输出）"
+  messages:
+    - role: user
+      content: 将{@character}变成潮流财神，身穿红金官袍，佩戴墨镜和金饰，手持金元宝
+  allowed_tool_names:
+    - request_character_v1
+    - request_image_v1
+    - request_text_v1
+    - edit_image_v1
+    - assign_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

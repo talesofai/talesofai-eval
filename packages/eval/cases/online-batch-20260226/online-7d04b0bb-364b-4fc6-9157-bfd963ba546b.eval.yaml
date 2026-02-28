@@ -1,0 +1,56 @@
+type: agent
+id: online-7d04b0bb-364b-4fc6-9157-bfd963ba546b
+description: online extract from collection 7d04b0bb-364b-4fc6-9157-bfd963ba546b (角色闪卡)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 包含原始图、透明底图、卡面文字、带文字彩色背景闪卡
+    reference_planning: |-
+      /*
+      <group>
+       调用 make_image tool，生成赋值给变量 image 的图片。
+      </group>
+
+      <group>
+       调用 remove_background_nocrop tool，处理 image 生成赋值给变量 image_rb 的透明底图像。
+      </group>
+
+      <group>
+       调用 request_text tool，获取赋值给变量 card_text 的卡面文字。
+      </group>
+
+      <group>
+       调用 edit_image tool，处理 image_rb 生成赋值给变量 final_card 的闪卡成品。
+      </group>
+
+      <group>
+      <end></end>
+      </group>
+      */
+    reference_content: >-
+      image: {character}，/繁花画风，手持日轮刀，衣袂飘动，周围粉色花瓣飞舞，背景梦幻，画面唯美:1.2
+
+      card_text: 恋之呼吸·终之型
+
+      final_card:
+      生成一张图片：在透明底甘露寺蜜璃上方添加文字"恋之呼吸·终之型"，要求文字为粉色描金艺术字体，位于图片顶部中央，背景为粉金色渐变，图片比例3:4
+    reference_content_schema: |-
+      image: image 用户选择的图像
+      image_rb: image 透明底图像
+      card_text: string 卡面文字
+      final_card: image 带文字和彩色背景的闪卡图片
+  messages:
+    - role: user
+      content: 选择一张图片，把它抠成透明底闪卡吧
+  allowed_tool_names:
+    - make_image_v1
+    - remove_background_nocrop_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

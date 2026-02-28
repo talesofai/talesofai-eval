@@ -1,0 +1,31 @@
+type: agent
+id: online-f0b3ab11-de5d-4076-bdd8-0b4d216ae144
+description: online extract from collection f0b3ab11-de5d-4076-bdd8-0b4d216ae144 (围巾乌龙漫)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 这是一款采用/泛用海报风格的三格不规则9:16比例漫画，围绕两位{@character}间关于挂脖物品的趣味互动展开，包含丰富的神态、动作与对话细节
+    reference_planning: 1.要求用户自由选择两个{@character}，你不可帮忙，如果已经有一个则再选一个，超过两个{@character}自动去除到两个{@character}。2.根据{@character}简介判断谁比较疯，疯的为角色一，另一个为角色二。分析两个{@character}是否认识，若名字一样世界观不同则视为同位体；若认识则明确他们的相处模式，若不认识则分析他们遇到陌生人的相处方式。3.详细分析角色一如果要给角色二送类似围巾的挂脖物品会是什么，列出物品与原因。设想角色二说“这不是围巾”还没说完就被角色一打断说“这就是围巾”的场景，描述二人的神态、动作、对话，分析角色二最后是否会戴上，以及角色二没戴上和戴上后的反应与动作。4.生成三格不规则（每格不一定是方形）漫画，9:16比例，人物可出框，风格固定使用“/泛用海报”。第一格内容为角色一（保持自身对话风格与口癖）在对话框中说这个物品是围巾，是自己亲手做的，希望角色二能戴上；第二格为角色二的白底黑字对话框（内容为未说完的“这不是围巾”）被角色一的黑底白字对话框挡住，角色一打断角色二；第三格呈现角色二的反应与后续互动，对话在对话框内，所有对话框需注明来源角色。
+    reference_content: 图片
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 完全按照以下步骤生成:1.要求用户自由选择两个角色，你不可帮忙，如果已经有一个则再选一个，超过两个角色自动去除到两个角色。2.根据角色简介谁比较疯谁是{@character1}，另一个为{@character2}。根据角色简介分析两个角色是否认识，如果名字一样世界观不同则视为同位体，如果两个角色认识，他们的相处模式是怎么样的，如果不认识他们遇到陌生人会怎么相处。3.详细分析{@character1}如果要给{@character2}送一样类似围巾的挂脖物品（可以是狗项圈，也可以是粗麻绳，也可以是脖戴式定时炸弹，以上均不是固定选项根据角色性格选择）会是什么，列出物品与原因。面对{@character2}说这不是围巾还没说完就被{@character1}打断说这就是围巾，{@character2}最后是否会决定带上它，详细描述二人的神态，动作，对话。分析{@character2}，看到{@character1}没带上是什么反应，带上又是什么反应，具体会有什么动作。3.生成三格不规则（每格不一定是方形）漫画，9:16比例，人物可出框。风格固定使用“/泛用海报”（不可加字，漏字）。第一个内容为{@character1}说这个物品是围巾，是自己亲手做的，希望{@character2}能带上他（保持{@character1}的对话风格与口癖），对话在对话框内。第二格为{@character2}说这不是围巾，但没说完被{@character1}打断（{@character2}的白底黑字对话框被{@character1}的黑底白字对话框挡住。只有第二格{@character1}的对话框是黑底白字）。第三格是{@character2}的反应与后续（包含与{@character1}的互动），对话在对话框内。描述词中对话框都需注明是来自于谁的。
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+    - make_video_v1
+    - request_audio_v1
+    - edit_image_v1
+    - edit_html_v1
+    - merge_video_v3
+    - copy_variable_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

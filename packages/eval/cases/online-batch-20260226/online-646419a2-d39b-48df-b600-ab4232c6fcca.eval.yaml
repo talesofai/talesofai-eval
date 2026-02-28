@@ -1,0 +1,32 @@
+type: agent
+id: online-646419a2-d39b-48df-b600-ab4232c6fcca
+description: online extract from collection 646419a2-d39b-48df-b600-ab4232c6fcca (角色今日运势卡)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 为指定角色制作带有事件相关烫金小icon的复古风格今日命运预测卡片，呈现角色当天应做之事的预测内容
+    reference_planning: 1.选定目标{@character}；2.复刻当前卡片的古朴陈旧风格，制作一张带有与预测事件相关烫金小icon的命运预测回复卡；3.在卡片中生成关于{@character}今天该做什么事情的命运预测内容；4.选用指定的最后一张图片产物作为附件图
+    reference_content: 图片
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 选择角色{@character}，为TA制作今日命运预测回复卡。制作说明：还原古朴陈旧质感的黑底烫金风格卡片，内容为预测{@character}今日该做的一件事，添加一个与预测事件相关的烫金小icon，保持整体神秘古朴的氛围，参考附件图的视觉风格进行制作。
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+    - make_video_v1
+    - request_audio_v1
+    - remove_background_nocrop_v1
+    - edit_image_v1
+    - edit_html_v1
+    - merge_video_v3
+    - copy_variable_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

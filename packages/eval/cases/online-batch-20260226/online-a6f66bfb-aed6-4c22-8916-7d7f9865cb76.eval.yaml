@@ -1,0 +1,32 @@
+type: agent
+id: online-a6f66bfb-aed6-4c22-8916-7d7f9865cb76
+description: online extract from collection a6f66bfb-aed6-4c22-8916-7d7f9865cb76 (Q版真心话冒险)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 二次元Q版羊角女孩真心话大冒险温馨场景插画
+    reference_planning: 将参考图中的女孩转换为二次元Q版风格插画，调整女孩姿势为跪坐、身体前倾、一手捂嘴期待，在画面中间的上方添加文字“真心话
+      or 大冒险？”，文字风格配色和画面风格一致
+    reference_content: 二次元Q版风格插画，画面比例9:16，场景设定在室内客厅，夜晚，灯光温暖柔和，营造温馨氛围。女孩跪坐在地上的粉色垫子上，身体微微往前倾，右手捂住嘴巴，表情呈现期待的样子，背景有猫猫形状的抱枕，女孩身边摆放着饮料、零食和真心话大冒险的卡牌与纸条。画面中间的上方有文字“真心话
+      or 大冒险？”，文字风格和配色与画面的二次元Q版风格一致。图片。在参考图画面中间的上方添加文字“真心话 or
+      大冒险？”，文字风格和配色需与画面的二次元Q版风格一致，保持9:16比例，夜晚温馨氛围及其他元素不变。
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 选择一个角色和图中的羊角女孩在房间里玩真心话大冒险游戏，使用edit
+        image工具，以角色图片为参考图，生成一幅竖条三格漫画，画面比例9:16。第一格羊角女孩问“真心话还是大冒险？”，角色做出符合其设定的“真心话”或“大冒险”回答。第二格根据第一格角色的选择，若选真心话，羊角女孩提出符合角色设定的探究性、隐私性问题；若选大冒险，角色抽卡并说出挑战内容，挑战需是角色平时不会做且会让其尴尬的事情（不可学猫叫、提及死亡和血）。第三格角色回答问题或完成挑战，要体现脸红心跳的反应。保持人物特征一致，风格为条漫风格，生成一张三格漫画图片。
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+    - make_video_v2
+    - edit_image_v1
+    - copy_variable_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

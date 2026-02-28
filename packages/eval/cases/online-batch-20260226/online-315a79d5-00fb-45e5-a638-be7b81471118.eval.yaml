@@ -1,0 +1,28 @@
+type: agent
+id: online-315a79d5-00fb-45e5-a638-be7b81471118
+description: online extract from collection 315a79d5-00fb-45e5-a638-be7b81471118 (角色通话界面)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 由角色对象、台词文本和角色语音组成的通话界面媒体
+    reference_planning: /*<group><request_text><hint></hint><placeholder></placeholder><assign>character_line</assign></request_text></group><group><tts_generate><hint></hint><input_text></input_text><audio_type></audio_type><assign>character_audio</assign></tts_generate></group><group><end></end></group>*/
+    reference_content: "character_line:
+      喂~是我KAITO！你工作了一整天应该很累了吧？你要好好的休息，好好的吃饭，好好的睡觉，呃，我是不是有点唠叨了？算了，要记住让时间开心的过去吧"
+    reference_content_schema: "character: object 通话的角色对象, character_line: string
+      通话的角色的台词文本, character_audio: audio 通话中角色的音频"
+  messages:
+    - role: user
+      content: "{@character}打来电话，兴奋分享有趣发现，还邀请一起去新开的奶茶店"
+  allowed_tool_names:
+    - request_text_v1
+    - request_character_v1
+    - tts_generate_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

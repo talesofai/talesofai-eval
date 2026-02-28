@@ -1,0 +1,29 @@
+type: agent
+id: online-c3263fc0-815d-4e84-9e1e-d04ca3b5873f
+description: online extract from collection c3263fc0-815d-4e84-9e1e-d04ca3b5873f (举牌角色图)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 单图图文模板，展示角色在特定场景举牌的最终生成图
+    reference_planning: /*<group><request_character><assign>character</assign><hint></hint><placeholder></placeholder></request_character></group><group><request_text><hint></hint><placeholder></placeholder><assign>text</assign></group><group><assign><variable_name>ref_image</variable_name><copy_from>character.avatar_img</copy_from></assign></group><group><edit_image><hint></hint><assign>main_image</assign><reference_image_a>{ref_image}</reference_image_a><prompt></prompt></edit_image></group><group><end></end></group>*/
+    reference_content: "text: 跟我签契约, main_image:
+      生成一张图片：在明亮的教室里，Else•Mickey狡黠地眯起左眼，嘴角勾起甜腻笑容，双手举着写有“跟我签契约”的白色牌子，背景有课桌椅和黑板报，\
+      要求图片比例3:4"
+    reference_content_schema: "character: character 选中的角色, text: string 展示的文本,
+      ref_image: image 角色带的参考图, main_image: image 最终生成图"
+  messages:
+    - role: user
+      content: 让{@character}在教室里举牌写“借我点钱”
+  allowed_tool_names:
+    - request_character_v1
+    - request_text_v1
+    - edit_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

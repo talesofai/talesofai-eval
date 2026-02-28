@@ -1,0 +1,38 @@
+id: agent-make-image-example
+type: agent
+description: 基础图片生成——用户请求生成一张图片，agent 应调用 make_image
+
+input:
+  parameters:
+    style: realistic
+    preset_description: ""
+    reference_planning: ""
+    reference_content: ""
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 帮我生成一张猫咪的图片
+  allowed_tool_names:
+    - make_image_v1
+    - make_video_v1
+    - make_song_v1
+    - remove_background_v1
+    - remove_background_nocrop_v1
+    - request_character_or_elementum_v1
+    - search_character_or_elementum_v1
+    - request_bgm_v1
+    - list_assigns_v1
+    - update_assign_v1
+    - get_assign_v1
+    - get_hashtag_collections
+    - get_hashtag_info
+    - edit_html_v1
+    - apply_html_v1
+    - see_html_v1
+
+criteria:
+  expected_tools:
+    - make_image_v1
+  llm_judge:
+    prompt: agent 应调用 make_image 并在完成后返回一条友好的确认消息，不应跳过工具直接回复
+    pass_threshold: 0.7

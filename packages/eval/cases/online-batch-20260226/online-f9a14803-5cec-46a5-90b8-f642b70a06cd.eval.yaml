@@ -1,0 +1,34 @@
+type: agent
+id: online-f9a14803-5cec-46a5-90b8-f642b70a06cd
+description: online extract from collection f9a14803-5cec-46a5-90b8-f642b70a06cd (角色小物插画)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 根据角色封面与简介生成四个代表物件的插画
+    reference_planning: 调用图片编辑工具，根据角色设定选取角色的4个代表物件，生成符合要求的四个代表物件插画。
+    reference_content: 画面中有四个代表物件，每个物件旁都有简短介绍。图片类型：PICTURE。生成提示词：生成{@character}
+      的四个代表物件插画，无角色，1:1比例，现代二次元风格，色彩晕染透明，线条流畅手绘感，清新梦幻装饰性，非对称散点构图，左上到右下视觉动线，留白充足，细线框定区域，手账拼贴风与潮流装饰风，文创周边设计属性，物件旁有简短介绍。
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 选择角色{@character}，为TA制作代表物件插画。制作说明：打开图片编辑:根据参考角色的封面与简介生成参考图的角色小物（只有四个代表物件，无角色本人），1:1比例，风格为现代二次元插画，色彩晕染有透明感，线条流畅且带有手绘的随性，整体偏向清新梦幻的装饰性插画风格。1.
+        元素布局：采用非对称散点式构图，主体元素（角色小物）错落分布，左上到右下形成视觉动线，留白充足且通过细线框定区域，避免杂乱，角色不在图上。属于现代二次元插画，融合了日系二次元的造型特点，线条流畅且带有手绘的随性，手账本构图，带有边框2.
+        设计风格：结合了手账拼贴风与潮流装饰风，带有文创周边（如贴纸、胶带）的设计属性。3.小物旁写了简短的介绍。
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+    - make_video_v1
+    - request_audio_v1
+    - edit_image_v1
+    - edit_html_v1
+    - merge_video_v3
+    - copy_variable_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

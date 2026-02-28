@@ -1,0 +1,31 @@
+type: agent
+id: online-074cdd63-3a7a-4bdf-ae57-3c7cdd6808d9
+description: online extract from collection 074cdd63-3a7a-4bdf-ae57-3c7cdd6808d9 (Q版流沙玩具)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 由角色信息和一张Q版亚克力流沙玩具图组成的捏捏
+    reference_planning: /*<group>1. 调用 request_character tool，将选中的角色赋值给变量
+      var_char。</group><group>2. 调用 assign 工具，将 var_char 的 avatar_img 赋值给变量
+      ref_image。</group><group>3. 调用 edit_image tool，以 ref_image 为参考图，生成赋值给变量
+      main_image 的图片。</group><group><end></end></group>*/
+    reference_content: "main_image:
+      生成一张图片：将角色转换为Q版风格的亚克力流沙玩具实物图，严格保留角色原设的发型、服饰和头上的花朵装饰，优化成3头身比例，头部变大，手脚缩短，表情\
+      俏皮灵动，流沙部分呈现科技蓝紫色渐变效果，底部有底座支撑，要求图片比例3:4"
+    reference_content_schema: "var_char: character 选中的角色; ref_image: image 角色带的参考图;
+      main_image: image 最终生成图"
+  messages:
+    - role: user
+      content: 为{@character}捏一个Q版形象
+  allowed_tool_names:
+    - request_character_v1
+    - edit_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

@@ -1,0 +1,59 @@
+type: agent
+id: online-bca91627-7df6-4c46-b462-312f6b0fadb5
+description: online extract from collection bca91627-7df6-4c46-b462-312f6b0fadb5 (历史角色变身器)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 单张角色历史场景转换图
+    reference_planning: |-
+      /*
+      <group>
+      <request_character>
+      <assign>character</assign>
+      </request_character>
+      <request_text>
+      <assign>text</assign>
+      </request_text>
+      </group>
+
+      <group>
+      <assign>
+      <variable_name>ref_image</variable_name>
+      </assign>
+      </group>
+
+      <group>
+      <edit_image>
+      <assign>main_image</assign>
+      <reference_image_a>{ref_image}</reference_image_a>
+      </edit_image>
+      </group>
+
+      <group>
+      <end></end>
+      </group>
+      */
+    reference_content: |-
+      text: 清朝
+      main_image: 严格参考并保留图片中的角色外貌特征与画面风格，不得参考其他画面元素，如场景，文字等，生成1张该角色清朝皇帝，身穿明黄色龙袍，头戴帝冕，坐在金色龙椅上，手持玉玺，神情威严庄重的图片。不得直接采用原图动作及表情。要求图片比例3:4
+    reference_content_schema: |-
+      character: object 选中的角色信息
+      text: string 历史年代
+      ref_image: image 角色参考图
+      main_image: image 最终生成图
+  messages:
+    - role: user
+      content: 让{@character}变身大清皇帝，坐在龙椅上超有帝王范儿
+  allowed_tool_names:
+    - request_text_v1
+    - request_character_v1
+    - make_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

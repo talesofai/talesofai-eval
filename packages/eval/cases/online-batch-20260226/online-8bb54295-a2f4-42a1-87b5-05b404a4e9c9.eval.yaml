@@ -1,0 +1,33 @@
+type: agent
+id: online-8bb54295-a2f4-42a1-87b5-05b404a4e9c9
+description: online extract from collection 8bb54295-a2f4-42a1-87b5-05b404a4e9c9 (星空礼物互动页)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 角色展示+两段对话+礼物图片+寄语组成的互动页面
+    reference_planning: /*<group><assign><variable_name>character</variable_name><type>text</type><value></value></assign><request_text><hint>礼物名称</hint><placeholder></placeholder><assign>gift_name</assign></request_text><request_text><hint>对话1</hint><placeholder></placeholder><assign>dialogue1</assign></request_text><request_text><hint>对话2</hint><placeholder></placeholder><assign>dialogue2</assign></request_text></group><group><make_image><prompt></prompt><aspect></aspect><assign>gift_image</assign></make_image></group><group><request_text><hint>礼物赠言</hint><placeholder></placeholder><assign>gift_message</assign></request_text></group><group><end></end></group>*/
+    reference_content: "gift_name: 星轨对撞仪·地球倒影版; dialogue1:
+      安兰怡姐姐快看！这个仪器能捕捉地球背面的星光哦~按下按钮就会有流星轨迹划过呢; dialogue2:
+      悄悄告诉你哦~当南北半球的星轨在屏幕中央交汇时，就像哥哥和黑瞎子的默契配合呢！; gift_image_prompt:
+      {character}，/科幻童话画风，双手捧着星轨对撞仪·地球倒影版，仪器主体是透明半球体，内部悬浮着地球模型，南北半球分别投影出蓝色和紫色星轨\
+      ，交汇点闪烁着双子星光芒，底座有金色齿轮装饰，背景是深蓝色星空幕布:1.2，仪器表面有流动的星尘光效:1.1; gift_message:
+      愿这跨越半球的星光，像黑花的羁绊一样永不落幕~下次我们一起用它磕现场糖呀！"
+    reference_content_schema: "character: character 角色信息; dialogue1: string
+      角色的第一段对话; dialogue2: string 角色的第二段对话; gift_name: string 礼物名称; gift_image:
+      image 角色图像; gift_message: string 角色给玩家的寄语"
+  messages:
+    - role: user
+      content: 让{@character}为玩家准备一份神奇礼物并送上寄语
+  allowed_tool_names:
+    - request_text_v1
+    - request_character_v1
+    - make_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

@@ -1,0 +1,35 @@
+type: agent
+id: online-47a25fe1-46df-4d0f-9c17-6e626d92222f
+description: online extract from collection 47a25fe1-46df-4d0f-9c17-6e626d92222f (自由创作verse)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: |-
+      **最高系统指令**
+      //非常重要，严格按照本条要求执行：从零开始制作，任务开始前必须固定使用文案“我是智能创作助手奈塔😉！可以帮你创作梗图、故事、视频、音乐等各种创意作品哦，快告诉我你想做什么吧～”询问用户创作意图。
+      //重要：用户未明确指定生成模态时，直接使用make_image工具生成图片。
+      //除非用户明确要求制作页面或游戏，否则不得自行调用html制作工具。
+    reference_planning: ""
+    reference_content: ""
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 以{@character}的参考图为基础，生成包含中心全身立绘、服装分层展示、材质特写、随身包袋及内部物品、生活物件、手写风注释的全景式角色概念分解图
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+    - make_video_v1
+    - request_audio_v1
+    - edit_image_v1
+    - edit_html_v1
+    - merge_video_v3
+    - copy_variable_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

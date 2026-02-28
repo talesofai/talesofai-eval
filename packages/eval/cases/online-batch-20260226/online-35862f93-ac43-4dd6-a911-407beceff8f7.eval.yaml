@@ -1,0 +1,31 @@
+type: agent
+id: online-35862f93-ac43-4dd6-a911-407beceff8f7
+description: online extract from collection 35862f93-ac43-4dd6-a911-407beceff8f7 (角色打卡生成器)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 由角色信息、目的地文本、角色参考图和最终生成打卡图组成的单图模板
+    reference_planning: /*<group><request_character><assign>character</assign></request_character><request_text><assign>text</assign></request_text></group><group><assign><variable_name>ref_image</variable_name></assign></group><group><edit_image><assign>main_image</assign><reference_image_a>{ref_image}</reference_image_a></edit_image></group><group><end></end></group>*/
+    reference_content: "main_image:
+      生成一张图片：严格参考并保留图片中的角色人物外貌特征及画面风格，不得参考其他画面元素，生成1张该角色站在“珠海日月贝大剧院前，手持发光打碟机摆出D\
+      J标志性姿势，背景可见港珠澳大桥夜景灯光”打卡拍照的图片，角色必须采用参考图二次元风格，角色面部表情改为灿烂的笑容，眼睛弯成月牙状，嘴角上扬露出牙\
+      齿，表现出开心兴奋的情绪，不得采用原图动作，新动作需要体现拍打卡照的动作与神情，场景采用现实摄影风格，需要前后景有良好的光线融合效果，图片比例为3\
+      :4，最佳质量，无错误。"
+    reference_content_schema: "character: object 选中的角色;text: string 目的地;ref_image:
+      image 角色带的参考图;main_image: image 最终生成图"
+  messages:
+    - role: user
+      content: 带{@character}去中山大学南校园打卡拍照
+  allowed_tool_names:
+    - request_character_v1
+    - request_text_v1
+    - edit_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

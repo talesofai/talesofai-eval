@@ -1,0 +1,53 @@
+type: agent
+id: online-20301c08-3b36-40cd-b248-f12700b177cd
+description: online extract from collection 20301c08-3b36-40cd-b248-f12700b177cd (角色圆形徽章)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 单张圆形徽章实物图，含角色核心元素与金属质感
+    reference_planning: |-
+      /*
+      <group>
+      <assign>
+      <variable_name>ref_image</variable_name>
+      <type>image</type>
+      <value>
+      <uuid></uuid>
+      <url></url>
+      </value>
+      </assign>
+      </group>
+
+      <group>
+      <edit_image>
+      <hint>main_image</hint>
+      <assign>main_image</assign>
+      <reference_image_a>{ref_image}</reference_image_a>
+      <prompt></prompt>
+      </edit_image>
+      </group>
+
+      <group>
+      <end></end>
+      </group>
+      */
+    reference_content: "main_image:
+      生成一张图片：将白咪桃的头像转换为圆形徽章实物，徽章边缘有金色细边框，内部保留角色的紫色星尘发梢、玫瑰帽子和星星元素，整体呈现金属质感，背景透明，\
+      要求图片比例3:4"
+    reference_content_schema: "character: character 选中的角色; ref_image: image 角色带的参考图;
+      main_image: image 最终生成图"
+  messages:
+    - role: user
+      content: 根据{@character}的头像，生成一张圆形徽章实物
+  allowed_tool_names:
+    - request_character_v1
+    - edit_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

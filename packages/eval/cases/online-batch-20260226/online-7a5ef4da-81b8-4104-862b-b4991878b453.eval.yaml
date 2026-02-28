@@ -1,0 +1,25 @@
+type: agent
+id: online-7a5ef4da-81b8-4104-862b-b4991878b453
+description: online extract from collection 7a5ef4da-81b8-4104-862b-b4991878b453 (Q版播音室)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: Q版二次元风格的女孩在播音室做播客节目
+    reference_planning: 使用edit_image工具，引用参考图，生成符合要求的Q版二次元风格图片
+    reference_content: 内容描述：Q版女孩坐在播音室里做播客节目，对着麦克风微笑说话，戴着耳机，背景有录音间或电台直播间场景，有麦克风、调音台等标志性设备，画面有“西西的直播间”和“修女西西”文字。产物类型：图片。生成提示词：以参考图中的Q版女孩为主体，保持其形象一致，生成9:16比例的图片，画面中女孩坐在播音室里，正在做播客节目，景别为中景，女孩对着麦克风微笑说话，戴着耳机，背景包含录音间或电台直播间场景，有麦克风、调音台等标志性设备，在画面合适位置添加文字“西西的直播间”和“修女西西”，字体清晰易读，与整体Q版二次元风格协调
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 选择 {@character} 做客图中的直播间，角色带上耳机，和图中戴耳机的女孩并排坐着，围绕“人生建议”进行对话，使用edit
+        image生成一幅三格对话漫画，保持图中形象和选择角色形象不变，使用角色参考图，生成的新图片与原图风格一致，生成的这一幅三格竖条漫画比例九比十六，画面内容连贯，对话符合人物设定，画面不拉伸不变形，只生成一幅三格竖条漫画
+  allowed_tool_names:
+    - edit_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

@@ -1,0 +1,27 @@
+type: agent
+id: online-3c9f6532-ce1f-438b-a147-47c24c2b76a9
+description: online extract from collection 3c9f6532-ce1f-438b-a147-47c24c2b76a9 (角色痛包)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 单图图文模板，展示角色主题痛包设计
+    reference_planning: /*<group><assign>将角色头像图片赋值给ref_image_avatar</assign></group><group><edit_image>使用ref_image_avatar生成main_image</edit_image></group><group><end></end></group>*/
+    reference_content: 'main_image:
+      生成一张图片：一款师父鼬主题痛包。主体采用白色哑光皮革，正面印有师父鼬的紫色毛发剪影图案，毛发末端带有渐变光泽，周围点缀黄色斑点和武术卷轴刺绣。包身两侧有紫色缎带蝴蝶结，包带处挂着迷你金色拳套挂件，包内侧衬里印有"毅力与努力"书法字样，整体风格武术风与可爱结合，不含人物形象，要求图片比例3:4'
+    reference_content_schema: "character: character 选中的角色; ref_image: image 角色带的参考图;
+      main_image: image 最终生成图"
+  messages:
+    - role: user
+      content: 根据{@character}的头像，捏一个专属痛包吧！
+  allowed_tool_names:
+    - request_character_v1
+    - edit_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

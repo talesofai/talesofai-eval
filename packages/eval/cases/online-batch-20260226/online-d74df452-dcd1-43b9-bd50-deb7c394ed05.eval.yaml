@@ -1,0 +1,25 @@
+type: agent
+id: online-d74df452-dcd1-43b9-bd50-deb7c394ed05
+description: online extract from collection d74df452-dcd1-43b9-bd50-deb7c394ed05 (超市零食互动)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 生成超市场景中女孩与另一角色互动的Q版可爱风格双人漫画，包含对话框和剧情，人物形象与原图一致
+    reference_planning: 生成与原图完全一致的图片
+    reference_content: 内容描述：一个长有黑色角和翅膀、穿着黑色衣服的Q版女孩站在超市货架中间，背景是各种商品，画面风格可爱。产物类型：图片。生成提示词：保持图片的所有元素、构图、色彩和细节不变，生成与原图完全一致的图片
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 使用edit
+        image，选择一个角色，在原图基础上生成双人互动漫画，确保场景为超市，画面风格为Q版可爱，人物形象与原图保持一致，添加对话框和符合人物设定的对话及剧情，生成图片比例和底图参考图保持一致
+  allowed_tool_names:
+    - edit_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

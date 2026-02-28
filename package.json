@@ -1,0 +1,15 @@
+{
+  "name": "agent-eval-monorepo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -C packages/eval build",
+    "dev": "pnpm -C packages/eval dev",
+    "test": "pnpm -C packages/eval test",
+    "typecheck": "pnpm -r typecheck",
+    "agent-eval": "pnpm -C packages/eval agent-eval"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

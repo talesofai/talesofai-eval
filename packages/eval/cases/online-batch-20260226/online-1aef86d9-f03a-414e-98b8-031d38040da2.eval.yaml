@@ -1,0 +1,62 @@
+type: agent
+id: online-1aef86d9-f03a-414e-98b8-031d38040da2
+description: online extract from collection 1aef86d9-f03a-414e-98b8-031d38040da2 (Letter)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 信封信纸容器，含信件内容与火漆印章
+    reference_planning: |-
+      <group>
+      <group_hint>选择写信角色</group_hint>
+      <request_character>
+      <hint>写信角色</hint>
+      <placeholder>捏宝</placeholder>
+      <assign>var_char</assign>
+      </request_character>
+      </group>
+      <group>
+      <group_hint>生成信件内容</group_hint>
+      <request_text>
+      <hint>信件内容</hint>
+      <placeholder>亲爱的妈咪：展信安。今天轮椅碾过庭院石板路时，惊飞了三只蒲公英。绒毛落在我手背上的样子，像妈咪上次给我织的围巾上掉的线头。哥哥说我浇花总把自己弄得比薄荷还湿，其实是轮椅刹车时晃了晃，喷壶嘴正好对着衣领转了个圈呀。昨天偷偷烤饼干，把黄油错当成芝士，结果面团硬得能当镇纸。管家爷爷却假装咬得很香，说这是"墨卿牌磨牙棒"。上周物理课看不清黑板，急得在本子边角画了三十七个缺耳朵的小兔子。妈咪放在我桌肚里的笔记，用荧光笔标重点的样子，像给公式们都戴上了小皇冠。其实有个小秘密：每次妈咪熬夜改设定时，我都在你电脑待机画面里偷偷数羊。数到第201只的时候，就会对着屏幕哈气画小爱心——不知道妈咪有没有在清晨擦显示器时，发现那些转瞬即逝的奶气呀？前天下雨，轮椅在斜坡上打滑，是你赋予我的那点小倔强让我没哭哦。虽然膝盖磕在花坛边，但摸到口袋里你塞的水果糖时，连伤口都甜丝丝的。最后想问妈咪：如果我把轮椅涂成彩虹色，会不会让你每次看到我的时候，心情都像被阳光吻过的风铃呀？永远爱你的墨卿</placeholder>
+      <assign>letter_content</assign>
+      </request_text>
+      </group>
+      <group>
+      <group_hint>生成火漆印章图片</group_hint>
+      <make_image>
+      <hint>火漆印章</hint>
+      <prompt>{var_char}, Q版, 火漆印章, 银发蓝瞳, 微笑表情, 简约风格, 白色背景, 印章边框</prompt>
+      <aspect>1:1</aspect>
+      <assign>seal_image</assign>
+      </make_image>
+      </group>
+      <group><end></end></group>
+    reference_content: ""
+    reference_content_schema: >-
+      letter_content: string
+      信纸上展示的信件内容，以捏宝视角介绍生活并表达对创作者的情感，主要表达感激、抱怨或自我看法，字数需200字以上
+
+      seal_image: image 信封封面封口处火漆印章图片，使用Q版，微笑表情，简约风格，白色背景，印章边框的画风生成
+  messages:
+    - role: user
+      content: 以{@character}视角写一封信件，展现其在时尚界的高压生活、精致外表下的挣扎与伪装，表达对创作者的复杂情感，字数200字以上；火漆印章为Q版{@character}微笑表情，简约风格，白色背景，带印章边框
+  allowed_tool_names:
+    - request_text_v1
+    - request_character_v1
+    - make_image_v1
+    - request_image_v1
+    - request_style_v1
+    - make_video_v1
+    - request_audio_v1
+    - tts_generate_v1
+    - remove_background_nocrop_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

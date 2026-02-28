@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Eval Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+{{REPORT_STYLE}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Agent Eval Report</h1>
+      <div class="summary-row" id="summary-row"></div>
+      <div class="metrics-section" id="metrics-section"></div>
+    </header>
+
+    <div class="filters">
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="pass">Pass</button>
+        <button class="filter-btn" data-filter="fail">Fail</button>
+        <button class="filter-btn" data-filter="err">Error</button>
+      </div>
+      <input type="text" class="search-input" id="search-input" placeholder="Search case ID...">
+    </div>
+
+    <div class="case-list" id="case-list"></div>
+  </div>
+
+  <script>
+{{REPORT_SCRIPT}}
+  </script>
+</body>
+</html>

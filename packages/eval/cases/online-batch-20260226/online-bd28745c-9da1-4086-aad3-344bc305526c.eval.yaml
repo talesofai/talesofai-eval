@@ -1,0 +1,27 @@
+type: agent
+id: online-bd28745c-9da1-4086-aad3-344bc305526c
+description: online extract from collection bd28745c-9da1-4086-aad3-344bc305526c (弹弹小初音)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 展示一张去背景的图片
+    reference_planning: /*<group><request_character><assign>character</assign></request_character></group><group><make_image><assign>sakana_image</assign></make_image></group><group><remove_background><input_image>sakana_image</input_image><assign>sakana_image_rm_bg</assign></remove_background></group><group><end></end></group>*/
+    reference_content: "sakana_image_prompt: {character}, /小鼻嘎, 全身"
+    reference_content_schema: "character: character 选择的角色, sakana_image: image 图片,
+      sakana_image_rm_bg: image 去背景的图片"
+  messages:
+    - role: user
+      content: 制作一个{@character}的弹来弹去小玩具，玩家可拖动角色部分实现交互效果
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+    - remove_background_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

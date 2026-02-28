@@ -1,0 +1,47 @@
+type: agent
+id: online-01b5e571-4902-4d60-9a1a-bc1600f39561
+description: online extract from collection 01b5e571-4902-4d60-9a1a-bc1600f39561 (角色冰箱贴)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 由角色信息、参考图和最终生成图组成的单图图文模板
+    reference_planning: |-
+      /*
+      <group>
+      1. 调用 assign tool，将角色信息赋值给变量 character。
+      </group>
+
+      <group>
+      2. 调用 assign tool，将角色参考图赋值给变量 ref_image。
+      </group>
+
+      <group>
+      3. 调用 edit_image tool，以 ref_image 为参考图生成 main_image。
+      </group>
+
+      <group>
+      <end></end>
+      </group>
+      */
+    reference_content: "main_image:
+      生成一张该角色为主体的Q版半身金属冰箱贴，保留角色黑发黑瞳、蓝色制服特征，手牵手动作，背景简化为月夜星空元素，放置在带蝴蝶结的精致礼盒中，礼盒内衬\
+      为深蓝色丝绒，图片比例3:4。"
+    reference_content_schema: |-
+      character: character 选中的角色
+      ref_image: image 角色带的参考图
+      main_image: image 最终生成图
+  messages:
+    - role: user
+      content: 为{@character}捏一个手捧小雏菊、戴着金色耳环、穿着黑色连衣裙的冰箱贴，放在礼盒里，精致又温柔～
+  allowed_tool_names:
+    - request_character_v1
+    - edit_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

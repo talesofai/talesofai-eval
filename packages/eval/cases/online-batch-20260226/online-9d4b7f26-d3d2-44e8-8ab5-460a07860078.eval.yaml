@@ -1,0 +1,30 @@
+type: agent
+id: online-9d4b7f26-d3d2-44e8-8ab5-460a07860078
+description: online extract from collection 9d4b7f26-d3d2-44e8-8ab5-460a07860078 (毛绒娃娃生成)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 由一张角色毛绒娃娃化的最终生成图组成
+    reference_planning: /*<group><assign><variable_name>ref_image</variable_name><type>image</type><value><uuid></uuid><url></url></value></assign><request_character><assign>character</assign><hint></hint><placeholder></placeholder></request_character></group><group><edit_image><hint></hint><assign>main_image</assign><reference_image_a>{ref_image}</reference_image_a><prompt></prompt></edit_image></group><group><edit_image><assign>main_image</assign><reference_image_a>{main_image}</reference_image_a><prompt></prompt></edit_image></group><group><end></end></group>*/
+    reference_content: "main_image:
+      生成一张2头身全身Q版散兵毛绒娃娃在白色背景下的图片，保留角色蓝紫色渐变短发、紫色瞳色和经典服饰元素，材质为柔软毛绒质感，要求图片比例3:4。生成\
+      一张2头身全身Q版散兵毛绒娃娃在白色背景下的图片，角色穿着白色荷叶边女仆装，头戴粉色兔耳发箍，身后添加蓬松白色猫尾，保留蓝紫色渐变短发和紫色瞳色，\
+      材质为柔软毛绒质感，要求图片比例3:4。生成一张图片，将参考图中毛绒娃娃的女仆装荷叶边增加立体感，兔耳内部添加粉色绒毛细节，猫尾末端点缀浅紫色蝴蝶\
+      结，整体毛绒材质表现更蓬松柔软，保留2头身Q版比例和白色背景，图片比例3:4"
+    reference_content_schema: "character: character 选中的角色; ref_image: image 角色带的参考图;
+      main_image: image 最终生成图"
+  messages:
+    - role: user
+      content: 把{@character}变成毛绒娃娃吧
+  allowed_tool_names:
+    - request_character_v1
+    - edit_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

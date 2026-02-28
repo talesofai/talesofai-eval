@@ -1,0 +1,42 @@
+{
+  "name": "agent-eval",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "bin": {
+    "agent-eval": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "prepublishOnly": "pnpm build",
+    "agent-eval": "node dist/cli.js",
+    "test": "node --test src/tests/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "generate-schema": "node scripts/generate-schema.ts"
+  },
+  "dependencies": {
+    "@agent-eval/agent-runner": "workspace:*",
+    "@agent-eval/apis": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "@openai/agents": "^0.4.4",
+    "axios": "^1.13.2",
+    "cac": "^6.7.14",
+    "express": "^5.2.1",
+    "html-minifier-terser": "^7.2.0",
+    "openai": "^6.17.0",
+    "picocolors": "^1.1.1",
+    "pino": "^9.5.0",
+    "yaml": "^2.8.2",
+    "zod": "^4.3.6",
+    "zod3": "npm:zod@^3.25.76"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/html-minifier-terser": "^7.0.2",
+    "zod-to-json-schema": "^3.25.1"
+  }
+}

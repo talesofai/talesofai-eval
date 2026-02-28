@@ -1,0 +1,109 @@
+type: agent
+id: online-fc1e6bfb-3f0b-4a8d-93e5-da2580ba07b5
+description: online extract from collection fc1e6bfb-3f0b-4a8d-93e5-da2580ba07b5 (八轮对话模板)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 八轮对话形式，展示两角色发言及好感度变化
+    reference_planning: /*<group>1. 调用 assign tool，将用户提供的角色赋值给变量 character_A。2. 调用
+      request_character tool，获取赋值给变量 character_B 的角色。</group><group>3. 调用
+      request_text tool，获取赋值给变量 character_A_talk_1 的角色A第1轮发言。4. 调用 request_text
+      tool，获取赋值给变量 affection_A_1 的角色A第1轮好感度。5. 调用 request_text tool，获取赋值给变量
+      character_B_talk_1 的角色B第1轮发言。6. 调用 request_text tool，获取赋值给变量 affection_B_1
+      的角色B第1轮好感度。7. 调用 request_text tool，获取赋值给变量 is_end_1
+      的第1轮是否结束。</group><group>8. 调用 request_text tool，获取赋值给变量 character_A_talk_2
+      的角色A第2轮发言。9. 调用 request_text tool，获取赋值给变量 affection_A_2 的角色A第2轮好感度。10. 调用
+      request_text tool，获取赋值给变量 character_B_talk_2 的角色B第2轮发言。11. 调用 request_text
+      tool，获取赋值给变量 affection_B_2 的角色B第2轮好感度。12. 调用 request_text tool，获取赋值给变量
+      is_end_2 的第2轮是否结束。</group><group>13. 调用 request_text tool，获取赋值给变量
+      character_A_talk_3 的角色A第3轮发言。14. 调用 request_text tool，获取赋值给变量
+      affection_A_3 的角色A第3轮好感度。15. 调用 request_text tool，获取赋值给变量
+      character_B_talk_3 的角色B第3轮发言。16. 调用 request_text tool，获取赋值给变量
+      affection_B_3 的角色B第3轮好感度。17. 调用 request_text tool，获取赋值给变量 is_end_3
+      的第3轮是否结束。</group><group>18. 调用 request_text tool，获取赋值给变量
+      character_A_talk_4 的角色A第4轮发言。19. 调用 request_text tool，获取赋值给变量
+      affection_A_4 的角色A第4轮好感度。20. 调用 request_text tool，获取赋值给变量
+      character_B_talk_4 的角色B第4轮发言。21. 调用 request_text tool，获取赋值给变量
+      affection_B_4 的角色B第4轮好感度。22. 调用 request_text tool，获取赋值给变量 is_end_4
+      的第4轮是否结束。</group><group>23. 调用 request_text tool，获取赋值给变量
+      character_A_talk_5 的角色A第5轮发言。24. 调用 request_text tool，获取赋值给变量
+      affection_A_5 的角色A第5轮好感度。25. 调用 request_text tool，获取赋值给变量
+      character_B_talk_5 的角色B第5轮发言。26. 调用 request_text tool，获取赋值给变量
+      affection_B_5 的角色B第5轮好感度。27. 调用 request_text tool，获取赋值给变量 is_end_5
+      的第5轮是否结束。</group><group>28. 调用 request_text tool，获取赋值给变量
+      character_A_talk_6 的角色A第6轮发言。29. 调用 request_text tool，获取赋值给变量
+      affection_A_6 的角色A第6轮好感度。30. 调用 request_text tool，获取赋值给变量
+      character_B_talk_6 的角色B第6轮发言。31. 调用 request_text tool，获取赋值给变量
+      affection_B_6 的角色B第6轮好感度。32. 调用 request_text tool，获取赋值给变量 is_end_6
+      的第6轮是否结束。</group><group>33. 调用 request_text tool，获取赋值给变量
+      character_A_talk_7 的角色A第7轮发言。34. 调用 request_text tool，获取赋值给变量
+      affection_A_7 的角色A第7轮好感度。35. 调用 request_text tool，获取赋值给变量
+      character_B_talk_7 的角色B第7轮发言。36. 调用 request_text tool，获取赋值给变量
+      affection_B_7 的角色B第7轮好感度。37. 调用 request_text tool，获取赋值给变量 is_end_7
+      的第7轮是否结束。</group><group>38. 调用 request_text tool，获取赋值给变量
+      character_A_talk_8 的角色A第8轮发言。39. 调用 request_text tool，获取赋值给变量
+      affection_A_8 的角色A第8轮好感度。40. 调用 request_text tool，获取赋值给变量
+      character_B_talk_8 的角色B第8轮发言。41. 调用 request_text tool，获取赋值给变量
+      affection_B_8 的角色B第8轮好感度。42. 调用 request_text tool，获取赋值给变量 is_end_8
+      的第8轮是否结束。43. 调用 request_text tool，获取赋值给变量 final_ending
+      的最终结局。</group><group><end></end></group>*/
+    reference_content: "character_A_talk_1:
+      （轻摇墨竹扇立于鸟居下）此神社结界竟与百年前古卷所载吻合，姑娘可是守护此地的巫女？, affection_A_1: 5,
+      character_B_talk_1: （尾巴炸成蓬松毛球）呀！您、您是迷路的客人吗？神社后山有会偷御守的狐狸哦！（耳朵警惕地转向声源）,
+      affection_B_1: 4, is_end_1: 继续, character_A_talk_2:
+      （展开扇面露出星图拓本）此扇可引星轨，姑娘若信得过，可否借一步查看结界裂隙？, affection_A_2: 6,
+      character_B_talk_2: （尾巴尖勾住朱漆柱晃悠）星图？和我家神签上的不一样呢！（耳朵前倾蹭过墨瑶衣袖）,
+      affection_B_2: 5, is_end_2: 继续, character_A_talk_3:
+      （指尖划过扇骨符文）结界裂隙在钟楼方向，需借姑娘的灵力共鸣星象。, affection_A_3: 7, character_B_talk_3:
+      （尾巴卷成问号状）灵力？是像给神树浇水那样吗？（爪子拍向发光扇面）, affection_B_3: 6, is_end_3: 继续,
+      character_A_talk_4: （扇子抵住裂隙溢出的黑气）小心！这是时空褶皱的余烬。, affection_A_4: 8,
+      character_B_talk_4: （尾巴炸毛护住墨瑶后背）狐狸！又来偷东西！（耳朵贴紧头皮弓起身子）, affection_B_4: 7,
+      is_end_4: 继续, character_A_talk_5: （扇面星轨与神社铃铛共鸣）多谢姑娘灵力相助，这枚星砂拓本赠予你吧。,
+      affection_A_5: 9, character_B_talk_5:
+      （尾巴缠上墨瑶手腕打了个蝴蝶结）拓本可以当书签吗？下次还能教我画星图吗？（耳朵蹭着墨瑶肩头）, affection_B_5: 8,
+      is_end_5: 继续, character_A_talk_6: （轻嗅茶碗中雪水香）此茶竟用冬雪封存的山泉水，姑娘有心了。,
+      affection_A_6: 9, character_B_talk_6:
+      （尾巴在榻榻米上扫出小漩涡）巫女姐姐说雪水茶能安神~（爪子推过草莓大福）, affection_B_6: 8, is_end_6: 继续,
+      character_A_talk_7: （执起小夏沾墨的爪子按在宣纸上）这样拓印的星图，比扇面更生动呢。, affection_A_7: 10,
+      character_B_talk_7: （尾巴在宣纸上扫出墨色弧线）墨瑶姐姐！爪子变成流星笔啦！（耳朵抖落墨点）, affection_B_7:
+      9, is_end_7: 继续, character_A_talk_8:
+      （将合扇插入小夏发间）此扇暂存姑娘处，待下次星轨交汇时，再共饮雪水茶如何？, affection_A_8: 10,
+      character_B_talk_8: （尾巴圈住墨竹扇柄）拉钩！下次要教我用尾巴画北斗七星哦！（耳朵蹭着墨瑶鬓角）, affection_B_8:
+      10, is_end_8: 结束, final_ending:
+      墨瑶将星图扇留在神社，小夏每日用尾巴擦拭扇面。三日后满月夜，扇骨突然亮起——墨瑶的身影自星轨中走来，手中提着装满雪水茶的古铜壶。"
+    reference_content_schema: "character_A: character 1号嘉宾, character_B: character
+      2号嘉宾, character_A_talk_1: string 角色A第1轮发言, character_A_talk_2: string
+      角色A第2轮发言, character_A_talk_3: string 角色A第3轮发言, character_A_talk_4: string
+      角色A第4轮发言, character_A_talk_5: string 角色A第5轮发言, character_A_talk_6: string
+      角色A第6轮发言, character_A_talk_7: string 角色A第7轮发言, character_A_talk_8: string
+      角色A第8轮发言, character_B_talk_1: string 角色B第1轮发言, character_B_talk_2: string
+      角色B第2轮发言, character_B_talk_3: string 角色B第3轮发言, character_B_talk_4: string
+      角色B第4轮发言, character_B_talk_5: string 角色B第5轮发言, character_B_talk_6: string
+      角色B第6轮发言, character_B_talk_7: string 角色B第7轮发言, character_B_talk_8: string
+      角色B第8轮发言, is_end_1: string 第1轮是否结束, is_end_2: string 第2轮是否结束, is_end_3:
+      string 第3轮是否结束, is_end_4: string 第4轮是否结束, is_end_5: string 第5轮是否结束,
+      is_end_6: string 第6轮是否结束, is_end_7: string 第7轮是否结束, is_end_8: string
+      第8轮是否结束, affection_A_1: string 角色A第1轮好感度, affection_A_2: string 角色A第2轮好感度,
+      affection_A_3: string 角色A第3轮好感度, affection_A_4: string 角色A第4轮好感度,
+      affection_A_5: string 角色A第5轮好感度, affection_A_6: string 角色A第6轮好感度,
+      affection_A_7: string 角色A第7轮好感度, affection_A_8: string 角色A第8轮好感度,
+      affection_B_1: string 角色B第1轮好感度, affection_B_2: string 角色B第2轮好感度,
+      affection_B_3: string 角色B第3轮好感度, affection_B_4: string 角色B第4轮好感度,
+      affection_B_5: string 角色B第5轮好感度, affection_B_6: string 角色B第6轮好感度,
+      affection_B_7: string 角色B第7轮好感度, affection_B_8: string 角色B第8轮好感度,
+      final_ending: string 最终结局"
+  messages:
+    - role: user
+      content: 让{@character1}和{@character2}在线上聊天，模拟相亲场景，通过对话增进好感度，持续多轮互动。
+  allowed_tool_names:
+    - request_text_v1
+    - request_character_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

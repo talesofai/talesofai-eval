@@ -1,0 +1,32 @@
+type: agent
+id: online-1740cfcd-6502-43d1-8aec-984e52f8f356
+description: online extract from collection 1740cfcd-6502-43d1-8aec-984e52f8f356 (萌鸭角色融合)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 将指定角色的外形特征（发色、服饰、瞳色等）融合到鸭子卡通形象中，制作同款融合Q版角色图
+    reference_planning: 1. 制作融合鸭子卡通形象与{@character}外形特征的Q版角色图；2.
+      优化该角色图，使发色和服饰更贴合{@character}；3. 调整该角色图的瞳孔颜色至与{@character}一致，完成最终产物
+    reference_content: 卡通Q版鸭子形象，融入{@character}的粉白渐变发色、紫黑搭配服饰、紫色瞳孔等外形特征，背景为纯白色，产物类型：图片，生成提示词：参考鸭子的形象，将{@character}的粉白发色、紫黑衣服、紫色瞳色等外形特征添加到鸭子身上，保持卡通风格不变
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 选择角色{@character}，为TA制作同款角色特征融合鸭形形象。制作说明：调用图像编辑工具，将附件鸭子图与{@character}的外形特征（发色、配饰、衣服等）融合；若效果不够贴合角色设定，强化{@character}的核心外形元素；最后调整细节（如瞳色），确保形象完全贴合{@character}的设定，保持卡通风格不变。
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+    - make_video_v1
+    - request_audio_v1
+    - edit_image_v1
+    - edit_html_v1
+    - merge_video_v3
+    - copy_variable_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

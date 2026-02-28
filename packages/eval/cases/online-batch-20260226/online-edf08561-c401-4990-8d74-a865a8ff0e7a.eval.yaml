@@ -1,0 +1,33 @@
+type: agent
+id: online-edf08561-c401-4990-8d74-a865a8ff0e7a
+description: online extract from collection edf08561-c401-4990-8d74-a865a8ff0e7a (角色特质测评表)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 根据角色设定对特质表格进行填涂测评
+    reference_planning: 1. 打开空白表格图片。2. 根据{@character}的角色设定，判断表格中所有特质标签的符合程度。3.
+      对符合的特质格子用红色按符合程度填涂，特别符合可超出格子，不符合的保持空白，确保所有格子都参与判断填涂，填涂比例不低于20%，并在左上角标明为该角色的测评表，生成最终填涂后的图片。
+    reference_content: 内容描述：一张包含多个特质标签（如攻、受、傲娇、腹黑、温柔、可爱等）的空白表格图片，每个特质对应一个空白格子。产物类型：图片。生成提示词：无。
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 选择角色{@character}，为TA制作特质测评表。制作说明：根据{@character}的角色设定，对照空白表格里的每一个特质标签（比如攻、受、傲娇、爱发疯等），判断角色是否符合/符合程度；使用edit
+        image,生成一张在对应特质的格子里用红色填涂的图（按符合程度涂满，越符合涂的越满，不符合就空着，特别符合可以超出格子）；表格其他内容保持不变。只生成一张最后涂完的图。每一个格子都要判断能不能填，下面的格子也要看一下能不能填，整个表格每一个特质都参与判断并填涂，可以全部涂满，可以全部空白，填涂格子比例占全部的20%以上。在图片左上角用中文标明为该角色的测评表。
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+    - make_video_v1
+    - request_audio_v1
+    - edit_image_v1
+    - edit_html_v1
+    - merge_video_v3
+    - copy_variable_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

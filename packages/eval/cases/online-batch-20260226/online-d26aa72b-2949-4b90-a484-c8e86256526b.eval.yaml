@@ -1,0 +1,27 @@
+type: agent
+id: online-d26aa72b-2949-4b90-a484-c8e86256526b
+description: online extract from collection d26aa72b-2949-4b90-a484-c8e86256526b (轮廓文字创意图)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 制作与参考图同角色数量、仅含角色轮廓搭配单色或彩色文字的3:4比例同款创意图片
+    reference_planning: 1. 以提供的产物图片为参考，使用与当前作品相同数量的角色；2.
+      生成仅包含角色轮廓+单色或彩色文字的图片，不绘制角色细节，在提示词中明确要求图片比例为3:4；3. 完成最终的同款图片制作。
+    reference_content: 图片
+    reference_content_schema: "character: object 选中的角色; ref_image: image 角色带的参考图;
+      main_image: image 最终生成图"
+  messages:
+    - role: user
+      content: 选择角色{@character}，为TA制作同款角色轮廓+文字创意图。制作说明：以附件图为参考，仅保留{@character}的角色轮廓，不绘制角色细节；在轮廓内添加单色或彩色相关文字；生成图片时设置比例为3:4，并将此比例要求写入生成提示词中。
+  allowed_tool_names:
+    - request_character_v1
+    - edit_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

@@ -1,0 +1,43 @@
+type: agent
+id: online-d37a01fb-de06-4f05-bb54-1e849abb958b
+description: online extract from collection d37a01fb-de06-4f05-bb54-1e849abb958b (海边三宫格写真)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 三宫格竖版海边写真图，每张图为海边场景，底部有中英文字幕
+    reference_planning: /*<group>1. 调用 make_image tool，生成赋值给变量 portrait_image
+      的角色大头照。</group><group>2. 调用 edit_image tool，将 portrait_image 作为参考图，生成赋值给变量
+      main_image 的三宫格海边写真图。</group><end></end>*/
+    reference_content: 1.
+      内容描述：角色大头照肖像图（大头照风格）；生成提示词：{@character},solo,portrait,looking at
+      viewer,simple background,/夢空间。2.
+      内容描述：最终三宫格海边写真图，包含三张图片，第一张为近景，站在沙滩上的背影，风吹起头发，发丝凌乱，添加中英字幕"山的后面是什么？-What's
+      beyond the
+      mountain?-"；第二张是手持橙色花束，侧身站立于海边，看向手中的花，风吹起头发，发丝凌乱，添加中英字幕"你不用告诉我-You don't
+      have to tell me-"；第三张是特写，人物脸部位于画面偏左侧，风吹起头发，发丝凌乱，添加中英字幕"我会自己去看-I will go
+      see for
+      myself-"。整体色调清冷，带有富士胶片效果，过度曝光，画面粗粝且色调偏冷，暗部细节保留完整，高光区域呈现自然晕化、均采用柔和漫射光，无明显硬边阴影，营造出文艺且充满自我探索情绪的氛围，三张图合成一个三宫格，字幕位于底部居中，比例2:3；生成提示词：生成一张图片：一组三宫格艺术感写真图，海边写真图，场景为海边沙滩，天空呈淡紫与灰色渐变，海面平静。画面中人物和参考图一致，穿着黑色上衣，搭配蓝色围巾，人物和脸不变。第一张为近景，站在沙滩上的背影，风吹起头发，发丝凌乱，添加中英字幕"山的后面是什么？-What's
+      beyond the
+      mountain?-"；第二张是手持橙色花束，侧身站立于海边，看向手中的花，风吹起头发，发丝凌乱，添加中英字幕"你不用告诉我-You don't
+      have to tell me-"；第三张是特写，人物脸部位于画面偏左侧，风吹起头发，发丝凌乱，添加中英字幕"我会自己去看-I will go
+      see for
+      myself-"。整体色调清冷，带有富士胶片效果，过度曝光，画面粗粝且色调偏冷，暗部细节保留完整，高光区域呈现自然晕化、均采用柔和漫射光，无明显硬边阴影，营造出文艺且充满自我探索情绪的氛围，三张图合成一个三宫格，字幕位于底部居中，比例2:3
+    reference_content_schema: "character: character 主角角色, portrait_image: image
+      角色肖像图（大头照风格）, main_image: image 最终三宫格海边写真图"
+  messages:
+    - role: user
+      content: 为{@character}生成海边氛围感写真三宫格，带文艺字幕和富士胶片质感
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+    - edit_image_v1
+    - assign_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

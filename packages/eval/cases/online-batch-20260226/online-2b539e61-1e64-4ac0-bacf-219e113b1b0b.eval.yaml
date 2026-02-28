@@ -1,0 +1,34 @@
+type: agent
+id: online-2b539e61-1e64-4ac0-bacf-219e113b1b0b
+description: online extract from collection 2b539e61-1e64-4ac0-bacf-219e113b1b0b (九宫格Q版表情包)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 制作同款3*3布局LINE风格Q版角色九宫格表情包，每个格子含角色不同日常表情动作及对应手写聊天语句
+    reference_planning: 1. 生成{@character}的LINE风格、彩色手绘、圆润线条的Q版半身基础图；2.
+      基于该Q版基础图，制作3*3布局的9格表情包，每个格子呈现{@character}不同日常表情动作，搭配对应手写简体中文聊天语句，保持LINE风格、彩色手绘、圆润线条、色彩鲜明可爱的风格
+    reference_content: 内容描述：3*3布局的9格表情包，每个格子中是Q版{@character}做出惊讶、开心、疑惑、害羞、生气、委屈、发呆、得意、吃瓜的不同日常表情动作，每个格子下方配有对应的手写简体中文聊天语句“哇哦😯”、“好开心🥳”、“啥意思呀🤔”、“人家害羞啦😳”、“气死我了😤”、“好委屈🥺”、“发呆ing😶”、“看我厉害不😎”、“前排吃瓜🍉”，整体为LINE风格，彩色手绘，圆润线条，色彩鲜明可爱。产物类型：图片。生成提示词：参考Q版基础图，生成3*3布局的表情包，共9个格子，每个格子里是{@character},做出不同日常表情动作，分别是惊讶,开心,疑惑,害羞,生气,委屈,发呆,得意,吃瓜,每个格子下方添加对应的手写简体中文聊天语句：“哇哦😯”,“好开心🥳”,“啥意思呀🤔”,“人家害羞啦😳”,“气死我了😤”,“好委屈🥺”,“发呆ing😶”,“看我厉害不😎”,“前排吃瓜🍉”,整体保持LINE风格,彩色手绘,圆润线条,色彩鲜明可爱
+    reference_content_schema: ""
+  messages:
+    - role: user
+      content: 选择角色{@character}，为TA制作3*3布局的LINE风格表情包。制作说明：1.
+        先为{@character}生成LINE风格、彩色手绘、圆润线条的Q版半身基础图；2.
+        基于基础图生成3*3布局的9格表情包，每个格子呈现角色不同日常表情动作（惊讶、开心、疑惑、害羞、生气、委屈、发呆、得意、吃瓜），每个格子下方添加对应手写简体中文聊天语句：“哇哦😯”、“好开心🥳”、“啥意思呀🤔”、“人家害羞啦😳”、“气死我了😤”、“好委屈🥺”、“发呆ing😶”、“看我厉害不😎”、“前排吃瓜🍉”，整体保持色彩鲜明、线条圆润可爱的LINE风格。
+  allowed_tool_names:
+    - request_character_v1
+    - make_image_v1
+    - make_video_v1
+    - request_audio_v1
+    - edit_image_v1
+    - edit_html_v1
+    - merge_video_v3
+    - copy_variable_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

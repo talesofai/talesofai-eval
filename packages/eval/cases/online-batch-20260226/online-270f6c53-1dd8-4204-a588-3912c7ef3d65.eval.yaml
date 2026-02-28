@@ -1,0 +1,31 @@
+type: agent
+id: online-270f6c53-1dd8-4204-a588-3912c7ef3d65
+description: online extract from collection 270f6c53-1dd8-4204-a588-3912c7ef3d65 (角色打卡照)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 一个角色娃娃在指定目的地真实场景的打卡照片
+    reference_planning: /*<group><request_character><assign>character</assign><hint></hint><placeholder></placeholder></request_character><request_text><hint></hint><placeholder></placeholder><assign>text</assign></request_text></group><group><make_image><prompt></prompt><aspect></aspect><assign>ref_image</assign></make_image></group><group><edit_image><hint></hint><assign>main_image</assign><placeholder></placeholder><reference_image_a>{ref_image}</reference_image_a><reference_image_b></reference_image_b><reference_image_c></reference_image_c><prompt></prompt></edit_image></group><group><end></end></group>*/
+    reference_content: "ref_image:
+      {character}，/动画印象风，齐肩短发，冷静眼神，蓝白校服，双手插兜站姿，白色长袜，黑色皮鞋，简约白色背景; main_image:
+      生成一张图片：严格参考并保留图片中灰原哀的外貌特征（蓝白校服、齐肩短发、冷静眼神），生成1张该角色变成Q版毛绒娃娃站在“北京故宫午门广场，背景可见\
+      故宫全景”打卡的图片，角色不得采用原图动作，新动作需要体现举着蜜雪冰城柠檬茶饮料杯自拍的动作与开心神情并有符合现代都市风格的休闲服装，场景采用现实\
+      摄影风格，需要前后景有良好的光线融合效果，图片比例为3:4，最佳质量，无错误"
+    reference_content_schema: "character: string 选中的角色; text: string 目的地; ref_image:
+      image 角色带的参考图; main_image: image 最终生成图"
+  messages:
+    - role: user
+      content: 让{@character}手持蜜雪冰城柠檬茶，在东方明珠下开心自拍打卡吧～
+  allowed_tool_names:
+    - request_character_v1
+    - request_text_v1
+    - edit_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

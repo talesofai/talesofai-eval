@@ -1,0 +1,81 @@
+type: agent
+id: online-00db1e19-763b-4834-87e0-f19d65009f96
+description: online extract from collection 00db1e19-763b-4834-87e0-f19d65009f96 (手帐拼贴)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 单张手帐拼贴图，含角色形象、元素拼贴及文字片段
+    reference_planning: |-
+      /*
+      <group>
+      <assign>
+      <variable_name>ref_image</variable_name>
+      <type>image</type>
+      <value>
+      <uuid></uuid>
+      <url></url>
+      </value>
+      </assign>
+      <assign>
+      <variable_name>attachment_image_0</variable_name>
+      <type>image</type>
+      <value>
+      <uuid></uuid>
+      <url></url>
+      </value>
+      </assign>
+      <assign>
+      <variable_name>attachment_image_1</variable_name>
+      <type>image</type>
+      <value>
+      <uuid></uuid>
+      <url></url>
+      </value>
+      </assign>
+      <assign>
+      <variable_name>attachment_image_2</variable_name>
+      <type>image</type>
+      <value>
+      <uuid></uuid>
+      <url></url>
+      </value>
+      </assign>
+      </group>
+
+      <group>
+      <edit_image>
+      <hint></hint>
+      <assign>main_image</assign>
+      <reference_image_a>{}</reference_image_a>
+      <reference_image_b>{}</reference_image_b>
+      <reference_image_c>{}</reference_image_c>
+      <prompt></prompt>
+      </edit_image>
+      </group>
+
+      <group>
+      <end></end>
+      </group>
+      */
+    reference_content: "main_image:
+      生成一张图片：将水鬼薄川眠的元素与三张参考图融合，制作成手帐拼贴风格。画面以深浅不一的蓝色调为主，左侧放置薄川眠的半透明身影，右侧拼贴水滴、月光和\
+      浮游生物元素，底部添加古老歌谣的手写歌词片段，整体呈现梦幻、清冷的氛围要求图片比例3:4"
+    reference_content_schema: |-
+      character: character 选中的角色
+      ref_image: image 角色带的参考图
+      main_image: image 最终生成图
+  messages:
+    - role: user
+      content: 为{@character}捏一个超可爱的背包挂件吧！
+  allowed_tool_names:
+    - request_character_v1
+    - edit_image_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7

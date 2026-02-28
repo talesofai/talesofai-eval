@@ -1,0 +1,33 @@
+type: agent
+id: online-75ecf52f-7402-4a01-9a67-50c4f4c64134
+description: online extract from collection 75ecf52f-7402-4a01-9a67-50c4f4c64134 (电视机轮播)
+input:
+  preset_key: latitude://8|live|running_agent_new
+  parameters:
+    preset_description: 包含6张图片和1首背景音乐的电视机轮播模板
+    reference_planning: /*<group><assign>character</assign></group><group><make_image><assign>image_1</assign></make_image><make_image><assign>image_2</assign></make_image><make_image><assign>image_3</assign></make_image><make_image><assign>image_4</assign></make_image><make_image><assign>image_5</assign></make_image><make_image><assign>image_6</assign></make_image></group><group><request_audio><assign>BGM</assign></request_audio></group><group><end></end></group>*/
+    reference_content: 'image_1: {character}, /厚涂, 坐在海妖号船舱里写日记, 笔记本摊开在膝盖, 钢笔悬在纸面,
+      窗外是月光下的海面, 桌上散落着药瓶和绷带, image_2: {character}, /厚涂, 为受伤的海妖包扎伤口, 左手托着对方手臂,
+      右手缠绕绷带, 周围漂浮着发光的治愈粒子, 背景是摇曳的海藻, image_3: {character}, /厚涂, 在甲板上晾晒染血的绷带,
+      海风扬起白色布料, 手中握着歌萝佩送的贝壳项链, 远处海鸥掠过夕阳, image_4: {character}, /厚涂, 趴在航海图上打瞌睡,
+      头枕着瓦格纳的皮手套, 伊文送的海星玩偶掉在脚边, 桌上烛火摇曳, image_5: {character}, /厚涂, 对着镜子查看手臂伤痕,
+      四道疤痕泛着微光, 眼中含泪, 身后柜子贴满海妖们的涂鸦便签, image_6: {character}, /厚涂, 站在海妖号残骸中拼合笔记本,
+      散落的画纸显示被篡改的"坏人"画像, 手中紧攥曦的羽毛饰品, 天空飘着灰烬, BGM: 悠长回响'
+    reference_content_schema: "image_1: image 第一张图, image_2: image 第二张图, image_3:
+      image 第三张图, image_4: image 第四张图, image_5: image 第五张图, image_6: image 第六张图,
+      BGM: audio 背景音乐"
+  messages:
+    - role: user
+      content: 制作一个电视机轮播图片模板，需包含6张图片和1首背景音乐，实现点击开机、切换图片及关机功能，并显示图片计数
+  allowed_tool_names:
+    - make_image_v1
+    - request_audio_v1
+  auto_followup:
+    mode: adversarial_help_choose
+    max_turns: 1
+criteria:
+  llm_judge:
+    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
+      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    pass_threshold: 0.7
