@@ -12,6 +12,7 @@
     "zod": "^4.1.13"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "pnpm dlx @biomejs/biome check src/manuscript.ts"
   }
 }

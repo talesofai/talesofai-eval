@@ -63,7 +63,7 @@ export type AssertionConfig =
   | { type: "llm_judge"; prompt: string; pass_threshold: number };
 
 export type EvalCriteria = {
-  // --- 兼容旧版字段 ---
+  // --- Legacy compatibility fields ---
   expected_tools?: string[];
   forbidden_tools?: string[];
   /** AgentCase only */
@@ -74,7 +74,7 @@ export type EvalCriteria = {
     pass_threshold: number;
   };
 
-  // --- 新版打分标准 ---
+  // --- Assertion-based scoring fields ---
   assertions?: AssertionConfig[];
 };
 
@@ -347,8 +347,6 @@ export type DiffResult = {
 
 export type RunnerOptions = {
   mcpServerBaseURL: string;
-  /** ManuscriptProxy port, default 19000 */
-  proxyPort?: number;
   /** LLM streaming token (each turn fires) */
   onDelta?: (delta: string) => void;
   /** Tool call started */
@@ -389,9 +387,9 @@ export type Scorer = ScorerFn;
 // ─── Matrix ──────────────────────────────────────────────────────────────────
 
 export type MatrixVariant = {
-  /** 展示名，唯一，非空 */
+  /** Display label (unique and non-empty). */
   label: string;
-  /** 覆盖 case.input 中的字段（与 applyOverrides 兼容） */
+  /** Input overrides merged into case.input (compatible with applyOverrides). */
   overrides: Record<string, unknown>;
 };
 
@@ -402,11 +400,11 @@ export type MatrixCell = {
 };
 
 export type MatrixSummary = {
-  /** variant labels，列顺序 */
+  /** Variant labels in column order. */
   variants: string[];
-  /** case ids，行顺序 */
+  /** Case IDs in row order. */
   case_ids: string[];
-  /** 所有 cells（flat，按 case_id × variant_label 顺序） */
+  /** Flat list of cells in case_id × variant_label order. */
   cells: MatrixCell[];
   total: number;
   passed: number;

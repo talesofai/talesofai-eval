@@ -5,7 +5,7 @@ import type {
   CharacterProvider,
 } from "../types.ts";
 
-// 支持 {@character}, {@character_0}, {@character1}, {@character_1} 格式
+// Supports {@character}, {@character_0}, {@character1}, and {@character_1}.
 const CHARACTER_PLACEHOLDER_REGEX = /\{@character(?:_?(\d+))?\}/g;
 
 const getLogger = (logger: Logger | undefined): Logger | undefined => {
@@ -154,7 +154,10 @@ export const injectAndReplaceCharacters = async (
   const log = getLogger(logger);
   const requestedCount = extractCharacterCount(evalCase.input, logger);
 
-  log?.debug({ caseId: evalCase.id, count: requestedCount }, "Required characters");
+  log?.debug(
+    { caseId: evalCase.id, count: requestedCount },
+    "Required characters",
+  );
 
   if (requestedCount <= 0) return evalCase;
   if (!characterProvider) {
@@ -163,7 +166,8 @@ export const injectAndReplaceCharacters = async (
     );
   }
 
-  const randomChars = await characterProvider.getRandomCharacters(requestedCount);
+  const randomChars =
+    await characterProvider.getRandomCharacters(requestedCount);
   const characters = randomChars.map(mapToCharacterAssign);
 
   if (randomChars.length < requestedCount) {
@@ -182,7 +186,10 @@ export const injectAndReplaceCharacters = async (
       const char = characters[idx];
       const result = char ? char.name : match;
       if (char) {
-        log?.debug({ placeholder: match, name: result }, "Replaced placeholder");
+        log?.debug(
+          { placeholder: match, name: result },
+          "Replaced placeholder",
+        );
       } else {
         log?.warn(
           { placeholder: match, index: idx },

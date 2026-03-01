@@ -24,7 +24,7 @@ function createCompactReporter(options: {
 // ─── Public API ──────────────────────────────────────────────────────────────
 export const createTerminalReporter = (options?: {
   verbose?: boolean;
-  /** concurrency > 1 时切换 compact 模式：静默 delta/tool 流，每 case 单行输出 */
+  /** Use compact mode when concurrency > 1: suppress delta/tool streams and keep one line per case. */
   concurrency?: number;
   /** non-compact mode: heartbeat while waiting long-running tool call */
   heartbeatIntervalMs?: number;

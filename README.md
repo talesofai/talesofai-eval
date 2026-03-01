@@ -7,10 +7,10 @@
 - Plain cases (`type: plain`) are fully usable in open source mode.
 - CLI (`agent-eval`) and programmatic API can load cases, run traces, score results, and print reports.
 
-## Internal dependency note
+## Runtime note
 
-- Agent cases (`type: agent`) rely on TalesOfAI internal infrastructure (preset/runtime APIs and MCP environment).
-- The internal runner is included as private workspace packages (`@agent-eval/agent-runner`, `@agent-eval/apis`) in copy-and-own mode.
+- Agent cases (`type: agent`) run with the OSS minimal runtime in `packages/eval` (OpenAI-compatible API + MCP tools).
+- Character injection can optionally use upstream APIs via environment configuration.
 
 ## Quick start
 

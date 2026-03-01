@@ -1,9 +1,9 @@
 import type { EvalMessage } from "../types.ts";
 
 /**
- * 从 EvalMessage content 提取纯文本。
- * role === "assistant" 保留 text / output_text；
- * role === "user" 保留 text / input_text。
+ * Extract plain text from EvalMessage content.
+ * role === "assistant" keeps text / output_text.
+ * role === "user" keeps text / input_text.
  */
 export function extractMessageText(
   content: EvalMessage["content"],

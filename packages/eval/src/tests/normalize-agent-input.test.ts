@@ -79,7 +79,10 @@ describe("normalizeAgentInput", () => {
       },
     };
 
-    assert.throws(() => normalizeAgentInput(evalCase), /legacy preset_key mode/);
+    assert.throws(
+      () => normalizeAgentInput(evalCase),
+      /legacy preset_key mode/,
+    );
   });
 
   it("validation: system_prompt empty string throws", () => {
@@ -106,15 +109,19 @@ describe("normalizeAgentInput", () => {
       },
     };
 
-    assert.throws(() => normalizeAgentInput(evalCase), /input\.model is required/);
+    assert.throws(
+      () => normalizeAgentInput(evalCase),
+      /input\.model is required/,
+    );
   });
 
-  it("unknown template key: keeps placeholder and logs warn", () => {
-    const warns: string[] = [];
-    const originalWarn = console.warn;
-    console.warn = (...args: unknown[]) => {
-      warns.push(args.map(String).join(" "));
-    };
+  it("unknown template key: keeps placeholder and writes stderr", () => {
+    const stderrMessages: string[] = [];
+    const originalWrite = process.stderr.write.bind(process.stderr);
+    process.stderr.write = ((chunk: unknown) => {
+      stderrMessages.push(String(chunk));
+      return true;
+    }) as typeof process.stderr.write;
 
     try {
       const evalCase: AgentEvalCase = {
@@ -129,9 +136,13 @@ describe("normalizeAgentInput", () => {
 
       const result = normalizeAgentInput(evalCase);
       assert.equal(result.input.system_prompt, "hello {{missing_key}}");
-      assert.ok(warns.some((line) => line.includes("missing template parameter")));
+      assert.ok(
+        stderrMessages.some((line) =>
+          line.includes("missing template parameter"),
+        ),
+      );
     } finally {
-      console.warn = originalWarn;
+      process.stderr.write = originalWrite;
     }
   });
 });

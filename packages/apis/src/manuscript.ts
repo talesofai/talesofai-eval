@@ -145,7 +145,7 @@ export interface ManuscriptModel {
   putAssign(key: string, assign: Assign): Promise<Assign>;
 
   /**
-   * 注入变量到提示词中
+   * Inject assign values into a prompt template.
    */
   injectAssigns(
     prompt: string,
@@ -213,11 +213,12 @@ export const createManuscriptModel = async (uuid: string, apis: Apis) => {
       conversation_uuid?: string;
     }) => apis.manuscript.updateManuscript(uuid, payload),
     listAssets: () => apis.manuscript.listManuscriptAssets(uuid),
-    getAsset: (uuid: string) => apis.manuscript.getManuscriptAsset(uuid, uuid),
+    getAsset: (assetUuid: string) =>
+      apis.manuscript.getManuscriptAsset(uuid, assetUuid),
     addAsset: (asset: ManuscriptAsset) =>
       apis.manuscript.addManuscriptAsset(uuid, asset),
-    deleteAsset: (uuid: string) =>
-      apis.manuscript.deleteManuscriptAsset(uuid, uuid),
+    deleteAsset: (assetUuid: string) =>
+      apis.manuscript.deleteManuscriptAsset(uuid, assetUuid),
     listAssigns,
     getAssign,
     deleteAssign,
@@ -227,9 +228,9 @@ export const createManuscriptModel = async (uuid: string, apis: Apis) => {
   };
 };
 
-// JavaScript变量名正则：支持中文、Unicode字母、数字、$、_等JS支持的变量名字符
-// 首字符：$、_、Unicode字母（包括中文）
-// 后续字符：首字符 + 数字
+// JavaScript variable placeholder pattern with broad Unicode support.
+// First character: $, _, or a Unicode letter.
+// Following characters: first-character set plus digits.
 const VARIABLE_NAME_PATTERN =
   /{([$_\u4e00-\u9fa5a-zA-Z\u00A0-\uFFFF][$_\u4e00-\u9fa5a-zA-Z0-9\u00A0-\uFFFF]*)}/g;
 

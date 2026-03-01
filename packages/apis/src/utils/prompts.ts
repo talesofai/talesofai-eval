@@ -161,7 +161,7 @@ interface ElementumPrompt {
 }
 
 interface TextPrompt {
-  type: "text"; // 即使生图流程事实上会有更多的类型（emoji,cp_template), freetext也包括在内
+  type: "text"; // Image flows may include more token types, but freetext is normalized as text.
   value: string;
   weight: number;
 }
@@ -211,11 +211,6 @@ function stringToPrompt(
     return { type: "character", name, weight, value: "" };
   }
 
-  // if (str.startsWith("<") && str.endsWith(">")) {
-  //   const [name, weight] = extractWeight(str.slice(1, -1));
-  //   return { type: "style", name, weight };
-  // }
-
   if (str.startsWith("/")) {
     const [name, weight] = extractWeight(str.slice(1));
     return { type: "elementum", name, weight };
@@ -260,13 +255,6 @@ function stringToPrompt(
     const [value, weight] = extractWeight(str.slice(1, -1));
     return { type: "text", value, weight };
   }
-
-  // if (str.startsWith("/不要")) {
-  //   return {
-  //     type: "negative",
-  //     value: str.slice(3),
-  //   };
-  // }
 
   if (str === "参考图" || str === "图片捏") {
     return {

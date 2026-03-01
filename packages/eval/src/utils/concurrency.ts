@@ -1,9 +1,9 @@
 /**
  * Run tasks with bounded concurrency.
  *
- * - 保留原始顺序（results[i] 对应 tasks[i]）
- * - concurrency <= 0 → 等同于 1
- * - tasks 数量少于 concurrency → 直接并发全部
+ * - Preserves original order (`results[i]` corresponds to `tasks[i]`).
+ * - `concurrency <= 0` behaves as `1`.
+ * - When task count is below concurrency, all tasks run in parallel.
  *
  * **Contract:** tasks must not throw. Wrap errors internally and return a
  * result value instead. If a task throws, `Promise.all` rejects immediately

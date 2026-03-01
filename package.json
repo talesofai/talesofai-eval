@@ -7,6 +7,7 @@
     "dev": "pnpm -C packages/eval dev",
     "test": "pnpm -C packages/eval test",
     "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
     "agent-eval": "pnpm -C packages/eval agent-eval"
   },
   "devDependencies": {

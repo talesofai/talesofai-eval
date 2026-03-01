@@ -1,5 +1,5 @@
-import type { Vtokens } from "./utils/prompts.ts";
 import type { Modality, TaskStatus } from "./task.ts";
+import type { Vtokens } from "./utils/prompts.ts";
 
 export interface GenericPagination<T> {
   page_size: number;
@@ -229,27 +229,27 @@ export interface OCMeta {
 }
 
 /**
- * 角色描述
+ * Original character profile.
  */
 export interface OriginalCharacterProfile {
   /**
-   * 年龄
+   * Age.
    */
   age?: string;
   /**
-   * 身份
+   * Occupation.
    */
   occupation?: string;
   /**
-   * 性格
+   * Persona.
    */
   persona?: string;
   /**
-   * 兴趣
+   * Interests.
    */
   interests?: string;
   /**
-   * 简介
+   * Description.
    */
   description: string;
 

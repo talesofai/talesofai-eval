@@ -3,15 +3,14 @@
 import { type CAC, cac } from "cac";
 import "./cases/index.ts";
 import {
-  diffCommand,
   doctorCommand,
   inspectCommand,
   listCommand,
-  matrixCommand,
   pullOnlineCommand,
   reportCommand,
-  runCommand,
-} from "./cli/commands.ts";
+} from "./cli/aux-commands.ts";
+import { diffCommand } from "./cli/diff-command.ts";
+import { autoLoadEnvFiles } from "./cli/env-loader.ts";
 import {
   COMMANDS,
   isCommandName,
@@ -19,7 +18,8 @@ import {
   parseUnknownOption,
   pickCommandFromArgv,
 } from "./cli/helpers.ts";
-import { autoLoadEnvFiles } from "./cli/env-loader.ts";
+import { matrixCommand } from "./cli/matrix-command.ts";
+import { runCommand } from "./cli/run-command.ts";
 import { shouldUseJsonErrors } from "./cli-shared.ts";
 import { didYouMean, printCliError, unknownCommand } from "./errors.ts";
 

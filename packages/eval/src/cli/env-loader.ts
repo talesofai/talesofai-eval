@@ -1,6 +1,6 @@
-import { config } from "dotenv";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { config } from "dotenv";
 
 function getSearchDirs(startDir: string): string[] {
   const dirs: string[] = [];
@@ -28,7 +28,7 @@ export function autoLoadEnvFiles(cwd: string = process.cwd()): void {
   }
 
   const dirs = getSearchDirs(cwd);
-  // 从最近到最远加载，远处的配置不应覆盖近处的
+  // Load from nearest to farthest so closer configs take precedence.
   for (const dir of dirs) {
     const localEnvPath = makePath(dir, ".env.local");
     const envPath = makePath(dir, ".env");

@@ -21,6 +21,7 @@
     "agent-eval": "node dist/cli.js",
     "test": "node --test src/tests/*.test.ts",
     "typecheck": "tsc --noEmit",
+    "lint": "pnpm dlx @biomejs/biome check src/cli.ts src/cli/resolve-cases.ts src/cli/command-utils.ts src/cli/run-command.ts src/cli/diff-command.ts src/cli/matrix-command.ts src/runners/normalize-agent-input.ts src/tests/normalize-agent-input.test.ts src/tests/manuscript-model.test.ts",
     "generate-schema": "node scripts/generate-schema.ts"
   },
   "dependencies": {

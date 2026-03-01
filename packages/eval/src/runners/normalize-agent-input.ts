@@ -29,8 +29,8 @@ const renderTemplate = (
   return template.replace(/\{\{\s*([^{}\s]+)\s*\}\}/g, (placeholder, key) => {
     const value = parameters[key];
     if (value === undefined) {
-      console.warn(
-        `[normalizeAgentInput] missing template parameter: ${key}; keeping placeholder ${placeholder}`,
+      process.stderr.write(
+        `[normalizeAgentInput] missing template parameter: ${key}; keeping placeholder ${placeholder}\n`,
       );
       return placeholder;
     }
@@ -68,10 +68,14 @@ export function normalizeAgentInput(
 
   if (typeof input.system_prompt === "string") {
     if (input.system_prompt.trim().length === 0) {
-      throw new Error("agent case input.system_prompt must be a non-empty string");
+      throw new Error(
+        "agent case input.system_prompt must be a non-empty string",
+      );
     }
     if (!input.model) {
-      throw new Error("agent case input.model is required when system_prompt is provided");
+      throw new Error(
+        "agent case input.model is required when system_prompt is provided",
+      );
     }
 
     return {
@@ -91,7 +95,9 @@ export function normalizeAgentInput(
   validateLegacyParameters(parameters);
 
   if (!input.model) {
-    throw new Error("agent case input.model is required in legacy preset_key mode");
+    throw new Error(
+      "agent case input.model is required in legacy preset_key mode",
+    );
   }
 
   return {
