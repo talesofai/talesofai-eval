@@ -1,3 +1,4 @@
+import { resolveRunnerBaseURL } from "../env.ts";
 import {
   DEFAULT_AGENT_PRESET_KEY,
   type EvalCase,
@@ -131,8 +132,7 @@ export const buildFromFlags = (flags: {
     input: {
       system_prompt: flags.systemPrompt ?? "",
       model: flags.model ?? "qwen-plus",
-      openai_base_url:
-        flags.openaiBaseUrl ?? process.env["OPENAI_BASE_URL"] ?? "",
+      openai_base_url: flags.openaiBaseUrl ?? resolveRunnerBaseURL() ?? "",
       messages,
       allowed_tool_names: flags.allowedToolNames,
     },

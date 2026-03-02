@@ -10,6 +10,12 @@ import type {
   RunnerOptions,
   ToolCallRecord,
 } from "../types.ts";
+import {
+  resolveMcpXToken,
+  resolveRunnerApiKey,
+  resolveRunnerBaseURL,
+  resolveRunnerXToken,
+} from "../env.ts";
 
 type PlainRunnableCase = Omit<PlainEvalCase, "type"> & {
   type: "plain" | "agent";
@@ -17,26 +23,6 @@ type PlainRunnableCase = Omit<PlainEvalCase, "type"> & {
 import { extractMessageText } from "./message-utils.ts";
 
 const MAX_TURNS = 20;
-
-export const resolvePlainBaseURL = (
-  input: PlainEvalCase["input"],
-  env: NodeJS.ProcessEnv = process.env,
-): string | undefined => {
-  return (
-    input.openai_base_url ??
-    env["EVAL_PLAIN_BASE_URL"] ??
-    env["OPENAI_BASE_URL"]
-  );
-};
-
-export const resolvePlainApiKey = (
-  input: PlainEvalCase["input"],
-  env: NodeJS.ProcessEnv = process.env,
-): string | undefined => {
-  return (
-    input.openai_api_key ?? env["EVAL_PLAIN_API_KEY"] ?? env["OPENAI_API_KEY"]
-  );
-};
 
 export const runPlain = async (
   evalCase: PlainRunnableCase,
@@ -60,7 +46,7 @@ export const runPlain = async (
       name: "eval-plain-runner",
       version: "0.0.1",
     });
-    const mcpToken = process.env["EVAL_MCP_X_TOKEN"];
+    const mcpToken = resolveMcpXToken();
     const transport = new StreamableHTTPClientTransport(
       new URL(`${opts.mcpServerBaseURL}/mcp`),
       mcpToken
@@ -99,15 +85,19 @@ export const runPlain = async (
   }
 
   // 2. OpenAI client
-  const openaiToken = process.env["OPENAI_X_TOKEN"];
-  const baseURL = resolvePlainBaseURL(input);
+  const openaiToken = resolveRunnerXToken();
+  const baseURL = resolveRunnerBaseURL(input);
   if (!baseURL) {
-    throw new Error("OPENAI_BASE_URL is required");
+    throw new Error(
+      "invariant: OPENAI_BASE_URL not set — should have been caught at startup",
+    );
   }
 
-  const apiKey = resolvePlainApiKey(input);
+  const apiKey = resolveRunnerApiKey(input);
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is required");
+    throw new Error(
+      "invariant: OPENAI_API_KEY not set — should have been caught at startup",
+    );
   }
 
   const openai = new OpenAI({

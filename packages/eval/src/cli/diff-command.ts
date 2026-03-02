@@ -1,4 +1,4 @@
-import { DEFAULT_MCP_SERVER_BASE_URL } from "../constants.ts";
+import { resolveMcpServerBaseURL } from "../env.ts";
 import {
   invalidJson,
   missingConfig,
@@ -92,9 +92,7 @@ export async function diffCommand(
         const candidateCase = applyOverrides(evalCase, candidateOverrides);
 
         const runnerOpts: RunnerOptions = {
-          mcpServerBaseURL:
-            process.env["EVAL_MCP_SERVER_BASE_URL"] ??
-            DEFAULT_MCP_SERVER_BASE_URL,
+          mcpServerBaseURL: resolveMcpServerBaseURL(),
           onDelta: (delta: string) => reporter.onDelta(delta),
           onToolStart: (call) => reporter.onToolStart(call),
           onToolCall: (call) => reporter.onToolCall(call),

@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import pc from "picocolors";
 import { computeRunExitCode } from "../cli-shared.ts";
-import { DEFAULT_MCP_SERVER_BASE_URL } from "../constants.ts";
+import { resolveMcpServerBaseURL } from "../env.ts";
 import { invalidArgs, missingConfig, noCases } from "../errors.ts";
 import { renderRunHtmlReport } from "../reporter/html.ts";
 import { renderRunMarkdownReport } from "../reporter/terminal.ts";
@@ -235,8 +235,7 @@ export async function runCommand(
 
   const runnerOpts = createRunnerOptions({
     reporter,
-    mcpServerBaseURL:
-      process.env["EVAL_MCP_SERVER_BASE_URL"] ?? DEFAULT_MCP_SERVER_BASE_URL,
+    mcpServerBaseURL: resolveMcpServerBaseURL(),
   });
 
   const tasks = cases.map(

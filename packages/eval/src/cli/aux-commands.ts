@@ -3,6 +3,11 @@ import { basename, dirname, join } from "node:path";
 import pc from "picocolors";
 import YAML from "yaml";
 import { collectDoctorChecks, type DoctorMode } from "../cli-shared.ts";
+import {
+  resolveRunnerXToken,
+  resolveUpstreamBaseURL,
+  resolveUpstreamXToken,
+} from "../env.ts";
 import { invalidArgs, noCases } from "../errors.ts";
 import { extractAgentCaseFromCollection } from "../online/extract.ts";
 import { renderRunHtmlReport } from "../reporter/html.ts";
@@ -115,21 +120,19 @@ export async function pullOnlineCommand(
   }
 
   const baseURL =
-    getStringOption(options, "baseUrl") ??
-    process.env["EVAL_UPSTREAM_API_BASE_URL"] ??
-    process.env["API_BASE_URL"];
+    getStringOption(options, "baseUrl") ?? resolveUpstreamBaseURL();
 
   if (!baseURL || baseURL.trim().length === 0) {
     throw invalidArgs(
       "missing upstream api base url",
-      "Set --base-url or env EVAL_UPSTREAM_API_BASE_URL/API_BASE_URL",
+      "Set --base-url or env EVAL_UPSTREAM_API_BASE_URL",
     );
   }
 
   const token =
     getStringOption(options, "xToken") ??
-    process.env["EVAL_UPSTREAM_X_TOKEN"] ??
-    process.env["OPENAI_X_TOKEN"];
+    resolveUpstreamXToken() ??
+    resolveRunnerXToken();
   if (!token || token.trim().length === 0) {
     throw invalidArgs(
       "missing x-token",

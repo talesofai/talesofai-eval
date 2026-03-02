@@ -26,7 +26,7 @@ export function computeRunExitCode(results: EvalResult[]): number {
 
 export function collectDoctorChecks(
   env: NodeJS.ProcessEnv,
-  mode: DoctorMode = "all",
+  _mode: DoctorMode = "all",
 ): DoctorCheck[] {
   const isSet = (key: string): boolean => {
     const value = env[key];
@@ -44,7 +44,7 @@ export function collectDoctorChecks(
       key: "OPENAI_BASE_URL",
       requiredFor: "run,diff",
       ok: isSet("OPENAI_BASE_URL"),
-      hint: "Set OPENAI_BASE_URL, e.g. https://dashscope.aliyuncs.com/compatible-mode/v1. If your gateway enforces preset_key for plain cases, set EVAL_PLAIN_BASE_URL to a direct LLM endpoint.",
+      hint: "Set OPENAI_BASE_URL, e.g. https://dashscope.aliyuncs.com/compatible-mode/v1.",
     },
     {
       key: "OPENAI_API_KEY",
@@ -66,18 +66,6 @@ export function collectDoctorChecks(
       optional: true,
     },
   ];
-
-  // EVAL_PLAIN_BASE_URL: always optional, informational for plain users;
-  // hidden in agent mode.
-  if (mode !== "agent") {
-    checks.push({
-      key: "EVAL_PLAIN_BASE_URL",
-      requiredFor: "plain run",
-      ok: isSet("EVAL_PLAIN_BASE_URL"),
-      hint: "Optional: set to a direct LLM endpoint if OPENAI_BASE_URL points to a gateway that enforces preset_key. Falls back to OPENAI_BASE_URL when unset.",
-      optional: true,
-    });
-  }
 
   return checks;
 }

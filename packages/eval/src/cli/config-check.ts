@@ -1,17 +1,12 @@
+import {
+  ENV_KEYS,
+  resolveJudgeApiKey,
+  resolveJudgeBaseURL,
+  resolveJudgeModel,
+  resolveRunnerApiKey,
+  resolveRunnerBaseURL,
+} from "../env.ts";
 import type { EvalCase } from "../types.ts";
-
-function hasEnvValue(key: string): boolean {
-  const value = process.env[key];
-  return Boolean(value && value.trim().length > 0);
-}
-
-function isMissingEnvValue(key: string): boolean {
-  return !hasEnvValue(key);
-}
-
-function hasEnvPair(first: string, second: string): boolean {
-  return hasEnvValue(first) && hasEnvValue(second);
-}
 
 export function caseNeedsJudge(evalCase: EvalCase): boolean {
   if (evalCase.criteria.llm_judge) {
@@ -26,21 +21,17 @@ export function caseNeedsJudge(evalCase: EvalCase): boolean {
 
 export function getMissingJudgeConfig(): string[] {
   const missing: string[] = [];
-  const judgeBase =
-    process.env["EVAL_JUDGE_BASE_URL"] ?? process.env["OPENAI_BASE_URL"];
-  const judgeApiKey =
-    process.env["EVAL_JUDGE_API_KEY"] ?? process.env["OPENAI_API_KEY"];
 
-  if (!judgeBase || judgeBase.trim().length === 0) {
-    missing.push("EVAL_JUDGE_BASE_URL|OPENAI_BASE_URL");
+  if (!resolveJudgeBaseURL()) {
+    missing.push(`${ENV_KEYS.JUDGE_BASE_URL}|${ENV_KEYS.OPENAI_BASE_URL}`);
   }
 
-  if (!judgeApiKey || judgeApiKey.trim().length === 0) {
-    missing.push("EVAL_JUDGE_API_KEY|OPENAI_API_KEY");
+  if (!resolveJudgeApiKey()) {
+    missing.push(`${ENV_KEYS.JUDGE_API_KEY}|${ENV_KEYS.OPENAI_API_KEY}`);
   }
 
-  if (isMissingEnvValue("EVAL_JUDGE_MODEL")) {
-    missing.push("EVAL_JUDGE_MODEL");
+  if (!resolveJudgeModel()) {
+    missing.push(ENV_KEYS.JUDGE_MODEL);
   }
 
   return missing;
@@ -59,42 +50,27 @@ export function getMissingRunConfig(
     return [];
   }
 
-  const required = new Set<string>();
+  const missing = new Set<string>();
 
-  const hasAgentCase = cases.some((evalCase) => evalCase.type === "agent");
-  const hasPlainCase = cases.some((evalCase) => evalCase.type === "plain");
+  for (const evalCase of cases) {
+    const input = evalCase.type === "plain" ? evalCase.input : undefined;
 
-  if (hasAgentCase) {
-    required.add("OPENAI_BASE_URL");
-    required.add("OPENAI_API_KEY");
-  }
+    if (!resolveRunnerBaseURL(input)) {
+      missing.add(ENV_KEYS.OPENAI_BASE_URL);
+    }
 
-  if (hasPlainCase) {
-    const hasPlainOpenaiPair = hasEnvPair("OPENAI_BASE_URL", "OPENAI_API_KEY");
-    const hasEvalPlainPair = hasEnvPair(
-      "EVAL_PLAIN_BASE_URL",
-      "EVAL_PLAIN_API_KEY",
-    );
+    if (!resolveRunnerApiKey(input)) {
+      missing.add(ENV_KEYS.OPENAI_API_KEY);
+    }
 
-    if (!hasPlainOpenaiPair && !hasEvalPlainPair) {
-      required.add(
-        "EVAL_PLAIN_BASE_URL+EVAL_PLAIN_API_KEY|OPENAI_BASE_URL+OPENAI_API_KEY",
-      );
+    if (caseNeedsJudge(evalCase)) {
+      for (const key of getMissingJudgeConfig()) {
+        missing.add(key);
+      }
     }
   }
 
-  if (cases.some(caseNeedsJudge)) {
-    for (const key of getMissingJudgeConfig()) {
-      required.add(key);
-    }
-  }
-
-  return [...required].filter((key) => {
-    if (key.includes("+") || key.includes("|")) {
-      return true;
-    }
-    return isMissingEnvValue(key);
-  });
+  return [...missing];
 }
 
 export function getMissingDiffConfig(cases: EvalCase[]): string[] {

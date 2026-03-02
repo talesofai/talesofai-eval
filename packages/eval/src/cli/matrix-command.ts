@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import pc from "picocolors";
-import { DEFAULT_MCP_SERVER_BASE_URL } from "../constants.ts";
+import { resolveMcpServerBaseURL } from "../env.ts";
 import {
   invalidArgs,
   invalidJson,
@@ -142,8 +142,7 @@ export async function matrixCommand(
   );
 
   const runnerOpts: RunnerOptions = {
-    mcpServerBaseURL:
-      process.env["EVAL_MCP_SERVER_BASE_URL"] ?? DEFAULT_MCP_SERVER_BASE_URL,
+    mcpServerBaseURL: resolveMcpServerBaseURL(),
   };
 
   const tasks = pairs.map((pair, index) => async (): Promise<MatrixCell> => {

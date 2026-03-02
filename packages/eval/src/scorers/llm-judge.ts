@@ -1,6 +1,12 @@
-import { safeParseJson } from "../utils/safe-parse-json.ts";
 import OpenAI from "openai";
+import {
+  ENV_KEYS,
+  resolveJudgeApiKey,
+  resolveJudgeBaseURL,
+  resolveJudgeModel,
+} from "../env.ts";
 import type { AssertionConfig, DimensionResult, EvalTrace } from "../types.ts";
+import { safeParseJson } from "../utils/safe-parse-json.ts";
 
 type LlmJudgeAssertion = Extract<AssertionConfig, { type: "llm_judge" }>;
 
@@ -20,31 +26,23 @@ export const scoreLlmJudgeAssertion = async (
     };
   }
 
-  const model = process.env["EVAL_JUDGE_MODEL"];
-  if (!model || model.trim().length === 0) {
-    return {
-      dimension: "llm_judge",
-      passed: false,
-      score: 0,
-      reason: "missing required EVAL_JUDGE_MODEL",
-    };
+  const model = resolveJudgeModel();
+  if (!model) {
+    throw new Error(`missing required ${ENV_KEYS.JUDGE_MODEL}`);
   }
 
-  const apiKey =
-    process.env["EVAL_JUDGE_API_KEY"] ?? process.env["OPENAI_API_KEY"] ?? "";
-  const baseURL =
-    process.env["EVAL_JUDGE_BASE_URL"] ??
-    (apiKey.startsWith("sk-")
-      ? "https://api.openai.com/v1"
-      : process.env["OPENAI_BASE_URL"]);
+  const apiKey = resolveJudgeApiKey();
+  if (!apiKey) {
+    throw new Error(
+      `missing required ${ENV_KEYS.JUDGE_API_KEY}|${ENV_KEYS.OPENAI_API_KEY}`,
+    );
+  }
 
+  const baseURL = resolveJudgeBaseURL();
   if (!baseURL) {
-    return {
-      dimension: "llm_judge",
-      passed: false,
-      score: 0,
-      reason: "no OPENAI_BASE_URL or EVAL_JUDGE_BASE_URL configured",
-    };
+    throw new Error(
+      `missing required ${ENV_KEYS.JUDGE_BASE_URL}|${ENV_KEYS.OPENAI_BASE_URL}`,
+    );
   }
 
   const openai = new OpenAI({ apiKey, baseURL });

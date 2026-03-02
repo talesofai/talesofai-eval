@@ -1,3 +1,7 @@
+import {
+  resolveUpstreamBaseURL,
+  resolveUpstreamXToken,
+} from "../env.ts";
 import type {
   AgentEvalCase,
   CharacterFromSelect,
@@ -5,28 +9,19 @@ import type {
   EvalTrace,
   RunnerOptions,
 } from "../types.ts";
-import { DEFAULT_UPSTREAM_API_BASE_URL } from "../constants.ts";
 import { injectAndReplaceCharacters } from "../utils/character-injector.ts";
 import { normalizeAgentInput } from "./normalize-agent-input.ts";
 import { runPlain } from "./plain.ts";
 
-const resolveUpstreamApiBaseURL = (): string => {
-  const value = process.env["EVAL_UPSTREAM_API_BASE_URL"];
-  if (value && value.trim().length > 0) {
-    return value;
-  }
-  return DEFAULT_UPSTREAM_API_BASE_URL;
-};
-
 const createDefaultCharacterProvider = (): CharacterProvider => ({
   getRandomCharacters: async (count: number): Promise<CharacterFromSelect[]> => {
-    const baseURL = resolveUpstreamApiBaseURL();
+    const baseURL = resolveUpstreamBaseURL();
     const url = new URL(
       `/v1/collection-interactive/char_roll?num=${count}`,
       baseURL,
     );
 
-    const upstreamToken = process.env["EVAL_UPSTREAM_X_TOKEN"];
+    const upstreamToken = resolveUpstreamXToken();
     const headers: Record<string, string> = upstreamToken
       ? { "x-token": upstreamToken }
       : {};
