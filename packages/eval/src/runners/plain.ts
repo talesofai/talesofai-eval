@@ -303,11 +303,46 @@ export const runPlain = async (
           "invariant: tool call attempted but MCP client is not connected",
         );
       }
-      const result = await mcpClient.callTool(
-        { name: tc.function.name, arguments: toolArgs },
-        undefined,
-        { timeout: 60_000 * 20 },
-      );
+
+      // 5 minute timeout for MCP tool calls
+      const MCP_TOOL_TIMEOUT_MS = 60_000 * 5;
+
+      let result: Awaited<ReturnType<Client["callTool"]>>;
+      try {
+        result = await mcpClient.callTool(
+          { name: tc.function.name, arguments: toolArgs },
+          undefined,
+          { timeout: MCP_TOOL_TIMEOUT_MS },
+        );
+      } catch (error) {
+        // Handle timeout - return timeout result
+        const callDuration = Date.now() - callStart;
+        const timeoutRecord: ToolCallRecord = {
+          tool_call_id: tc.id,
+          name: tc.function.name,
+          arguments: args ?? {},
+          output: { error: "timeout", message: "Tool call exceeded 5 minute timeout" },
+          duration_ms: callDuration,
+        };
+        toolsCalled.push(timeoutRecord);
+        opts.onToolCall?.(timeoutRecord);
+
+        // Record tool timeout message
+        const timeoutMsg = "[timeout] Tool call exceeded 5 minute timeout";
+        conversation.push({
+          role: "tool",
+          content: timeoutMsg,
+          tool_call_id: tc.id,
+        });
+        messages.push({
+          role: "tool" as const,
+          content: timeoutMsg,
+          tool_call_id: tc.id,
+        });
+
+        // Continue to next tool call instead of failing
+        continue;
+      }
       const callDuration = Date.now() - callStart;
 
       const outputStr =
