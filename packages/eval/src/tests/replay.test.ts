@@ -501,6 +501,101 @@ describe("agent-eval replay mode", () => {
     }
   });
 
+  it("replay cache-miss with llm_judge and missing model returns error result (no score-0 dimension)", () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), "agent-eval-replay-judge-miss-"));
+
+    try {
+      const replayDir = join(tempRoot, "traces");
+      mkdirSync(replayDir, { recursive: true });
+
+      const caseId = "replay-judge-miss-case";
+      const inlineCase = JSON.stringify({
+        type: "plain",
+        id: caseId,
+        description: "replay judge miss",
+        input: {
+          system_prompt: "sys",
+          model: "qwen-plus",
+          messages: [{ role: "user", content: "hello" }],
+          allowed_tool_names: [],
+        },
+        criteria: {
+          assertions: [
+            {
+              type: "llm_judge",
+              prompt: "judge",
+              pass_threshold: 0.7,
+            },
+          ],
+        },
+      });
+
+      writeFileSync(
+        join(replayDir, `${sanitizeCaseId(caseId)}.trace.json`),
+        JSON.stringify(makeTrace(caseId), null, 2),
+      );
+
+      const result = runCli(
+        [
+          "run",
+          "--inline",
+          inlineCase,
+          "--replay",
+          replayDir,
+          "--format",
+          "json",
+        ],
+        {
+          OPENAI_BASE_URL: "http://127.0.0.1:9/v1",
+          OPENAI_API_KEY: "test-key",
+          EVAL_JUDGE_BASE_URL: "",
+          EVAL_JUDGE_API_KEY: "",
+          EVAL_JUDGE_MODEL: "",
+          EVAL_MCP_SERVER_BASE_URL: "",
+          EVAL_UPSTREAM_API_BASE_URL: "",
+        },
+      );
+
+      assert.equal(result.status, 2);
+      assert.doesNotMatch(result.stderr, /E_MISSING_CONFIG/);
+
+      const lines = result.stdout
+        .trim()
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .flatMap((line) => {
+          try {
+            const parsed = JSON.parse(line) as unknown;
+            if (
+              parsed &&
+              typeof parsed === "object" &&
+              !Array.isArray(parsed)
+            ) {
+              return [parsed as Record<string, unknown>];
+            }
+          } catch {
+            // ignore non-json noise in stdout (e.g. dotenv notices)
+          }
+          return [];
+        });
+
+      const caseResult = lines.find((line) => line["type"] === "result");
+      assert.ok(caseResult, "should output result line in json mode");
+      assert.equal(caseResult?.["passed"], false);
+      assert.deepEqual(caseResult?.["dimensions"], []);
+      assert.equal(typeof caseResult?.["error"], "string");
+      assert.match(String(caseResult?.["error"]), /Replay cache miss/);
+      assert.match(String(caseResult?.["error"]), /EVAL_JUDGE_MODEL/);
+
+      const summary = lines.find((line) => line["type"] === "summary");
+      assert.ok(summary, "should output summary line in json mode");
+      assert.equal(summary?.["errored"], 1);
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
   it("replay is read-only by default when cached result has no metrics", async () => {
     const tempRoot = mkdtempSync(
       join(tmpdir(), "agent-eval-replay-readonly-metrics-"),

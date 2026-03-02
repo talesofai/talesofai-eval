@@ -141,6 +141,43 @@ describe("agent-eval CLI UX", () => {
     assert.match(result.stderr, /OPENAI_API_KEY/);
   });
 
+  it("fails fast when judge model is missing for llm_judge case", () => {
+    const inlineCase = JSON.stringify({
+      type: "plain",
+      id: "judge-missing-model",
+      description: "judge missing model",
+      input: {
+        system_prompt: "sys",
+        model: "qwen-plus",
+        messages: [{ role: "user", content: "hello" }],
+        allowed_tool_names: [],
+      },
+      criteria: {
+        assertions: [
+          {
+            type: "llm_judge",
+            prompt: "score it",
+            pass_threshold: 0.7,
+          },
+        ],
+      },
+    });
+
+    const result = runCli(["run", "--inline", inlineCase], {
+      OPENAI_BASE_URL: "http://127.0.0.1:9/v1",
+      OPENAI_API_KEY: "test-key",
+      EVAL_JUDGE_BASE_URL: "http://127.0.0.1:9/v1",
+      EVAL_JUDGE_API_KEY: "judge-key",
+      EVAL_JUDGE_MODEL: "",
+      EVAL_MCP_SERVER_BASE_URL: "",
+      EVAL_UPSTREAM_API_BASE_URL: "",
+    });
+
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /E_MISSING_CONFIG/);
+    assert.match(result.stderr, /EVAL_JUDGE_MODEL/);
+  });
+
   // P2: tool-less plain cases (allowed_tool_names: []) don't require MCP config
   it("does not require EVAL_MCP_SERVER_BASE_URL for tool-free plain cases", () => {
     // system-prompt-tone has allowed_tool_names: [], so MCP is not needed.
@@ -157,7 +194,7 @@ describe("agent-eval CLI UX", () => {
     assert.doesNotMatch(result.stderr, /EVAL_MCP_SERVER_BASE_URL/);
   });
 
-  it("plain case accepts EVAL_PLAIN_* without requiring OPENAI_*", () => {
+  it("plain case ignores EVAL_PLAIN_* and still requires OPENAI_*", () => {
     const result = runCli(["run", "--case", "system-prompt-tone"], {
       OPENAI_BASE_URL: "",
       OPENAI_API_KEY: "",
@@ -171,8 +208,9 @@ describe("agent-eval CLI UX", () => {
     });
 
     assert.equal(result.status, 2);
-    assert.doesNotMatch(result.stderr, /E_MISSING_CONFIG/);
-    assert.doesNotMatch(result.stderr, /OPENAI_BASE_URL|OPENAI_API_KEY/);
+    assert.match(result.stderr, /E_MISSING_CONFIG/);
+    assert.match(result.stderr, /OPENAI_BASE_URL/);
+    assert.match(result.stderr, /OPENAI_API_KEY/);
   });
 
   // P2: glob pattern that matches no files reports the pattern name
@@ -396,7 +434,7 @@ describe("agent-eval CLI UX", () => {
     assert.doesNotMatch(result.stderr, /EVAL_UPSTREAM_API_BASE_URL/);
   });
 
-  it("doctor --mode plain: EVAL_PLAIN_BASE_URL appears as ⚠️ when unset", () => {
+  it("doctor --mode plain: no EVAL_PLAIN_BASE_URL row", () => {
     const result = runCli(["doctor", "--mode", "plain"], {
       OPENAI_BASE_URL: "http://fake-llm",
       OPENAI_API_KEY: "fake-key",
@@ -404,13 +442,11 @@ describe("agent-eval CLI UX", () => {
       EVAL_MCP_SERVER_BASE_URL: "http://fake-mcp",
       EVAL_PLAIN_BASE_URL: "",
     });
-    assert.match(result.stderr, /EVAL_PLAIN_BASE_URL/);
-    assert.match(result.stderr, /⚠/);
-    // exit 0 because EVAL_PLAIN_BASE_URL is optional
+    assert.doesNotMatch(result.stderr, /EVAL_PLAIN_BASE_URL/);
     assert.equal(result.status, 0);
   });
 
-  it("doctor --format json includes mode and optional fields", () => {
+  it("doctor --format json includes mode without legacy plain checks", () => {
     const result = runCli(["doctor", "--format", "json", "--mode", "all"]);
     const payload = JSON.parse(result.stdout.trim());
     assert.equal(payload.mode, "all");
@@ -420,12 +456,10 @@ describe("agent-eval CLI UX", () => {
       ),
       false,
     );
-
-    const plainBaseCheck = payload.checks.find(
-      (c: { key: string }) => c.key === "EVAL_PLAIN_BASE_URL",
+    assert.equal(
+      payload.checks.some((c: { key: string }) => c.key === "EVAL_PLAIN_BASE_URL"),
+      false,
     );
-    assert.ok(plainBaseCheck, "EVAL_PLAIN_BASE_URL should be in checks");
-    assert.equal(plainBaseCheck.optional, true);
   });
 
   it("matrix appears in help", () => {

@@ -140,18 +140,20 @@ agent-eval matrix \
 
 ## 环境变量
 
-### plain（非 agent runner）
-- `EVAL_PLAIN_BASE_URL` / `EVAL_PLAIN_API_KEY`：plain runner 的 OpenAI compatible 配置
+### runner（plain + agent 共用）
+- `OPENAI_BASE_URL`（必填）
+- `OPENAI_API_KEY`（必填）
+- `OPENAI_X_TOKEN`（可选）
 
 ### agent（需要 MCP / proxy）
 - `EVAL_MCP_SERVER_BASE_URL`：可选，默认 `https://mcp.talesofai.cn`
 - `EVAL_UPSTREAM_X_TOKEN`：上游 API 鉴权 token（可在 https://www.neta.art/open/ 申请）
 - `EVAL_UPSTREAM_API_BASE_URL`：默认 `https://api.talesofai.cn`，一般无需手动设置
 
-### judge（llm_judge/diff 必填）
+### judge（llm_judge/diff）
 - `EVAL_JUDGE_MODEL`（必填，无默认值）
-- `EVAL_JUDGE_BASE_URL`（必填）
-- `EVAL_JUDGE_API_KEY`（必填）
+- `EVAL_JUDGE_BASE_URL`（可选，未设置时回退到 `OPENAI_BASE_URL`）
+- `EVAL_JUDGE_API_KEY`（可选，未设置时回退到 `OPENAI_API_KEY`）
 
 ### diff
 - `EVAL_DIFF_SYSTEM_PROMPT`：覆盖 diff judge 的 system prompt

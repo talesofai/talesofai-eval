@@ -100,7 +100,7 @@ describe("collectDoctorChecks", () => {
       checks.some(
         (check) =>
           check.key === "OPENAI_BASE_URL" &&
-          check.hint.includes("EVAL_PLAIN_BASE_URL"),
+          check.hint.includes("OPENAI_BASE_URL"),
       ),
     );
   });
@@ -121,22 +121,12 @@ describe("collectDoctorChecks", () => {
     );
   });
 
-  it("mode=plain: EVAL_PLAIN_BASE_URL not set → optional=true", () => {
+  it("mode=plain: no EVAL_PLAIN_BASE_URL check", () => {
     const checks = collectDoctorChecks({}, "plain");
-    const c = checks.find((c) => c.key === "EVAL_PLAIN_BASE_URL");
-    assert.ok(c, "check should be present in plain mode");
-    assert.equal(c.ok, false);
-    assert.equal(c.optional, true);
-  });
-
-  it("mode=plain: EVAL_PLAIN_BASE_URL set → ok=true", () => {
-    const checks = collectDoctorChecks(
-      { EVAL_PLAIN_BASE_URL: "http://direct-llm" },
-      "plain",
+    assert.ok(
+      !checks.some((c) => c.key === "EVAL_PLAIN_BASE_URL"),
+      "EVAL_PLAIN_BASE_URL should be absent in plain mode",
     );
-    const c = checks.find((c) => c.key === "EVAL_PLAIN_BASE_URL");
-    assert.ok(c);
-    assert.equal(c.ok, true);
   });
 
   it("mode=agent: no EVAL_PLAIN_BASE_URL check", () => {
@@ -147,11 +137,12 @@ describe("collectDoctorChecks", () => {
     );
   });
 
-  it("mode=all: EVAL_PLAIN_BASE_URL present and optional", () => {
+  it("mode=all: no EVAL_PLAIN_BASE_URL check", () => {
     const checks = collectDoctorChecks({}, "all");
-    const c = checks.find((c) => c.key === "EVAL_PLAIN_BASE_URL");
-    assert.ok(c);
-    assert.equal(c.optional, true);
+    assert.ok(
+      !checks.some((c) => c.key === "EVAL_PLAIN_BASE_URL"),
+      "EVAL_PLAIN_BASE_URL should be absent in all mode",
+    );
   });
 });
 
