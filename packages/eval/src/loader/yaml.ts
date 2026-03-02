@@ -56,17 +56,44 @@ const evalMessageSchema = z.union([
 const assertionConfigSchema = z.union([
   z.object({
     type: z.literal("tool_usage"),
+    tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
     expected_tools: z.array(z.string()).optional(),
     forbidden_tools: z.array(z.string()).optional(),
   }),
   z.object({
     type: z.literal("final_status"),
+    tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
     expected_status: z.enum(["SUCCESS", "PENDING", "FAILURE"]),
   }),
   z.object({
     type: z.literal("llm_judge"),
+    tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
     prompt: z.string(),
     pass_threshold: z.number().min(0).max(1),
+  }),
+  z.object({
+    type: z.literal("task_success"),
+    tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+    user_goal: z.string().optional(),
+    pass_threshold: z.number().min(0).max(1),
+  }),
+  z.object({
+    type: z.literal("tool_parameter_accuracy"),
+    tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+    tool_name: z.string(),
+    expected_description: z.string(),
+    pass_threshold: z.number().min(0).max(1),
+  }),
+  z.object({
+    type: z.literal("error_recovery"),
+    tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+    tool_name: z.string().optional(),
+    pass_threshold: z.number().min(0).max(1).optional(),
+  }),
+  z.object({
+    type: z.literal("human_review"),
+    tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+    reason: z.string().optional(),
   }),
 ]);
 

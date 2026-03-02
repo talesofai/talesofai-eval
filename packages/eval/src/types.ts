@@ -1,5 +1,7 @@
 import type { Logger } from "pino";
 
+export type EvalTier = 1 | 2 | 3;
+
 export type AnyAssistantMessage = {
   role: "assistant";
   reasoning_content?: string;
@@ -56,11 +58,22 @@ export type EvalMessage = AnyUserMessage | AnyAssistantMessage;
 export type AssertionConfig =
   | {
       type: "tool_usage";
+      tier?: EvalTier;
       expected_tools?: string[];
       forbidden_tools?: string[];
     }
-  | { type: "final_status"; expected_status: "SUCCESS" | "PENDING" | "FAILURE" }
-  | { type: "llm_judge"; prompt: string; pass_threshold: number };
+  | { type: "final_status"; tier?: EvalTier; expected_status: "SUCCESS" | "PENDING" | "FAILURE" }
+  | { type: "llm_judge"; tier?: EvalTier; prompt: string; pass_threshold: number }
+  | { type: "task_success"; tier?: EvalTier; user_goal?: string; pass_threshold: number }
+  | {
+      type: "tool_parameter_accuracy";
+      tier?: EvalTier;
+      tool_name: string;
+      expected_description: string;
+      pass_threshold: number;
+    }
+  | { type: "error_recovery"; tier?: EvalTier; tool_name?: string; pass_threshold?: number }
+  | { type: "human_review"; tier?: EvalTier; reason?: string };
 
 export type EvalCriteria = {
   // --- Legacy compatibility fields ---
@@ -276,10 +289,21 @@ export type TraceMetricsSummary = {
 
 // ─── Score ───────────────────────────────────────────────────────────────────
 
-export type DimensionKind = "tool_usage" | "final_status" | "llm_judge";
+export type DimensionKind =
+  | "tool_usage"
+  | "final_status"
+  | "llm_judge"
+  | "task_success"
+  | "tool_parameter_accuracy"
+  | "error_recovery"
+  | "human_review";
 
 export type DimensionResult = {
   dimension: DimensionKind;
+  /** Set by scoreTrace; reflects the tier of the assertion that produced this result */
+  tier?: EvalTier;
+  /** Present only on auto-synthesized task_success fallback (D12) */
+  auto_synthesized?: true;
   passed: boolean;
   /** 0–1 */
   score: number;

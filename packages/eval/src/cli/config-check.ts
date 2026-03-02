@@ -6,15 +6,43 @@ import {
   resolveRunnerApiKey,
   resolveRunnerBaseURL,
 } from "../env.ts";
-import type { EvalCase } from "../types.ts";
+import type { AssertionConfig, EvalCase, EvalTier } from "../types.ts";
 
-export function caseNeedsJudge(evalCase: EvalCase): boolean {
-  if (evalCase.criteria.llm_judge) {
+const JUDGE_ASSERTION_TYPES = new Set<AssertionConfig["type"]>([
+  "llm_judge",
+  "task_success",
+  "tool_parameter_accuracy",
+]);
+
+const DEFAULT_TIER: Record<AssertionConfig["type"], EvalTier> = {
+  tool_usage: 1,
+  final_status: 1,
+  error_recovery: 1,
+  llm_judge: 2,
+  task_success: 2,
+  tool_parameter_accuracy: 2,
+  human_review: 3,
+};
+
+function resolveAssertionTier(assertion: AssertionConfig): EvalTier {
+  return assertion.tier ?? DEFAULT_TIER[assertion.type];
+}
+
+export function caseNeedsJudge(
+  evalCase: EvalCase,
+  options?: { tierMax?: EvalTier },
+): boolean {
+  const tierMax = options?.tierMax ?? 2;
+
+  if (evalCase.criteria.llm_judge && tierMax >= 2) {
     return true;
   }
+
   return (
     evalCase.criteria.assertions?.some(
-      (assertion) => assertion.type === "llm_judge",
+      (assertion) =>
+        resolveAssertionTier(assertion) <= tierMax &&
+        JUDGE_ASSERTION_TYPES.has(assertion.type),
     ) ?? false
   );
 }
@@ -39,9 +67,10 @@ export function getMissingJudgeConfig(): string[] {
 
 export function getMissingRunConfig(
   cases: EvalCase[],
-  options?: { replay?: boolean },
+  options?: { replay?: boolean; tierMax?: EvalTier },
 ): string[] {
   const replay = options?.replay ?? false;
+  const tierMax = options?.tierMax ?? 2;
 
   if (replay) {
     // Replay prefers cached *.result.json when available, so no upfront judge
@@ -63,7 +92,7 @@ export function getMissingRunConfig(
       missing.add(ENV_KEYS.OPENAI_API_KEY);
     }
 
-    if (caseNeedsJudge(evalCase)) {
+    if (caseNeedsJudge(evalCase, { tierMax })) {
       for (const key of getMissingJudgeConfig()) {
         missing.add(key);
       }

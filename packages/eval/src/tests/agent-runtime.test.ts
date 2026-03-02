@@ -135,9 +135,17 @@ describe("agent runtime oss flow", () => {
 
     assert.equal(trace.case_type, "agent");
     assert.equal(trace.final_response, "hello");
+    assert.equal(trace.conversation[0]?.role, "system");
+    assert.equal(trace.conversation[1]?.role, "user");
+    if (trace.conversation[1]?.role === "user") {
+      assert.equal(trace.conversation[1].content, "hi");
+    }
+
     assert.ok(seenBody, "expected openai request body");
     const captured = seenBody as ChatRequestBody;
     assert.equal(captured.messages[0]?.role, "system");
+    assert.equal(captured.messages[1]?.role, "user");
+    assert.equal(captured.messages[1]?.content, "hi");
   });
 
   it("runAgent executes Inject -> Normalize -> runPlain and keeps case_type=agent", async () => {
@@ -161,7 +169,7 @@ describe("agent runtime oss flow", () => {
         parameters: {
           hero: "{@character}",
         },
-        messages: [{ role: "user", content: "hello" }],
+        messages: [{ role: "user", content: "hello {@character}" }],
         allowed_tool_names: [],
       },
       criteria: {},
@@ -185,5 +193,12 @@ describe("agent runtime oss flow", () => {
     const captured = seenBody as ChatRequestBody;
     assert.equal(captured.messages[0]?.role, "system");
     assert.equal(captured.messages[0]?.content, "greet Alice");
+    assert.equal(captured.messages[1]?.role, "user");
+    assert.equal(captured.messages[1]?.content, "hello Alice");
+
+    assert.equal(trace.conversation[1]?.role, "user");
+    if (trace.conversation[1]?.role === "user") {
+      assert.equal(trace.conversation[1].content, "hello Alice");
+    }
   });
 });

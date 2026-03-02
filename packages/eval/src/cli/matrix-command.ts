@@ -1,22 +1,10 @@
 import { join } from "node:path";
 import pc from "picocolors";
 import { resolveMcpServerBaseURL } from "../env.ts";
-import {
-  invalidArgs,
-  invalidJson,
-  missingConfig,
-  noCases,
-  validationError,
-} from "../errors.ts";
+import { missingConfig, noCases } from "../errors.ts";
 import { createJsonMatrixReporter } from "../reporter/json.ts";
 import { createTerminalMatrixReporter } from "../reporter/terminal.ts";
-import type {
-  MatrixCell,
-  MatrixReporter,
-  MatrixSummary,
-  MatrixVariant,
-  RunnerOptions,
-} from "../types.ts";
+import type { MatrixCell, MatrixReporter, MatrixSummary, RunnerOptions } from "../types.ts";
 import { runConcurrently } from "../utils/concurrency.ts";
 import { resolveMatrixRecordDir } from "../utils/recording.ts";
 import { resolveCasesFromArgs } from "./case-resolution.ts";
@@ -26,96 +14,30 @@ import {
   runAndScore,
 } from "./command-utils.ts";
 import { getMissingRunConfig } from "./config-check.ts";
-import {
-  getStringArrayOption,
-  getStringOption,
-  isRecord,
-  parseFormat,
-} from "./helpers.ts";
+import type { MatrixCommandOptions } from "./options.ts";
 
-function parseVariants(rawVariants: string[]): MatrixVariant[] {
-  if (rawVariants.length === 0) {
-    throw invalidArgs(
-      "at least one --variant is required",
-      'Example: --variant \'{"label":"v1","model":"qwen-plus"}\'',
-    );
-  }
-
-  const seenLabels = new Set<string>();
-  const variants: MatrixVariant[] = [];
-
-  for (let index = 0; index < rawVariants.length; index++) {
-    const raw = rawVariants[index];
-    if (raw === undefined) {
-      continue;
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (error) {
-      if (error instanceof Error) {
-        throw invalidJson("variant", `variant #${index + 1}: ${error.message}`);
-      }
-      throw error;
-    }
-
-    if (!isRecord(parsed)) {
-      throw validationError("flags", [
-        `variant #${index + 1}: must be a JSON object`,
-      ]);
-    }
-
-    const label = parsed["label"];
-    if (typeof label !== "string" || label.trim().length === 0) {
-      throw validationError("flags", [
-        `variant #${index + 1}: missing or empty "label" field`,
-      ]);
-    }
-
-    if (seenLabels.has(label)) {
-      throw validationError("flags", [`duplicate variant label: "${label}"`]);
-    }
-
-    seenLabels.add(label);
-
-    const overrides: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(parsed)) {
-      if (key !== "label") {
-        overrides[key] = value;
-      }
-    }
-
-    variants.push({
-      label,
-      overrides,
-    });
-  }
-
-  return variants;
-}
-
-export async function matrixCommand(
-  options: Record<string, unknown>,
-): Promise<number> {
+export async function matrixCommand(options: MatrixCommandOptions): Promise<number> {
   const { cases, unmatchedFilePatterns } = resolveCasesFromArgs(options);
   if (cases.length === 0) {
     throw noCases("matrix", unmatchedFilePatterns);
   }
 
-  const variants = parseVariants(
-    getStringArrayOption(options, "variant") ?? [],
-  );
-  const format = parseFormat(options["format"] ?? "terminal");
+  const variants = options.variants;
+  const format = options.format;
   const total = cases.length * variants.length;
-  const concurrency = resolveConcurrency(options, total);
-  const explicitRecordDir = getStringOption(options, "record");
+  const concurrency = resolveConcurrency(options.concurrency, total);
+  const explicitRecordDir = options.record;
   const recordDir = resolveMatrixRecordDir({
     explicitRecordDir,
     cellCount: total,
   });
 
-  const missing = getMissingRunConfig(cases, { replay: false });
+  const tierMax = options.tierMax;
+
+  const missing = getMissingRunConfig(cases, {
+    replay: false,
+    tierMax,
+  });
   if (missing.length > 0) {
     throw missingConfig(missing, "matrix");
   }
@@ -161,6 +83,7 @@ export async function matrixCommand(
       scoreCase: pair.evalCase,
       runnerOpts,
       recordDir: variantRecordDir,
+      tierMax,
     });
 
     const cell: MatrixCell = {

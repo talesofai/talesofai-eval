@@ -19,6 +19,15 @@ import {
   pickCommandFromArgv,
 } from "./cli/helpers.ts";
 import { matrixCommand } from "./cli/matrix-command.ts";
+import {
+  parseDiffCommandOptions,
+  parseDoctorCommandOptions,
+  parseInspectCommandOptions,
+  parseMatrixCommandOptions,
+  parsePullOnlineCommandOptions,
+  parseReportCommandOptions,
+  parseRunCommandOptions,
+} from "./cli/options.ts";
 import { runCommand } from "./cli/run-command.ts";
 import { shouldUseJsonErrors } from "./cli-shared.ts";
 import { didYouMean, printCliError, unknownCommand } from "./errors.ts";
@@ -72,11 +81,15 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
     )
     .option("--verbose", "Include full conversation in output")
     .option(
+      "--tier-max <n>",
+      "Maximum assertion tier to evaluate: 1 (rule-based), 2 (default, +LLM judge), 3 (+human review)",
+    )
+    .option(
       "--concurrency <n>",
       "Number of concurrent executions (default: min(total cases, 8))",
     )
     .action((options: Record<string, unknown>) => {
-      setPending(runCommand(options));
+      setPending(runCommand(parseRunCommandOptions(options)));
     });
 
   cli
@@ -95,7 +108,7 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
       "Number of concurrent executions (default: min(total cases, 8))",
     )
     .action((options: Record<string, unknown>) => {
-      setPending(diffCommand(options));
+      setPending(diffCommand(parseDiffCommandOptions(options)));
     });
 
   cli.command("list", "List built-in cases").action(() => {
@@ -107,7 +120,9 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
     .option("--case <id>", "Case id")
     .option("--file <path>", "YAML/JSON file path")
     .action((options: Record<string, unknown>) => {
-      setPending(Promise.resolve(inspectCommand(options)));
+      setPending(
+        Promise.resolve(inspectCommand(parseInspectCommandOptions(options))),
+      );
     });
 
   cli
@@ -119,7 +134,7 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
       default: "all",
     })
     .action((options: Record<string, unknown>) => {
-      setPending(Promise.resolve(doctorCommand(options)));
+      setPending(Promise.resolve(doctorCommand(parseDoctorCommandOptions(options))));
     });
 
   cli
@@ -144,7 +159,7 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
       default: "terminal",
     })
     .action((options: Record<string, unknown>) => {
-      setPending(pullOnlineCommand(options));
+      setPending(pullOnlineCommand(parsePullOnlineCommandOptions(options)));
     });
 
   cli
@@ -168,8 +183,12 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
     .option("--format <fmt>", "Output format: terminal or json", {
       default: "terminal",
     })
+    .option(
+      "--tier-max <n>",
+      "Maximum assertion tier to evaluate: 1 (rule-based), 2 (default, +LLM judge), 3 (+human review)",
+    )
     .action((options: Record<string, unknown>) => {
-      setPending(matrixCommand(options));
+      setPending(matrixCommand(parseMatrixCommandOptions(options)));
     });
 
   cli
@@ -193,7 +212,7 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
       default: "terminal",
     })
     .action((options: Record<string, unknown>) => {
-      setPending(reportCommand(options));
+      setPending(reportCommand(parseReportCommandOptions(options)));
     });
 
   cli.help();

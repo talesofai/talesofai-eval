@@ -3,12 +3,18 @@ import { basename, dirname, join } from "node:path";
 import pc from "picocolors";
 import { computeRunExitCode } from "../cli-shared.ts";
 import { resolveMcpServerBaseURL } from "../env.ts";
-import { invalidArgs, missingConfig, noCases } from "../errors.ts";
+import { missingConfig, noCases } from "../errors.ts";
 import { renderRunHtmlReport } from "../reporter/html.ts";
 import { renderRunMarkdownReport } from "../reporter/terminal.ts";
 import { scoreTrace } from "../scorers/index.ts";
 import { loadResult, loadTrace, saveResult } from "../traces.ts";
-import type { EvalCase, EvalResult, EvalSummary, EvalTrace } from "../types.ts";
+import type {
+  EvalCase,
+  EvalResult,
+  EvalSummary,
+  EvalTier,
+  EvalTrace,
+} from "../types.ts";
 import { runConcurrently } from "../utils/concurrency.ts";
 import { makeAutoRecordDir, resolveRunRecordDir } from "../utils/recording.ts";
 import { resolveCasesFromArgs } from "./case-resolution.ts";
@@ -20,8 +26,13 @@ import {
   runAndScore,
   withStableMetrics,
 } from "./command-utils.ts";
-import { getMissingJudgeConfig, getMissingRunConfig } from "./config-check.ts";
-import { getStringOption, parseFormat } from "./helpers.ts";
+import {
+  caseNeedsJudge,
+  getMissingJudgeConfig,
+  getMissingRunConfig,
+} from "./config-check.ts";
+import { type OutputFormat } from "./helpers.ts";
+import type { RunCommandOptions } from "./options.ts";
 import { maybeShareHtmlReport } from "./share.ts";
 
 function resolveRunReportPath(options: {
@@ -44,7 +55,7 @@ function resolveRunReportPath(options: {
 function writeRunReport(options: {
   summary: EvalSummary;
   reportPath?: string;
-  format: ReturnType<typeof parseFormat>;
+  format: OutputFormat;
   html: string;
 }): { htmlPath?: string } {
   if (!options.reportPath) {
@@ -115,6 +126,7 @@ async function runReplayCase(options: {
   replayDir: string;
   replayWriteMetrics: boolean;
   replayMissingJudgeConfig: string[];
+  tierMax?: EvalTier;
 }): Promise<EvalResult> {
   try {
     const cachedResult = await loadResult(
@@ -147,17 +159,18 @@ async function runReplayCase(options: {
       );
     }
 
-    const needsJudge =
-      options.evalCase.criteria.assertions?.some(
-        (assertion) => assertion.type === "llm_judge",
-      ) ?? false;
+    const needsJudge = caseNeedsJudge(options.evalCase, {
+      tierMax: options.tierMax,
+    });
     if (needsJudge && options.replayMissingJudgeConfig.length > 0) {
       throw new Error(
         `Replay cache miss for ${options.evalCase.id} and missing judge config: ${options.replayMissingJudgeConfig.join(", ")}`,
       );
     }
 
-    return withStableMetrics(await scoreTrace(options.evalCase, trace));
+    return withStableMetrics(
+      await scoreTrace(options.evalCase, trace, { tierMax: options.tierMax }),
+    );
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     return withStableMetrics({
@@ -180,34 +193,20 @@ async function runReplayCase(options: {
   }
 }
 
-export async function runCommand(
-  options: Record<string, unknown>,
-): Promise<number> {
+export async function runCommand(options: RunCommandOptions): Promise<number> {
   const { cases, unmatchedFilePatterns } = resolveCasesFromArgs(options);
   if (cases.length === 0) {
     throw noCases("run", unmatchedFilePatterns);
   }
 
-  const explicitRecordDir = getStringOption(options, "record");
-  const replayDir = getStringOption(options, "replay");
-  const replayWriteMetrics = options["replayWriteMetrics"] === true;
-  if (explicitRecordDir && replayDir) {
-    throw invalidArgs(
-      "--record and --replay are mutually exclusive",
-      "Use either --record <dir> or --replay <dir>, not both.",
-    );
-  }
+  const explicitRecordDir = options.record;
+  const replayDir = options.replay;
+  const replayWriteMetrics = options.replayWriteMetrics;
 
-  if (replayWriteMetrics && !replayDir) {
-    throw invalidArgs(
-      "--replay-write-metrics requires --replay",
-      "Example: agent-eval run --replay <dir> --replay-write-metrics",
-    );
-  }
-
-  const format = parseFormat(options["format"] ?? "terminal");
-  const verbose = options["verbose"] === true;
-  const concurrency = resolveConcurrency(options, cases.length);
+  const format = options.format;
+  const verbose = options.verbose;
+  const concurrency = resolveConcurrency(options.concurrency, cases.length);
+  const tierMax = options.tierMax;
   const recordDir = resolveRunRecordDir({
     explicitRecordDir,
     replayDir,
@@ -218,7 +217,10 @@ export async function runCommand(
     process.stderr.write(pc.dim(`auto-record: ${recordDir}\n`));
   }
 
-  const missing = getMissingRunConfig(cases, { replay: Boolean(replayDir) });
+  const missing = getMissingRunConfig(cases, {
+    replay: Boolean(replayDir),
+    tierMax,
+  });
   if (missing.length > 0) {
     throw missingConfig(missing, "run");
   }
@@ -247,12 +249,14 @@ export async function runCommand(
             replayDir,
             replayWriteMetrics,
             replayMissingJudgeConfig,
+            tierMax,
           })
         : await runAndScore({
             runCase: evalCase,
             scoreCase: evalCase,
             runnerOpts,
             recordDir,
+            tierMax,
           });
       reporter.onCaseResult(result);
       return result;
@@ -276,7 +280,7 @@ export async function runCommand(
   };
   reporter.onSummary(summary);
 
-  const shareEnabled = options["share"] !== false;
+  const shareEnabled = options.share;
   const shouldBuildHtml = Boolean(reportPath) || shareEnabled;
   const html = shouldBuildHtml ? await renderRunHtmlReport(summary) : null;
 
@@ -294,7 +298,7 @@ export async function runCommand(
       enabled: true,
       html,
       filename: htmlPath ? basename(htmlPath) : "run-report.html",
-      baseUrlOption: getStringOption(options, "shareBaseUrl"),
+      baseUrlOption: options.shareBaseUrl,
     });
 
     if (format === "json") {

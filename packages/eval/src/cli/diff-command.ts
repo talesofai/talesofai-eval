@@ -1,10 +1,5 @@
 import { resolveMcpServerBaseURL } from "../env.ts";
-import {
-  invalidJson,
-  missingConfig,
-  noCases,
-  validationError,
-} from "../errors.ts";
+import { missingConfig, noCases } from "../errors.ts";
 import { runCase } from "../runners/index.ts";
 import { compareTraces } from "../scorers/diff.ts";
 import type { DiffSummary, DiffVerdict, RunnerOptions } from "../types.ts";
@@ -17,55 +12,20 @@ import {
   resolveConcurrency,
 } from "./command-utils.ts";
 import { getMissingDiffConfig } from "./config-check.ts";
-import { getStringOption, isRecord, parseFormat } from "./helpers.ts";
+import type { DiffCommandOptions } from "./options.ts";
 
-export async function diffCommand(
-  options: Record<string, unknown>,
-): Promise<number> {
+export async function diffCommand(options: DiffCommandOptions): Promise<number> {
   const { cases, unmatchedFilePatterns } = resolveCasesFromArgs(options);
   if (cases.length === 0) {
     throw noCases("diff", unmatchedFilePatterns);
   }
 
-  const baseStr = getStringOption(options, "base");
-  const candidateStr = getStringOption(options, "candidate");
-  if (!baseStr || !candidateStr) {
-    throw validationError("flags", [
-      "--base and --candidate are required for diff",
-    ]);
-  }
+  const baseOverrides = options.baseOverrides;
+  const candidateOverrides = options.candidateOverrides;
 
-  let baseOverrides: Record<string, unknown>;
-  try {
-    const parsed = JSON.parse(baseStr);
-    if (!isRecord(parsed)) {
-      throw new Error("must be an object");
-    }
-    baseOverrides = parsed;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw invalidJson("base", error.message);
-    }
-    throw error;
-  }
-
-  let candidateOverrides: Record<string, unknown>;
-  try {
-    const parsed = JSON.parse(candidateStr);
-    if (!isRecord(parsed)) {
-      throw new Error("must be an object");
-    }
-    candidateOverrides = parsed;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw invalidJson("candidate", error.message);
-    }
-    throw error;
-  }
-
-  const format = parseFormat(options["format"] ?? "terminal");
-  const verbose = options["verbose"] === true;
-  const concurrency = resolveConcurrency(options, cases.length);
+  const format = options.format;
+  const verbose = options.verbose;
+  const concurrency = resolveConcurrency(options.concurrency, cases.length);
   const missing = getMissingDiffConfig(cases);
   if (missing.length > 0) {
     throw missingConfig(missing, "diff");

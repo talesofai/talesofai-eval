@@ -10,11 +10,8 @@ import { buildFromFlags } from "../loader/inline.ts";
 import { getAllCases, getCase, listCaseIds } from "../loader/registry.ts";
 import { parseInlineJson, parseYamlFile } from "../loader/yaml.ts";
 import type { EvalCase } from "../types.ts";
-import {
-  formatZodIssues,
-  getStringArrayOption,
-  getStringOption,
-} from "./helpers.ts";
+import { formatZodIssues } from "./helpers.ts";
+import type { CaseResolveOptions } from "./options.ts";
 
 function getRebasedFilePatterns(pattern: string): string[] {
   const rebased = pattern.replace(/^\.?\/?packages\/eval\//, "");
@@ -39,14 +36,14 @@ function matchFilesForPattern(pattern: string): string[] {
   return [...matched];
 }
 
-export function resolveCasesFromArgs(options: Record<string, unknown>): {
+export function resolveCasesFromArgs(options: CaseResolveOptions): {
   cases: EvalCase[];
   unmatchedFilePatterns: string[];
 } {
   const cases: EvalCase[] = [];
   const unmatchedFilePatterns: string[] = [];
 
-  const inlineValue = getStringOption(options, "inline");
+  const inlineValue = options.inline;
   if (inlineValue) {
     try {
       cases.push(parseInlineJson(inlineValue));
@@ -61,7 +58,7 @@ export function resolveCasesFromArgs(options: Record<string, unknown>): {
     }
   }
 
-  const filePatterns = getStringArrayOption(options, "file");
+  const filePatterns = options.file;
   if (filePatterns) {
     for (const pattern of filePatterns) {
       const matched = matchFilesForPattern(pattern);
@@ -87,10 +84,10 @@ export function resolveCasesFromArgs(options: Record<string, unknown>): {
     }
   }
 
-  const caseId = getStringOption(options, "case");
+  const caseId = options.case;
   if (caseId) {
     if (caseId === "all") {
-      const typeFilter = getStringOption(options, "type");
+      const typeFilter = options.type;
       const allCases = getAllCases();
       if (typeFilter === "plain" || typeFilter === "agent") {
         cases.push(
@@ -113,15 +110,15 @@ export function resolveCasesFromArgs(options: Record<string, unknown>): {
     }
   }
 
-  const messages = getStringArrayOption(options, "message");
-  const systemPrompt = getStringOption(options, "systemPrompt");
-  const presetKey = getStringOption(options, "presetKey");
+  const messages = options.message;
+  const systemPrompt = options.systemPrompt;
+  const presetKey = options.presetKey;
 
   if (messages || systemPrompt || presetKey) {
-    const expectedTools = getStringOption(options, "expectedTools");
-    const forbiddenTools = getStringOption(options, "forbiddenTools");
-    const allowedToolNames = getStringOption(options, "allowedToolNames");
-    const explicitType = getStringOption(options, "type");
+    const expectedTools = options.expectedTools;
+    const forbiddenTools = options.forbiddenTools;
+    const allowedToolNames = options.allowedToolNames;
+    const explicitType = options.type;
 
     const inlineType =
       explicitType === "agent" || explicitType === "plain"
@@ -135,22 +132,15 @@ export function resolveCasesFromArgs(options: Record<string, unknown>): {
         buildFromFlags({
           type: inlineType,
           systemPrompt,
-          model: getStringOption(options, "model"),
+          model: options.model,
           presetKey,
           messages,
-          expectedTools: expectedTools ? expectedTools.split(",") : undefined,
-          forbiddenTools: forbiddenTools
-            ? forbiddenTools.split(",")
-            : undefined,
-          expectedStatus: getStringOption(options, "expectedStatus"),
-          judgePrompt: getStringOption(options, "judgePrompt"),
-          judgeThreshold:
-            typeof options["judgeThreshold"] === "string"
-              ? Number(options["judgeThreshold"])
-              : undefined,
-          allowedToolNames: allowedToolNames
-            ? allowedToolNames.split(",")
-            : undefined,
+          expectedTools,
+          forbiddenTools,
+          expectedStatus: options.expectedStatus,
+          judgePrompt: options.judgePrompt,
+          judgeThreshold: options.judgeThreshold,
+          allowedToolNames,
         }),
       );
     } catch (error) {

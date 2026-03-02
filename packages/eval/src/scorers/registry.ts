@@ -8,6 +8,10 @@ import type {
 import { scoreLlmJudgeAssertion } from "./llm-judge.ts";
 import { scoreFinalStatusAssertion } from "./status.ts";
 import { scoreToolUsageAssertion } from "./tool.ts";
+import { scoreErrorRecovery } from "./error-recovery.ts";
+import { scoreHumanReview } from "./human-review.ts";
+import { scoreTaskSuccess } from "./task-success.ts";
+import { scoreToolParameterAccuracy } from "./tool-parameter-accuracy.ts";
 
 export type { ScorerFn };
 
@@ -25,6 +29,14 @@ export const SCORER_REGISTRY: Record<
     scoreFinalStatusAssertion(trace, assertion),
   llm_judge: (trace, assertion, _evalCase) =>
     scoreLlmJudgeAssertion(trace, assertion),
+  error_recovery: (trace, assertion, _evalCase) =>
+    scoreErrorRecovery(trace, assertion),
+  human_review: (trace, assertion, _evalCase) =>
+    scoreHumanReview(trace, assertion),
+  task_success: (trace, assertion, evalCase) =>
+    scoreTaskSuccess(trace, assertion, evalCase),
+  tool_parameter_accuracy: (trace, assertion, evalCase) =>
+    scoreToolParameterAccuracy(trace, assertion, evalCase),
 };
 
 /**

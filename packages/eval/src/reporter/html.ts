@@ -65,11 +65,23 @@ async function maybeMinifyHtml(html: string): Promise<string> {
   });
 }
 
+function resolveReportCaseTitle(result: EvalResult): string {
+  const firstUserMessage = result.trace.conversation.find(
+    (message) => message.role === "user",
+  );
+
+  if (firstUserMessage?.role === "user") {
+    return firstUserMessage.content;
+  }
+
+  return result.preset_description ?? result.description ?? result.case_id;
+}
+
 function buildReportCasePayload(result: EvalResult): ReportCasePayload {
   const toolCalls = buildToolCallViews(result.trace.tools_called);
   return {
     row: buildCaseRowView(result),
-    title: result.preset_description ?? result.description ?? result.case_id,
+    title: resolveReportCaseTitle(result),
     metrics_view: buildCaseMetricsView(result),
     tool_calls: toolCalls,
     conversation: buildConversationView(result.trace, toolCalls),
@@ -79,6 +91,19 @@ function buildReportCasePayload(result: EvalResult): ReportCasePayload {
 
 export async function renderRunHtmlReport(
   summary: EvalSummary,
+): Promise<string> {
+  return renderHtmlReport(summary, "report.template");
+}
+
+export async function renderRunHtmlReportV3(
+  summary: EvalSummary,
+): Promise<string> {
+  return renderHtmlReport(summary, "report-v3.template");
+}
+
+async function renderHtmlReport(
+  summary: EvalSummary,
+  templateBase: string,
 ): Promise<string> {
   const payload: ReportPayload = {
     generated_at: new Date().toISOString(),
@@ -95,8 +120,8 @@ export async function renderRunHtmlReport(
 
   const encoded = encodePayload(payload);
   const template = loadTemplate("report.template.html");
-  const styles = loadTemplate("report.template.css");
-  const script = loadTemplate("report.template.js").replaceAll(
+  const styles = loadTemplate(`${templateBase}.css`);
+  const script = loadTemplate(`${templateBase}.js`).replaceAll(
     DATA_PLACEHOLDER,
     encoded,
   );

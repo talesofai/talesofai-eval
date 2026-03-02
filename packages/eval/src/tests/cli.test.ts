@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -176,6 +176,20 @@ describe("agent-eval CLI UX", () => {
     assert.equal(result.status, 2);
     assert.match(result.stderr, /E_MISSING_CONFIG/);
     assert.match(result.stderr, /EVAL_JUDGE_MODEL/);
+  });
+
+  it("run rejects invalid --tier-max value", () => {
+    const result = runCli([
+      "run",
+      "--case",
+      "system-prompt-tone",
+      "--tier-max",
+      "4",
+    ]);
+
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /E_INVALID_ARGS/);
+    assert.match(result.stderr, /--tier-max must be 1, 2, or 3/);
   });
 
   // P2: tool-less plain cases (allowed_tool_names: []) don't require MCP config
@@ -395,6 +409,10 @@ describe("agent-eval CLI UX", () => {
       assert.equal(result.status, 0);
       const payload = JSON.parse(result.stdout.trim());
       assert.equal(payload.type, "report");
+      assert.equal(typeof payload.output, "string");
+      assert.equal(typeof payload.output_list, "string");
+      assert.equal(existsSync(payload.output), true);
+      assert.equal(existsSync(payload.output_list), true);
       assert.equal(typeof payload.share_error, "string");
       assert.equal(payload.share_url, undefined);
     } finally {
@@ -418,6 +436,10 @@ describe("agent-eval CLI UX", () => {
       assert.equal(result.status, 0);
       const payload = JSON.parse(result.stdout.trim());
       assert.equal(payload.type, "report");
+      assert.equal(typeof payload.output, "string");
+      assert.equal(typeof payload.output_list, "string");
+      assert.equal(existsSync(payload.output), true);
+      assert.equal(existsSync(payload.output_list), true);
       assert.equal(payload.share_url, undefined);
       assert.equal(payload.share_error, undefined);
     } finally {
@@ -480,6 +502,21 @@ describe("agent-eval CLI UX", () => {
     assert.equal(result.status, 2);
     assert.match(result.stderr, /E_INVALID_ARGS/);
     assert.match(result.stderr, /--variant/);
+  });
+
+  it("matrix rejects invalid --tier-max value", () => {
+    const result = runCli([
+      "matrix",
+      "--case",
+      "all",
+      "--variant",
+      '{"label":"v1"}',
+      "--tier-max",
+      "0",
+    ]);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /E_INVALID_ARGS/);
+    assert.match(result.stderr, /--tier-max must be 1, 2, or 3/);
   });
 
   it("matrix duplicate labels returns E_VALIDATION", () => {

@@ -100,9 +100,22 @@ function isToolCallRecord(value: unknown): boolean {
 
 function isDimensionKind(
   value: unknown,
-): value is "tool_usage" | "final_status" | "llm_judge" {
+): value is
+  | "tool_usage"
+  | "final_status"
+  | "llm_judge"
+  | "task_success"
+  | "tool_parameter_accuracy"
+  | "error_recovery"
+  | "human_review" {
   return (
-    value === "tool_usage" || value === "final_status" || value === "llm_judge"
+    value === "tool_usage" ||
+    value === "final_status" ||
+    value === "llm_judge" ||
+    value === "task_success" ||
+    value === "tool_parameter_accuracy" ||
+    value === "error_recovery" ||
+    value === "human_review"
   );
 }
 
@@ -111,12 +124,23 @@ function isDimensionResult(value: unknown): boolean {
     return false;
   }
 
-  return (
-    isDimensionKind(value["dimension"]) &&
-    typeof value["passed"] === "boolean" &&
-    typeof value["score"] === "number" &&
-    typeof value["reason"] === "string"
-  );
+  if (
+    !(
+      isDimensionKind(value["dimension"]) &&
+      typeof value["passed"] === "boolean" &&
+      typeof value["score"] === "number" &&
+      typeof value["reason"] === "string"
+    )
+  ) {
+    return false;
+  }
+
+  // tier is optional; if present must be 1, 2, or 3
+  if ("tier" in value && value["tier"] !== 1 && value["tier"] !== 2 && value["tier"] !== 3) {
+    return false;
+  }
+
+  return true;
 }
 
 function isEvalTrace(value: unknown): value is EvalTrace {

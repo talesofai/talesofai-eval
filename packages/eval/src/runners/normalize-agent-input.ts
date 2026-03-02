@@ -38,6 +38,38 @@ const renderTemplate = (
   });
 };
 
+const renderTemplatedMessages = (
+  messages: AgentEvalCase["input"]["messages"],
+  parameters: Record<string, string | number | boolean>,
+): AgentEvalCase["input"]["messages"] => {
+  const cloned = structuredClone(messages);
+
+  for (const message of cloned) {
+    if (typeof message.content === "string") {
+      message.content = renderTemplate(message.content, parameters);
+      continue;
+    }
+
+    if (!Array.isArray(message.content)) {
+      continue;
+    }
+
+    for (const part of message.content) {
+      if (
+        (part.type === "text" ||
+          part.type === "input_text" ||
+          part.type === "output_text") &&
+        "text" in part &&
+        typeof part.text === "string"
+      ) {
+        part.text = renderTemplate(part.text, parameters);
+      }
+    }
+  }
+
+  return cloned;
+};
+
 const validateLegacyParameters = (
   parameters: Record<string, string | number | boolean>,
 ): void => {
@@ -66,6 +98,8 @@ export function normalizeAgentInput(
   const { input } = evalCase;
   const parameters = input.parameters;
 
+  const renderedMessages = renderTemplatedMessages(input.messages, parameters);
+
   if (typeof input.system_prompt === "string") {
     if (input.system_prompt.trim().length === 0) {
       throw new Error(
@@ -85,7 +119,7 @@ export function normalizeAgentInput(
       input: {
         system_prompt: renderTemplate(input.system_prompt, parameters),
         model: input.model,
-        messages: input.messages,
+        messages: renderedMessages,
         allowed_tool_names: input.allowed_tool_names,
       },
       criteria: evalCase.criteria,
@@ -107,7 +141,7 @@ export function normalizeAgentInput(
     input: {
       system_prompt: renderTemplate(LEGACY_AGENT_SYSTEM_PROMPT, parameters),
       model: input.model,
-      messages: input.messages,
+      messages: renderedMessages,
       allowed_tool_names: input.allowed_tool_names,
     },
     criteria: evalCase.criteria,

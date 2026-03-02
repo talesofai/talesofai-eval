@@ -596,6 +596,117 @@ describe("agent-eval replay mode", () => {
     }
   });
 
+  it("replay applies --tier-max and skips judge requirement for filtered judge assertions", () => {
+    const tempRoot = mkdtempSync(
+      join(tmpdir(), "agent-eval-replay-tiermax-filter-"),
+    );
+
+    try {
+      const replayDir = join(tempRoot, "traces");
+      mkdirSync(replayDir, { recursive: true });
+
+      const caseId = "replay-tiermax-filter-case";
+      const inlineCase = JSON.stringify({
+        type: "plain",
+        id: caseId,
+        description: "replay tiermax filter",
+        input: {
+          system_prompt: "sys",
+          model: "qwen-plus",
+          messages: [{ role: "user", content: "hello" }],
+          allowed_tool_names: [],
+        },
+        criteria: {
+          assertions: [
+            {
+              type: "final_status",
+              tier: 1,
+              expected_status: "SUCCESS",
+            },
+            {
+              type: "llm_judge",
+              tier: 2,
+              prompt: "judge",
+              pass_threshold: 0.7,
+            },
+          ],
+        },
+      });
+
+      writeFileSync(
+        join(replayDir, `${sanitizeCaseId(caseId)}.trace.json`),
+        JSON.stringify(makeTrace(caseId), null, 2),
+      );
+
+      const result = runCli(
+        [
+          "run",
+          "--inline",
+          inlineCase,
+          "--replay",
+          replayDir,
+          "--tier-max",
+          "1",
+          "--format",
+          "json",
+        ],
+        {
+          OPENAI_BASE_URL: "",
+          OPENAI_API_KEY: "",
+          EVAL_JUDGE_BASE_URL: "",
+          EVAL_JUDGE_API_KEY: "",
+          EVAL_JUDGE_MODEL: "",
+          EVAL_MCP_SERVER_BASE_URL: "",
+          EVAL_UPSTREAM_API_BASE_URL: "",
+        },
+      );
+
+      assert.equal(result.status, 0);
+      assert.doesNotMatch(result.stderr, /Replay cache miss/);
+      assert.doesNotMatch(result.stderr, /E_MISSING_CONFIG/);
+
+      const lines = result.stdout
+        .trim()
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .flatMap((line) => {
+          try {
+            const parsed = JSON.parse(line) as unknown;
+            if (
+              parsed &&
+              typeof parsed === "object" &&
+              !Array.isArray(parsed)
+            ) {
+              return [parsed as Record<string, unknown>];
+            }
+          } catch {
+            // ignore non-json noise in stdout (e.g. dotenv notices)
+          }
+          return [];
+        });
+
+      const caseResult = lines.find((line) => line["type"] === "result");
+      assert.ok(caseResult, "should output result line in json mode");
+      assert.equal(caseResult?.["passed"], true);
+
+      const dimensions = Array.isArray(caseResult?.["dimensions"])
+        ? caseResult["dimensions"]
+        : [];
+      const dimensionNames = dimensions
+        .map((d) =>
+          d && typeof d === "object" && !Array.isArray(d)
+            ? String((d as Record<string, unknown>)["dimension"])
+            : "",
+        )
+        .filter(Boolean);
+
+      assert.deepEqual(dimensionNames, ["final_status"]);
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
   it("replay is read-only by default when cached result has no metrics", async () => {
     const tempRoot = mkdtempSync(
       join(tmpdir(), "agent-eval-replay-readonly-metrics-"),

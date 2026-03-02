@@ -10,13 +10,14 @@ import { saveResult, saveTrace } from "../traces.ts";
 import type {
   EvalCase,
   EvalResult,
+  EvalTier,
   EvalTrace,
   Reporter,
   RunnerOptions,
   ToolCallRecord,
   ToolCallStartRecord,
 } from "../types.ts";
-import { getNumberOption, type OutputFormat } from "./helpers.ts";
+import { type OutputFormat } from "./helpers.ts";
 
 export function createReporterFromFormat(
   format: OutputFormat,
@@ -70,6 +71,7 @@ export async function runAndScore(options: {
   scoreCase: EvalCase;
   runnerOpts: RunnerOptions;
   recordDir?: string;
+  tierMax?: EvalTier;
 }): Promise<EvalResult> {
   try {
     const trace = await runCase(options.runCase, options.runnerOpts);
@@ -78,7 +80,7 @@ export async function runAndScore(options: {
     }
 
     const result = withStableMetrics(
-      await scoreTrace(options.scoreCase, trace),
+      await scoreTrace(options.scoreCase, trace, { tierMax: options.tierMax }),
     );
     if (options.recordDir) {
       await saveResult(result, options.recordDir).catch(() => {});
@@ -137,10 +139,9 @@ function resolveDefaultConcurrency(totalTasks: number): number {
 }
 
 export function resolveConcurrency(
-  options: Record<string, unknown>,
+  configured: number | undefined,
   totalTasks: number,
 ): number {
-  const configured = getNumberOption(options, "concurrency");
   if (configured === undefined) {
     return resolveDefaultConcurrency(totalTasks);
   }

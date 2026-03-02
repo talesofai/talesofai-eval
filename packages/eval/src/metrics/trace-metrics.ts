@@ -58,6 +58,16 @@ function hasStructuredFields(value: Record<string, unknown>): boolean {
 function extractStructuredContent(
   value: unknown,
 ): Record<string, unknown> | null {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const nested = extractStructuredContent(item);
+      if (nested) {
+        return nested;
+      }
+    }
+    return null;
+  }
+
   if (!isRecord(value)) {
     return null;
   }
@@ -179,7 +189,10 @@ function incrementCounter(counter: Record<string, number>, key: string): void {
   counter[key] = (counter[key] ?? 0) + 1;
 }
 
-function stableStringify(value: unknown): string {
+export function stableStringify(value: unknown): string {
+  if (value === undefined) {
+    return "undefined";
+  }
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value);
   }

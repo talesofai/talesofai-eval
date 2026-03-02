@@ -115,6 +115,11 @@ export const runPlain = async (
     { role: "system" as const, content: input.system_prompt },
   ];
 
+  // Collect trace data
+  const conversation: CommonLLMMessage[] = [
+    { role: "system", content: input.system_prompt },
+  ];
+
   // Seed conversation from case messages
   for (const msg of input.messages) {
     if (msg.role === "user") {
@@ -123,19 +128,16 @@ export const runPlain = async (
         "user",
       );
       messages.push({ role: "user" as const, content: text });
+      conversation.push({ role: "user", content: text });
     } else if (msg.role === "assistant") {
       const text = extractMessageText(
         msg.content as EvalMessage["content"],
         "assistant",
       );
       messages.push({ role: "assistant" as const, content: text });
+      conversation.push({ role: "assistant", content: text });
     }
   }
-
-  // Collect trace data
-  const conversation: CommonLLMMessage[] = [
-    { role: "system", content: input.system_prompt },
-  ];
   const toolsCalled: ToolCallRecord[] = [];
   let totalInputTokens = 0;
   let totalOutputTokens = 0;

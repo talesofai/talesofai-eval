@@ -1,36 +1,65 @@
 # agent-eval
 
-`agent-eval` is an evaluation toolkit for prompt cases and agent traces.
+Evaluation toolkit for prompt cases and agent traces. Supports reproducible testing, trace recording/replay, and LLM-as-a-judge scoring.
 
-## What works out of the box
+## What Works Out of the Box
 
-- Plain cases (`type: plain`) are fully usable in open source mode.
-- CLI (`agent-eval`) and programmatic API can load cases, run traces, score results, and print reports.
+- **Plain cases** (`type: plain`): Direct chat completion evaluation
+- **Agent cases** (`type: agent`): Full agent runtime with MCP tools
+- CLI and programmatic API for loading, running, and scoring
 
-## Runtime note
-
-- Agent cases (`type: agent`) run with the OSS minimal runtime in `packages/eval` (OpenAI-compatible API + MCP tools).
-- Character injection can optionally use upstream APIs via environment configuration.
-
-## Quick start
+## Quick Start (Monorepo Contributors)
 
 ```bash
+# 1. Install dependencies
 pnpm install
+
+# 2. Build the package
 pnpm build
-node packages/eval/dist/cli.js --help
+
+# 3. Configure environment (place at repo root for root-level execution)
+cp packages/eval/.env.example .env
+# Edit .env with your API keys
+
+# 4. Verify setup
+pnpm agent-eval doctor
+
+# 5. Run built-in examples
+pnpm agent-eval run --case all
 ```
 
-## npm direct usage
+## Quick Start (npm Users)
 
 ```bash
+# Install globally
 npm i -g agent-eval
-agent-eval --help
-# or
+
+# Or use npx (no install)
 npx agent-eval --help
+
+# Configure and run
+cp packages/eval/.env.example .env
+agent-eval doctor
+agent-eval run --case all
 ```
 
-Before running, create `.env` from template:
+## Documentation
 
-```bash
-cp packages/eval/.env.example packages/eval/.env
+- [CLI Usage & Case Format](packages/eval/README.md) - Full documentation for users
+- [Development Guide](TODOS.md) - Roadmap and internal notes
+
+## Project Structure
+
 ```
+.
+├── packages/eval/          # Main CLI package (npm: agent-eval)
+│   ├── src/               # Source code
+│   ├── cases/             # Example eval cases
+│   └── README.md          # Detailed usage docs
+├── specs/                 # Design specifications
+└── README.md              # This file
+```
+
+## License
+
+MIT

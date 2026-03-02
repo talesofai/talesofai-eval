@@ -61,23 +61,6 @@ export function getStringArrayOption(
   return undefined;
 }
 
-export function getNumberOption(
-  options: Record<string, unknown>,
-  key: string,
-): number | undefined {
-  const value = options[key];
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-  return undefined;
-}
-
 function isCliError(error: unknown): error is CliError {
   if (!error || typeof error !== "object") {
     return false;

@@ -55,6 +55,45 @@ describe("normalizeAgentInput", () => {
     assert.equal(result.input.model, "gpt-5.2");
   });
 
+  it("renders template variables in input messages", () => {
+    const evalCase: AgentEvalCase = {
+      ...baseLegacyCase(),
+      id: "agent-message-template",
+      input: {
+        ...baseLegacyCase().input,
+        system_prompt: "sys",
+        model: "gpt-5.2",
+        parameters: { item: "magic pencil" },
+        messages: [
+          { role: "user", content: "draw {{item}}" },
+          {
+            role: "assistant",
+            content: [{ type: "output_text", text: "ok {{item}}" }],
+          },
+        ],
+      },
+    };
+
+    const result = normalizeAgentInput(evalCase);
+    assert.equal(result.input.messages[0]?.role, "user");
+    if (result.input.messages[0]?.role === "user") {
+      assert.equal(result.input.messages[0].content, "draw magic pencil");
+    }
+    assert.equal(result.input.messages[1]?.role, "assistant");
+    if (
+      result.input.messages[1]?.role === "assistant" &&
+      Array.isArray(result.input.messages[1].content)
+    ) {
+      assert.equal(result.input.messages[1].content[0]?.type, "output_text");
+      if (result.input.messages[1].content[0]?.type === "output_text") {
+        assert.equal(
+          result.input.messages[1].content[0].text,
+          "ok magic pencil",
+        );
+      }
+    }
+  });
+
   it("legacy validation: missing required parameter throws", () => {
     const evalCase: AgentEvalCase = {
       ...baseLegacyCase(),
@@ -155,5 +194,55 @@ describe("getMissingRunConfig for agent", () => {
     assert.ok(missing.includes("OPENAI_BASE_URL"));
     assert.ok(missing.includes("OPENAI_API_KEY"));
     assert.ok(!missing.includes("EVAL_UPSTREAM_API_BASE_URL"));
+  });
+
+  it("does not require judge config when tierMax filters out judge assertions", () => {
+    const cases: AgentEvalCase[] = [
+      {
+        ...baseLegacyCase(),
+        criteria: {
+          assertions: [
+            {
+              type: "llm_judge",
+              tier: 2,
+              prompt: "judge",
+              pass_threshold: 0.7,
+            },
+          ],
+        },
+      },
+    ];
+
+    const missing = getMissingRunConfig(cases, { tierMax: 1 });
+    assert.ok(!missing.includes("EVAL_JUDGE_MODEL"));
+    assert.ok(
+      !missing.includes("EVAL_JUDGE_BASE_URL|OPENAI_BASE_URL"),
+      "judge base url should not be required at tierMax=1",
+    );
+    assert.ok(
+      !missing.includes("EVAL_JUDGE_API_KEY|OPENAI_API_KEY"),
+      "judge api key should not be required at tierMax=1",
+    );
+  });
+
+  it("requires judge config when tierMax includes judge assertions", () => {
+    const cases: AgentEvalCase[] = [
+      {
+        ...baseLegacyCase(),
+        criteria: {
+          assertions: [
+            {
+              type: "llm_judge",
+              tier: 2,
+              prompt: "judge",
+              pass_threshold: 0.7,
+            },
+          ],
+        },
+      },
+    ];
+
+    const missing = getMissingRunConfig(cases, { tierMax: 2 });
+    assert.ok(missing.includes("EVAL_JUDGE_MODEL"));
   });
 });

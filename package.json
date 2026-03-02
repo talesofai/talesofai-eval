@@ -6,6 +6,7 @@
     "build": "pnpm -C packages/eval build",
     "dev": "pnpm -C packages/eval dev",
     "test": "pnpm -C packages/eval test",
+    "test:coverage": "pnpm -C packages/eval test:coverage",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "agent-eval": "pnpm -C packages/eval agent-eval"

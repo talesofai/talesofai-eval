@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { renderRunHtmlReport } from "../reporter/html.ts";
+import { renderRunHtmlReport, renderRunHtmlReportV3 } from "../reporter/html.ts";
 import type { EvalResult, EvalSummary } from "../types.ts";
 
 describe("renderRunHtmlReport", () => {
@@ -36,6 +36,41 @@ describe("renderRunHtmlReport", () => {
     assert.equal(payload.cases[0].result.case_id, "case-a");
     assert.ok(payload.generated_at, "should have generated timestamp");
     assert.ok(payload.summary.metrics_summary, "should have metrics summary");
+  });
+
+  it("renders v3 html report with embedded payload", async () => {
+    const summary = makeSummary([makeResult("case-v3", true)]);
+    const html = await renderRunHtmlReportV3(summary);
+
+    assert.ok(html.includes("<!DOCTYPE html>"), "should include doctype");
+    assert.ok(html.includes("class=\"case-list\""), "should include case list");
+
+    const match = html.match(/const REPORT_DATA = "([^"]+)";/);
+    assert.ok(match, "should have REPORT_DATA assignment");
+    const base64Data = match[1];
+    assert.ok(base64Data, "should capture payload");
+    const decoded = Buffer.from(base64Data, "base64").toString("utf8");
+    const payload = JSON.parse(decoded);
+
+    assert.equal(payload.summary.total, 1);
+    assert.equal(payload.cases[0].result.case_id, "case-v3");
+  });
+
+  it("prefers first user message as report title", async () => {
+    const result = makeResult("case-title", true);
+    result.description = "fallback description";
+    result.trace.conversation = [{ role: "user", content: "filled user prompt" }];
+
+    const payload = await decodePayload(makeSummary([result]));
+    assert.equal(payload.cases[0].title, "filled user prompt");
+  });
+
+  it("falls back to result description when user message is missing", async () => {
+    const result = makeResult("case-title-fallback", true);
+    result.description = "human readable description";
+
+    const payload = await decodePayload(makeSummary([result]));
+    assert.equal(payload.cases[0].title, "human readable description");
   });
 
   it("includes all case details in payload", async () => {
@@ -108,19 +143,24 @@ describe("renderRunHtmlReport", () => {
         tool_call_id: "call-a",
         name: "make_image_v1",
         arguments: { prompt: "cat" },
-        output: JSON.stringify({
-          structuredContent: {
-            task_status: "SUCCESS",
-            artifacts: [
-              {
-                uuid: "img-1",
-                url: "https://cdn.example.com/cat.webp",
-                modality: "PICTURE",
-                status: "SUCCESS",
-              },
-            ],
+        output: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              msg: "",
+              err_msg: null,
+              task_status: "SUCCESS",
+              artifacts: [
+                {
+                  uuid: "img-1",
+                  url: "https://cdn.example.com/cat.webp",
+                  modality: "PICTURE",
+                  status: "SUCCESS",
+                },
+              ],
+            }),
           },
-        }),
+        ],
         duration_ms: 50,
       },
     ];

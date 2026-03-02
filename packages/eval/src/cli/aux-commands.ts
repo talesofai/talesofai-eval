@@ -10,11 +10,16 @@ import {
 } from "../env.ts";
 import { invalidArgs, noCases } from "../errors.ts";
 import { extractAgentCaseFromCollection } from "../online/extract.ts";
-import { renderRunHtmlReport } from "../reporter/html.ts";
+import { renderRunHtmlReport, renderRunHtmlReportV3 } from "../reporter/html.ts";
 import { loadResult } from "../traces.ts";
 import type { EvalResult, EvalSummary } from "../types.ts";
 import { resolveCasesFromArgs } from "./case-resolution.ts";
-import { getNumberOption, getStringOption, parseFormat } from "./helpers.ts";
+import type {
+  DoctorCommandOptions,
+  InspectCommandOptions,
+  PullOnlineCommandOptions,
+  ReportCommandOptions,
+} from "./options.ts";
 import { maybeShareHtmlReport } from "./share.ts";
 
 export function listCommand(): number {
@@ -28,7 +33,7 @@ export function listCommand(): number {
   return 0;
 }
 
-export function inspectCommand(options: Record<string, unknown>): number {
+export function inspectCommand(options: InspectCommandOptions): number {
   const { cases, unmatchedFilePatterns } = resolveCasesFromArgs(options);
   if (cases.length === 0) {
     throw noCases("inspect", unmatchedFilePatterns);
@@ -40,11 +45,9 @@ export function inspectCommand(options: Record<string, unknown>): number {
   return 0;
 }
 
-export function doctorCommand(options: Record<string, unknown>): number {
-  const format = parseFormat(options["format"] ?? "terminal");
-  const rawMode = getStringOption(options, "mode") ?? "all";
-  const mode: DoctorMode =
-    rawMode === "plain" || rawMode === "agent" ? rawMode : "all";
+export function doctorCommand(options: DoctorCommandOptions): number {
+  const format = options.format;
+  const mode: DoctorMode = options.mode;
 
   const checks = collectDoctorChecks(process.env, mode);
   const failing = checks.filter((check) => !check.ok && !check.optional);
@@ -83,44 +86,12 @@ export function doctorCommand(options: Record<string, unknown>): number {
   return failing.length === 0 ? 0 : 2;
 }
 
-function parseIntegerOptionOrThrow(options: {
-  cliOptions: Record<string, unknown>;
-  optionName: "pageIndex" | "pageSize";
-  flagName: "--page-index" | "--page-size";
-  defaultValue: number;
-  validate: (value: number) => boolean;
-  hint: string;
-}): number {
-  const raw = options.cliOptions[options.optionName];
-  if (raw === undefined) {
-    return options.defaultValue;
-  }
-
-  const parsed = getNumberOption(options.cliOptions, options.optionName);
-  if (
-    parsed === undefined ||
-    !Number.isInteger(parsed) ||
-    !options.validate(parsed)
-  ) {
-    throw invalidArgs(`${options.flagName} is invalid`, options.hint);
-  }
-
-  return parsed;
-}
-
 export async function pullOnlineCommand(
-  options: Record<string, unknown>,
+  options: PullOnlineCommandOptions,
 ): Promise<number> {
-  const collectionUUID = getStringOption(options, "collectionUuid");
-  if (!collectionUUID || collectionUUID.trim().length === 0) {
-    throw invalidArgs(
-      "--collection-uuid is required",
-      "Example: agent-eval pull-online --collection-uuid <uuid>",
-    );
-  }
+  const collectionUUID = options.collectionUuid;
 
-  const baseURL =
-    getStringOption(options, "baseUrl") ?? resolveUpstreamBaseURL();
+  const baseURL = options.baseUrl ?? resolveUpstreamBaseURL();
 
   if (!baseURL || baseURL.trim().length === 0) {
     throw invalidArgs(
@@ -130,9 +101,7 @@ export async function pullOnlineCommand(
   }
 
   const token =
-    getStringOption(options, "xToken") ??
-    resolveUpstreamXToken() ??
-    resolveRunnerXToken();
+    options.xToken ?? resolveUpstreamXToken() ?? resolveRunnerXToken();
   if (!token || token.trim().length === 0) {
     throw invalidArgs(
       "missing x-token",
@@ -140,29 +109,12 @@ export async function pullOnlineCommand(
     );
   }
 
-  const pageIndex = parseIntegerOptionOrThrow({
-    cliOptions: options,
-    optionName: "pageIndex",
-    flagName: "--page-index",
-    defaultValue: 0,
-    validate: (value) => value >= 0,
-    hint: "Example: --page-index 0",
-  });
+  const pageIndex = options.pageIndex;
+  const pageSize = options.pageSize;
 
-  const pageSize = parseIntegerOptionOrThrow({
-    cliOptions: options,
-    optionName: "pageSize",
-    flagName: "--page-size",
-    defaultValue: 1,
-    validate: (value) => value > 0,
-    hint: "Example: --page-size 1",
-  });
-
-  const outputPath =
-    getStringOption(options, "out") ??
-    `cases/online-${collectionUUID}.eval.yaml`;
-  const platform = getStringOption(options, "xPlatform") ?? "nieta-app/web";
-  const format = parseFormat(options["format"] ?? "terminal");
+  const outputPath = options.out ?? `cases/online-${collectionUUID}.eval.yaml`;
+  const platform = options.xPlatform;
+  const format = options.format;
 
   const result = await extractAgentCaseFromCollection({
     baseURL,
@@ -202,19 +154,12 @@ export async function pullOnlineCommand(
 }
 
 export async function reportCommand(
-  options: Record<string, unknown>,
+  options: ReportCommandOptions,
 ): Promise<number> {
-  const fromDir = getStringOption(options, "from");
-  if (!fromDir) {
-    throw invalidArgs(
-      "--from <dir> is required",
-      "Example: agent-eval report --from ./recordings/run-20240227",
-    );
-  }
+  const fromDir = options.from;
 
-  const outPath =
-    getStringOption(options, "out") ?? join(fromDir, "run-report.html");
-  const format = parseFormat(options["format"] ?? "terminal");
+  const outPath = options.out ?? join(fromDir, "run-report.html");
+  const format = options.format;
 
   // Load all result.json files from the directory
   const results: EvalResult[] = [];
@@ -271,20 +216,28 @@ export async function reportCommand(
     results,
   };
 
-  const html = await renderRunHtmlReport(summary);
+  const [html, htmlV3] = await Promise.all([
+    renderRunHtmlReport(summary),
+    renderRunHtmlReportV3(summary),
+  ]);
+
+  // Derive v3 output path: run-report.html → run-report-list.html
+  const v3OutPath = outPath.replace(/\.html$/, "-list.html");
 
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, html, "utf8");
+  writeFileSync(v3OutPath, htmlV3, "utf8");
 
   const share = await maybeShareHtmlReport({
-    enabled: options["share"] !== false,
+    enabled: options.share,
     html,
     filename: basename(outPath),
-    baseUrlOption: getStringOption(options, "shareBaseUrl"),
+    baseUrlOption: options.shareBaseUrl,
   });
 
   if (format === "terminal") {
     process.stderr.write(pc.green(`✓ HTML report generated: ${outPath}\n`));
+    process.stderr.write(pc.green(`✓ HTML report (list):    ${v3OutPath}\n`));
     process.stderr.write(
       pc.dim(
         `  ${summary.total} cases, ${summary.passed} passed, ${summary.failed} failed, ${summary.errored} errored\n`,
@@ -301,6 +254,7 @@ export async function reportCommand(
       `${JSON.stringify({
         type: "report",
         output: outPath,
+        output_list: v3OutPath,
         summary: {
           total: summary.total,
           passed: summary.passed,

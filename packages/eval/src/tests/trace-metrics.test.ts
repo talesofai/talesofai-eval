@@ -141,6 +141,26 @@ describe("trace metrics", () => {
     });
     assert.equal(fromContentText.taskStatus, "SUCCESS");
     assert.equal(fromContentText.artifacts[0]?.modality, "VIDEO");
+
+    const fromArrayRoot = parseToolOutput([
+      {
+        type: "text",
+        text: JSON.stringify({
+          msg: "",
+          err_msg: null,
+          task_status: "SUCCESS",
+          artifacts: [
+            {
+              uuid: "p",
+              url: "https://picture",
+              modality: "PICTURE",
+            },
+          ],
+        }),
+      },
+    ]);
+    assert.equal(fromArrayRoot.taskStatus, "SUCCESS");
+    assert.equal(fromArrayRoot.artifacts[0]?.url, "https://picture");
   });
 
   it("computes tool/artifact/binding/retry/delivery metrics", () => {
