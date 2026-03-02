@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { getMissingRunConfig } from "../cli/config-check.ts";
 import { normalizeAgentInput } from "../runners/normalize-agent-input.ts";
@@ -22,11 +25,18 @@ const baseLegacyCase = (): AgentEvalCase => ({
   criteria: {},
 });
 
+const temporaryDirs: string[] = [];
+
 describe("normalizeAgentInput", () => {
   afterEach(() => {
     delete process.env["OPENAI_BASE_URL"];
     delete process.env["OPENAI_API_KEY"];
     delete process.env["EVAL_UPSTREAM_API_BASE_URL"];
+    delete process.env["EVAL_LEGACY_AGENT_PROMPT_FILE"];
+
+    for (const dir of temporaryDirs.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("legacy path: renders inline legacy template with required params", () => {
@@ -36,6 +46,43 @@ describe("normalizeAgentInput", () => {
     assert.ok(result.input.system_prompt.includes("desc"));
     assert.ok(result.input.system_prompt.includes("plan"));
     assert.ok(result.input.system_prompt.includes("content"));
+  });
+
+  it("legacy path: uses EVAL_LEGACY_AGENT_PROMPT_FILE override when set", () => {
+    const dir = mkdtempSync(join(tmpdir(), "legacy-prompt-"));
+    temporaryDirs.push(dir);
+    const templatePath = join(dir, "legacy-template.txt");
+    writeFileSync(
+      templatePath,
+      "OVERRIDE {{preset_description}} / {{reference_planning}} / {{reference_content}}",
+      "utf8",
+    );
+    process.env["EVAL_LEGACY_AGENT_PROMPT_FILE"] = templatePath;
+
+    const result = normalizeAgentInput(baseLegacyCase());
+    assert.equal(result.input.system_prompt, "OVERRIDE desc / plan / content");
+  });
+
+  it("legacy path: invalid override file path throws", () => {
+    process.env["EVAL_LEGACY_AGENT_PROMPT_FILE"] =
+      "/tmp/not-exists-legacy-template.txt";
+    assert.throws(
+      () => normalizeAgentInput(baseLegacyCase()),
+      /failed to read legacy prompt template file/,
+    );
+  });
+
+  it("legacy path: empty override file throws", () => {
+    const dir = mkdtempSync(join(tmpdir(), "legacy-prompt-empty-"));
+    temporaryDirs.push(dir);
+    const templatePath = join(dir, "legacy-template-empty.txt");
+    writeFileSync(templatePath, "\n\n", "utf8");
+    process.env["EVAL_LEGACY_AGENT_PROMPT_FILE"] = templatePath;
+
+    assert.throws(
+      () => normalizeAgentInput(baseLegacyCase()),
+      /legacy prompt template file is empty/,
+    );
   });
 
   it("oss path: renders system_prompt template with parameters", () => {

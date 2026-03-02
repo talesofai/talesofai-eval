@@ -10,13 +10,14 @@ import {
 } from "../env.ts";
 import { invalidArgs, noCases } from "../errors.ts";
 import { extractAgentCaseFromCollection } from "../online/extract.ts";
-import { renderRunHtmlReport, renderRunHtmlReportV3 } from "../reporter/html.ts";
+import { renderMatrixHtmlReport, renderRunHtmlReport, renderRunHtmlReportV3 } from "../reporter/html.ts";
 import { loadResult } from "../traces.ts";
-import type { EvalResult, EvalSummary } from "../types.ts";
+import type { EvalResult, EvalSummary, MatrixCell, MatrixSummary } from "../types.ts";
 import { resolveCasesFromArgs } from "./case-resolution.ts";
 import type {
   DoctorCommandOptions,
   InspectCommandOptions,
+  MatrixReportCommandOptions,
   PullOnlineCommandOptions,
   ReportCommandOptions,
 } from "./options.ts";
@@ -256,6 +257,144 @@ export async function reportCommand(
         output: outPath,
         output_list: v3OutPath,
         summary: {
+          total: summary.total,
+          passed: summary.passed,
+          failed: summary.failed,
+          errored: summary.errored,
+        },
+        ...(share.status === "shared" ? { share_url: share.shareUrl } : {}),
+        ...(share.status === "failed" ? { share_error: share.reason } : {}),
+      })}\n`,
+    );
+  }
+
+  return 0;
+}
+
+export async function matrixReportCommand(
+  options: MatrixReportCommandOptions,
+): Promise<number> {
+  const fromDir = options.from;
+  const outPath = options.out ?? join(fromDir, "matrix-report.html");
+  const format = options.format;
+
+  // Load matrix results from variant subdirectories
+  const cells: MatrixCell[] = [];
+  const variants: string[] = [];
+  const caseIds: string[] = [];
+  let totalDurationMs = 0;
+
+  try {
+    const entries = readdirSync(fromDir, { withFileTypes: true });
+    const variantDirs = entries.filter((e) => e.isDirectory());
+
+    if (variantDirs.length === 0) {
+      throw invalidArgs(
+        `no variant directories found in ${fromDir}`,
+        "Make sure the directory contains subdirectories for each variant.",
+      );
+    }
+
+    for (const variantDir of variantDirs) {
+      const variantLabel = variantDir.name;
+      variants.push(variantLabel);
+
+      const variantPath = join(fromDir, variantLabel);
+      const files = readdirSync(variantPath);
+      const resultFiles = files.filter((f) => f.endsWith(".result.json"));
+
+      for (const file of resultFiles) {
+        const caseId = file.replace(/\.result\.json$/, "");
+        const result = await loadResult(caseId, variantPath);
+
+        if (result) {
+          cells.push({
+            case_id: caseId,
+            variant_label: variantLabel,
+            result,
+          });
+          totalDurationMs += result.trace.duration_ms;
+
+          if (!caseIds.includes(caseId)) {
+            caseIds.push(caseId);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    if (error && typeof error === "object" && "kind" in error) {
+      throw error;
+    }
+    throw invalidArgs(
+      `failed to read from directory: ${fromDir}`,
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+
+  if (cells.length === 0) {
+    throw invalidArgs(
+      `no valid results loaded from ${fromDir}`,
+      "Make sure the directory contains valid result files in variant subdirectories.",
+    );
+  }
+
+  // Sort for consistent ordering
+  variants.sort();
+  caseIds.sort();
+
+  const passed = cells.filter((c) => c.result.passed).length;
+  const errored = cells.filter((c) => c.result.error).length;
+  const total = cells.length;
+
+  const summary: MatrixSummary = {
+    variants,
+    case_ids: caseIds,
+    cells,
+    total,
+    passed,
+    failed: total - passed - errored,
+    errored,
+    duration_ms: totalDurationMs,
+  };
+
+  const html = await renderMatrixHtmlReport(summary);
+
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, html, "utf8");
+
+  const share = await maybeShareHtmlReport({
+    enabled: options.share,
+    html,
+    filename: basename(outPath),
+    baseUrlOption: options.shareBaseUrl,
+  });
+
+  if (format === "terminal") {
+    process.stderr.write(pc.green(`✓ Matrix HTML report generated: ${outPath}\n`));
+    process.stderr.write(
+      pc.dim(
+        `  ${variants.length} variants × ${caseIds.length} cases = ${total} cells\n`,
+      ),
+    );
+    process.stderr.write(
+      pc.dim(
+        `  ${summary.passed} passed, ${summary.failed} failed, ${summary.errored} errored\n`,
+      ),
+    );
+
+    if (share.status === "shared") {
+      process.stderr.write(pc.green(`share: ${share.shareUrl}\n`));
+    } else if (share.status === "failed") {
+      process.stderr.write(pc.yellow(`share: ${share.reason}\n`));
+    }
+  } else {
+    process.stdout.write(
+      `${JSON.stringify({
+        type: "matrix-report",
+        output: outPath,
+        summary: {
+          variants: summary.variants.length,
+          cases: summary.case_ids.length,
           total: summary.total,
           passed: summary.passed,
           failed: summary.failed,

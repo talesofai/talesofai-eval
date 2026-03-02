@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -C packages/eval build",
+    "cli": "pnpm -C packages/eval agent-eval",
     "dev": "pnpm -C packages/eval dev",
     "test": "pnpm -C packages/eval test",
     "test:coverage": "pnpm -C packages/eval test:coverage",

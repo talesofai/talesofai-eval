@@ -11,7 +11,8 @@ export type CommandName =
   | "doctor"
   | "pull-online"
   | "matrix"
-  | "report";
+  | "report"
+  | "matrix-report";
 
 export type OutputFormat = "terminal" | "json";
 
@@ -26,6 +27,7 @@ export const COMMANDS: CommandName[] = [
   "pull-online",
   "matrix",
   "report",
+  "matrix-report",
 ];
 
 export function isCommandName(value: string): value is CommandName {

@@ -8,6 +8,7 @@ import {
   resolveJudgeApiKey,
   resolveJudgeBaseURL,
   resolveJudgeModel,
+  resolveLegacyAgentPromptFile,
   resolveMcpServerBaseURL,
   resolveMcpXToken,
   resolveRunnerApiKey,
@@ -124,6 +125,20 @@ describe("env resolvers", () => {
   it("resolveJudgeModel: returns undefined when absent", () => {
     const value = resolveJudgeModel({});
     assert.equal(value, undefined);
+  });
+
+  it("resolveLegacyAgentPromptFile: returns env value when set", () => {
+    const value = resolveLegacyAgentPromptFile({
+      EVAL_LEGACY_AGENT_PROMPT_FILE: "./prompts/legacy.txt",
+    });
+    assert.equal(value, "./prompts/legacy.txt");
+  });
+
+  it("resolveLegacyAgentPromptFile: trims and returns undefined when empty", () => {
+    assert.equal(
+      resolveLegacyAgentPromptFile({ EVAL_LEGACY_AGENT_PROMPT_FILE: "   " }),
+      undefined,
+    );
   });
 
   it("resolveMcpServerBaseURL: returns env value when set", () => {

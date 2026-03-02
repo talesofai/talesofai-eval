@@ -21,6 +21,9 @@ export const ENV_KEYS = {
   // Upstream (character provider)
   UPSTREAM_BASE_URL: "EVAL_UPSTREAM_API_BASE_URL",
   UPSTREAM_X_TOKEN: "EVAL_UPSTREAM_X_TOKEN",
+
+  // Agent legacy prompt template override
+  LEGACY_AGENT_PROMPT_FILE: "EVAL_LEGACY_AGENT_PROMPT_FILE",
 } as const;
 
 type RunnerInput = {
@@ -28,9 +31,7 @@ type RunnerInput = {
   openai_api_key?: string;
 };
 
-function readTrimmedValue(
-  value: string | undefined,
-): string | undefined {
+function readTrimmedValue(value: string | undefined): string | undefined {
   if (!value) {
     return undefined;
   }
@@ -39,10 +40,7 @@ function readTrimmedValue(
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function readEnvValue(
-  env: NodeJS.ProcessEnv,
-  key: string,
-): string | undefined {
+function readEnvValue(env: NodeJS.ProcessEnv, key: string): string | undefined {
   return readTrimmedValue(env[key]);
 }
 
@@ -112,6 +110,12 @@ export function resolveJudgeModel(
   env: NodeJS.ProcessEnv = process.env,
 ): string | undefined {
   return readEnvValue(env, ENV_KEYS.JUDGE_MODEL);
+}
+
+export function resolveLegacyAgentPromptFile(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  return readEnvValue(env, ENV_KEYS.LEGACY_AGENT_PROMPT_FILE);
 }
 
 // Upstream — optional, has default

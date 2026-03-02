@@ -56,7 +56,7 @@ function writeRunReport(options: {
   summary: EvalSummary;
   reportPath?: string;
   format: OutputFormat;
-  html: string;
+  html?: string;
 }): { htmlPath?: string } {
   if (!options.reportPath) {
     return {};
@@ -69,11 +69,18 @@ function writeRunReport(options: {
     "utf8",
   );
 
+  if (options.format === "terminal") {
+    process.stderr.write(pc.dim(`report: ${options.reportPath}\n`));
+  }
+
+  if (!options.html) {
+    return {};
+  }
+
   const htmlPath = options.reportPath.replace(/\.md$/, ".html");
   writeFileSync(htmlPath, options.html, "utf8");
 
   if (options.format === "terminal") {
-    process.stderr.write(pc.dim(`report: ${options.reportPath}\n`));
     process.stderr.write(pc.dim(`report: ${htmlPath}\n`));
   }
 
@@ -281,17 +288,23 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
   reporter.onSummary(summary);
 
   const shareEnabled = options.share;
-  const shouldBuildHtml = Boolean(reportPath) || shareEnabled;
-  const html = shouldBuildHtml ? await renderRunHtmlReport(summary) : null;
+  const hasPassedCase = summary.passed > 0;
+  const shouldBuildHtml =
+    hasPassedCase && (Boolean(reportPath) || shareEnabled);
+  const html = shouldBuildHtml ? await renderRunHtmlReport(summary) : undefined;
 
-  const { htmlPath } = html
-    ? writeRunReport({
-        summary,
-        reportPath,
-        format,
-        html,
-      })
-    : {};
+  const { htmlPath } = writeRunReport({
+    summary,
+    reportPath,
+    format,
+    html,
+  });
+
+  if (!hasPassedCase && shareEnabled && format === "terminal") {
+    process.stderr.write(
+      pc.dim("share: skipped (no passed cases, html report not generated)\n"),
+    );
+  }
 
   if (html && shareEnabled) {
     const share = await maybeShareHtmlReport({

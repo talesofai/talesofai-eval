@@ -24,6 +24,46 @@ import { extractMessageText } from "./message-utils.ts";
 
 const MAX_TURNS = 20;
 
+type McpTool = Awaited<ReturnType<Client["listTools"]>>["tools"][number];
+
+const RUN_MCP_TOOL_SCHEMA_CACHE = new WeakMap<
+  RunnerOptions,
+  Map<string, Promise<McpTool[]>>
+>();
+
+const makeMcpToolFilterKey = (allowedToolNames?: string[]): string => {
+  if (!allowedToolNames) {
+    return "*";
+  }
+
+  return [...new Set(allowedToolNames)].sort().join(",");
+};
+
+const loadRunCachedMcpTools = async (options: {
+  runnerOptions: RunnerOptions;
+  cacheKey: string;
+  load: () => Promise<McpTool[]>;
+}): Promise<McpTool[]> => {
+  let runCache = RUN_MCP_TOOL_SCHEMA_CACHE.get(options.runnerOptions);
+  if (!runCache) {
+    runCache = new Map<string, Promise<McpTool[]>>();
+    RUN_MCP_TOOL_SCHEMA_CACHE.set(options.runnerOptions, runCache);
+  }
+
+  const existing = runCache.get(options.cacheKey);
+  if (existing) {
+    return existing;
+  }
+
+  const pending = options.load().catch((error) => {
+    runCache?.delete(options.cacheKey);
+    throw error;
+  });
+
+  runCache.set(options.cacheKey, pending);
+  return pending;
+};
+
 export const runPlain = async (
   evalCase: PlainRunnableCase,
   opts: RunnerOptions,
@@ -60,14 +100,24 @@ export const runPlain = async (
         : undefined,
     );
     await mcpClient.connect(transport);
+    const connectedMcpClient = mcpClient;
 
-    const allTools = await mcpClient.listTools().then((r) => r.tools);
-    const allowedNames = input.allowed_tool_names
-      ? new Set(input.allowed_tool_names)
-      : null;
-    const filteredTools = allowedNames
-      ? allTools.filter((t) => allowedNames.has(t.name))
-      : allTools;
+    const cacheKey = `${opts.mcpServerBaseURL}::${makeMcpToolFilterKey(input.allowed_tool_names)}`;
+    const filteredTools = await loadRunCachedMcpTools({
+      runnerOptions: opts,
+      cacheKey,
+      load: async () => {
+        const allTools = await connectedMcpClient
+          .listTools()
+          .then((r) => r.tools);
+        if (!input.allowed_tool_names) {
+          return allTools;
+        }
+
+        const allowedNames = new Set(input.allowed_tool_names);
+        return allTools.filter((tool) => allowedNames.has(tool.name));
+      },
+    });
 
     // Convert MCP tools → OpenAI function-calling format
     openaiTools = filteredTools.map((t) => ({

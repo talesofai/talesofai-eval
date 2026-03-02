@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolveLegacyAgentPromptFile } from "../env.ts";
 import type { AgentEvalCase, PlainEvalCase } from "../types.ts";
 
 export type NormalizedAgentCase = Omit<PlainEvalCase, "type"> & {
@@ -21,6 +23,29 @@ const LEGACY_REQUIRED_PARAMETER_KEYS = [
   "reference_content",
   "reference_content_schema",
 ] as const;
+
+const resolveLegacyAgentSystemPromptTemplate = (): string => {
+  const overrideFile = resolveLegacyAgentPromptFile();
+  if (!overrideFile) {
+    return LEGACY_AGENT_SYSTEM_PROMPT;
+  }
+
+  let template = "";
+  try {
+    template = readFileSync(overrideFile, "utf8");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `failed to read legacy prompt template file (${overrideFile}): ${message}`,
+    );
+  }
+
+  if (template.trim().length === 0) {
+    throw new Error(`legacy prompt template file is empty: ${overrideFile}`);
+  }
+
+  return template;
+};
 
 const renderTemplate = (
   template: string,
@@ -139,7 +164,10 @@ export function normalizeAgentInput(
     id: evalCase.id,
     description: evalCase.description,
     input: {
-      system_prompt: renderTemplate(LEGACY_AGENT_SYSTEM_PROMPT, parameters),
+      system_prompt: renderTemplate(
+        resolveLegacyAgentSystemPromptTemplate(),
+        parameters,
+      ),
       model: input.model,
       messages: renderedMessages,
       allowed_tool_names: input.allowed_tool_names,

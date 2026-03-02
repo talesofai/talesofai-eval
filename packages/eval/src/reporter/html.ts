@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { minify } from "html-minifier-terser";
 import { summarizeTraceMetrics } from "../metrics/trace-metrics.ts";
-import type { EvalResult, EvalSummary, TraceMetricsSummary } from "../types.ts";
+import type { EvalResult, EvalSummary, MatrixSummary, TraceMetricsSummary } from "../types.ts";
 import {
   buildCaseMetricsView,
   buildCaseRowView,
@@ -40,6 +40,18 @@ export type ReportPayload = {
     metrics_summary: TraceMetricsSummary;
   };
   cases: ReportCasePayload[];
+};
+
+export type MatrixReportPayload = {
+  generated_at: string;
+  variants: string[];
+  case_ids: string[];
+  cells: MatrixSummary["cells"];
+  total: number;
+  passed: number;
+  failed: number;
+  errored: number;
+  duration_ms: number;
 };
 
 function encodePayload(payload: ReportPayload): string {
@@ -99,6 +111,41 @@ export async function renderRunHtmlReportV3(
   summary: EvalSummary,
 ): Promise<string> {
   return renderHtmlReport(summary, "report-v3.template");
+}
+
+function encodeMatrixPayload(payload: MatrixReportPayload): string {
+  const json = JSON.stringify(payload);
+  return Buffer.from(json).toString("base64");
+}
+
+export async function renderMatrixHtmlReport(
+  summary: MatrixSummary,
+): Promise<string> {
+  const payload: MatrixReportPayload = {
+    generated_at: new Date().toISOString(),
+    variants: summary.variants,
+    case_ids: summary.case_ids,
+    cells: summary.cells,
+    total: summary.total,
+    passed: summary.passed,
+    failed: summary.failed,
+    errored: summary.errored,
+    duration_ms: summary.duration_ms,
+  };
+
+  const encoded = encodeMatrixPayload(payload);
+  const template = loadTemplate("matrix.template.html");
+  const styles = loadTemplate("matrix.template.css");
+  const script = loadTemplate("matrix.template.js").replaceAll(
+    DATA_PLACEHOLDER,
+    encoded,
+  );
+
+  const html = template
+    .replaceAll(STYLE_PLACEHOLDER, styles)
+    .replaceAll(SCRIPT_PLACEHOLDER, script);
+
+  return await maybeMinifyHtml(html);
 }
 
 async function renderHtmlReport(

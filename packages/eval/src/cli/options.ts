@@ -8,7 +8,9 @@ const caseTypeSchema = z.enum(["plain", "agent"]);
 
 const stringListSchema = z.union([z.string(), z.array(z.string())]);
 
-function normalizeStringList(value: string | string[] | undefined): string[] | undefined {
+function normalizeStringList(
+  value: string | string[] | undefined,
+): string[] | undefined {
   if (value === undefined) {
     return undefined;
   }
@@ -76,7 +78,7 @@ function parseTierMaxOrThrow(
   if (!parsed.success) {
     const hint =
       command === "matrix"
-        ? "Example: agent-eval matrix --tier-max 1 --variant '{\"label\":\"v1\"}'"
+        ? 'Example: agent-eval matrix --tier-max 1 --variant \'{"label":"v1"}\''
         : "Example: agent-eval run --tier-max 1";
     throw invalidArgs("--tier-max must be 1, 2, or 3", hint);
   }
@@ -91,7 +93,7 @@ function parseTierMaxOrThrow(
 
   const hint =
     command === "matrix"
-      ? "Example: agent-eval matrix --tier-max 1 --variant '{\"label\":\"v1\"}'"
+      ? 'Example: agent-eval matrix --tier-max 1 --variant \'{"label":"v1"}\''
       : "Example: agent-eval run --tier-max 1";
   throw invalidArgs("--tier-max must be 1, 2, or 3", hint);
 }
@@ -99,13 +101,19 @@ function parseTierMaxOrThrow(
 function parsePositiveConcurrency(raw: unknown): number | undefined {
   const parsed = optionalIntegerFromCliSchema.safeParse(raw);
   if (!parsed.success) {
-    throw invalidArgs("--concurrency must be a positive integer", "Example: --concurrency 4");
+    throw invalidArgs(
+      "--concurrency must be a positive integer",
+      "Example: --concurrency 4",
+    );
   }
   if (parsed.data === undefined) {
     return undefined;
   }
   if (parsed.data <= 0) {
-    throw invalidArgs("--concurrency must be a positive integer", "Example: --concurrency 4");
+    throw invalidArgs(
+      "--concurrency must be a positive integer",
+      "Example: --concurrency 4",
+    );
   }
   return parsed.data;
 }
@@ -172,6 +180,14 @@ export type PullOnlineCommandOptions = {
 };
 
 export type ReportCommandOptions = {
+  from: string;
+  out?: string;
+  share: boolean;
+  shareBaseUrl?: string;
+  format: OutputFormat;
+};
+
+export type MatrixReportCommandOptions = {
   from: string;
   out?: string;
   share: boolean;
@@ -303,7 +319,9 @@ export function parseDiffCommandOptions(raw: unknown): DiffCommandOptions {
   );
 
   if (!parsed.base || !parsed.candidate) {
-    throw validationError("flags", ["--base and --candidate are required for diff"]);
+    throw validationError("flags", [
+      "--base and --candidate are required for diff",
+    ]);
   }
 
   return {
@@ -318,7 +336,9 @@ export function parseDiffCommandOptions(raw: unknown): DiffCommandOptions {
   };
 }
 
-export function parseInspectCommandOptions(raw: unknown): InspectCommandOptions {
+export function parseInspectCommandOptions(
+  raw: unknown,
+): InspectCommandOptions {
   const parsed = parseWithSchema(
     z
       .object({
@@ -465,11 +485,44 @@ export function parseReportCommandOptions(raw: unknown): ReportCommandOptions {
   };
 }
 
+export function parseMatrixReportCommandOptions(
+  raw: unknown,
+): MatrixReportCommandOptions {
+  const parsed = parseWithSchema(
+    z
+      .object({
+        from: z.string().optional(),
+        out: z.string().optional(),
+        share: z.boolean().default(true),
+        shareBaseUrl: z.string().optional(),
+        format: outputFormatSchema.default("terminal"),
+      })
+      .passthrough(),
+    raw,
+  );
+
+  const from = parsed.from;
+  if (!from) {
+    throw invalidArgs(
+      "--from <dir> is required",
+      "Example: agent-eval matrix-report --from ./recordings/matrix-20240227",
+    );
+  }
+
+  return {
+    from,
+    out: parsed.out,
+    share: parsed.share ?? true,
+    shareBaseUrl: parsed.shareBaseUrl,
+    format: parsed.format ?? "terminal",
+  };
+}
+
 function parseVariants(rawVariants: string[]): MatrixVariant[] {
   if (rawVariants.length === 0) {
     throw invalidArgs(
       "at least one --variant is required",
-      "Example: --variant '{\"label\":\"v1\",\"model\":\"qwen-plus\"}'",
+      'Example: --variant \'qwen=qwen3.5-plus\' or --variant \'{"label":"qwen","model":"qwen3.5-plus"}\'',
     );
   }
 
@@ -479,6 +532,29 @@ function parseVariants(rawVariants: string[]): MatrixVariant[] {
   for (let index = 0; index < rawVariants.length; index++) {
     const raw = rawVariants[index];
     if (raw === undefined) {
+      continue;
+    }
+
+    const shorthandIndex = raw.indexOf("=");
+    if (shorthandIndex > 0) {
+      const label = raw.slice(0, shorthandIndex).trim();
+      const model = raw.slice(shorthandIndex + 1).trim();
+
+      if (!label || !model) {
+        throw validationError("flags", [
+          `variant #${index + 1}: shorthand must be <label>=<model>`,
+        ]);
+      }
+
+      if (seenLabels.has(label)) {
+        throw validationError("flags", [`duplicate variant label: "${label}"`]);
+      }
+
+      seenLabels.add(label);
+      variants.push({
+        label,
+        overrides: { model },
+      });
       continue;
     }
 
@@ -498,8 +574,8 @@ function parseVariants(rawVariants: string[]): MatrixVariant[] {
       .safeParse(parsed);
 
     if (!variantParsed.success) {
-      const labelIssue = variantParsed.error.issues.find((issue) =>
-        issue.path.join(".") === "label",
+      const labelIssue = variantParsed.error.issues.find(
+        (issue) => issue.path.join(".") === "label",
       );
       if (labelIssue) {
         throw validationError("flags", [

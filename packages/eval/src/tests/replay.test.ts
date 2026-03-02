@@ -355,6 +355,55 @@ describe("agent-eval replay mode", () => {
     }
   });
 
+  it("does not generate HTML report when all cases fail", async () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), "agent-eval-record-all-fail-"));
+    const fake = await startFakeOpenAiServer();
+
+    try {
+      const recordDir = join(tempRoot, "traces");
+      const caseId = "record-case-all-fail";
+      const inlineCase = JSON.stringify({
+        type: "plain",
+        id: caseId,
+        description: "record test for all failed",
+        input: {
+          system_prompt: "sys",
+          model: "qwen-plus",
+          messages: [{ role: "user", content: "hello" }],
+          allowed_tool_names: [],
+        },
+        criteria: {
+          expected_status: "FAILURE",
+        },
+      });
+
+      const result = await runCliAsync(
+        ["run", "--inline", inlineCase, "--record", recordDir],
+        {
+          OPENAI_BASE_URL: fake.baseURL,
+          OPENAI_API_KEY: "test-key",
+          EVAL_MCP_SERVER_BASE_URL: "",
+          EVAL_UPSTREAM_API_BASE_URL: "",
+        },
+      );
+
+      assert.equal(result.status, 1);
+
+      const mdPath = join(recordDir, "run-report.md");
+      assert.ok(existsSync(mdPath), "markdown report should still exist");
+
+      const htmlPath = join(recordDir, "run-report.html");
+      assert.equal(
+        existsSync(htmlPath),
+        false,
+        "HTML report should be skipped",
+      );
+    } finally {
+      await fake.close();
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
   it("replays from trace files without requiring runner config for judge-free cases", () => {
     const tempRoot = mkdtempSync(join(tmpdir(), "agent-eval-replay-"));
 
@@ -502,7 +551,9 @@ describe("agent-eval replay mode", () => {
   });
 
   it("replay cache-miss with llm_judge and missing model returns error result (no score-0 dimension)", () => {
-    const tempRoot = mkdtempSync(join(tmpdir(), "agent-eval-replay-judge-miss-"));
+    const tempRoot = mkdtempSync(
+      join(tmpdir(), "agent-eval-replay-judge-miss-"),
+    );
 
     try {
       const replayDir = join(tempRoot, "traces");

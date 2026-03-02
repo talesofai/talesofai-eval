@@ -194,8 +194,11 @@ agent-eval run --file "./cases/*.eval.yaml" --replay .eval-records/run-1
 ```bash
 agent-eval matrix \
   --file "./cases/*.eval.yaml" \
-  --variant '{"label":"baseline","overrides":{}}' \
-  --variant '{"label":"new-model","overrides":{"model":"gpt-4o"}}'
+  --variant 'baseline=qwen3.5-plus' \
+  --variant 'new-model=doubao-2.0-lite'
+
+# JSON form still works when you need multi-field overrides:
+# --variant '{"label":"temp-08","model":"qwen3.5-plus","temperature":0.8}'
 ```
 
 ### `doctor` - Configuration Check
@@ -242,6 +245,7 @@ agent-eval pull-online     # Import from online collection
 | `EVAL_UPSTREAM_X_TOKEN` | Upstream auth token | - |
 | `EVAL_UPSTREAM_API_BASE_URL` | Upstream API | `https://api.talesofai.cn` |
 | `EVAL_MCP_X_TOKEN` | MCP auth token | - |
+| `EVAL_LEGACY_AGENT_PROMPT_FILE` | Override legacy agent system prompt template file path | Built-in default template |
 
 ### Diff
 

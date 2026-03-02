@@ -34,7 +34,10 @@ describe("cli option parsers", () => {
     assert.deepEqual(parsed.message, ["user:hello"]);
     assert.deepEqual(parsed.expectedTools, ["make_image_v1", "make_video_v1"]);
     assert.deepEqual(parsed.forbiddenTools, ["request_audio_v1"]);
-    assert.deepEqual(parsed.allowedToolNames, ["make_image_v1", "make_video_v1"]);
+    assert.deepEqual(parsed.allowedToolNames, [
+      "make_image_v1",
+      "make_video_v1",
+    ]);
     assert.equal(parsed.tierMax, 2);
     assert.equal(parsed.concurrency, 3);
     assert.equal(parsed.judgeThreshold, 0.8);
@@ -83,7 +86,7 @@ describe("cli option parsers", () => {
 
   it("parseDiffCommandOptions rejects missing required overrides", () => {
     assert.throws(
-      () => parseDiffCommandOptions({ base: '{}' }),
+      () => parseDiffCommandOptions({ base: "{}" }),
       (error) => {
         assertCliError(error);
         assert.equal(error.kind, "Validation");
@@ -129,7 +132,7 @@ describe("cli option parsers", () => {
     );
   });
 
-  it("parseMatrixCommandOptions parses variants and tier max", () => {
+  it("parseMatrixCommandOptions parses JSON variants and tier max", () => {
     const parsed = parseMatrixCommandOptions({
       variant: '{"label":"v1","model":"qwen-plus"}',
       tierMax: "1",
@@ -138,18 +141,28 @@ describe("cli option parsers", () => {
 
     assert.equal(parsed.variants.length, 1);
     assert.equal(parsed.variants[0]?.label, "v1");
+    assert.equal(parsed.variants[0]?.overrides["model"], "qwen-plus");
     assert.equal(parsed.tierMax, 1);
     assert.equal(parsed.concurrency, 4);
+  });
+
+  it("parseMatrixCommandOptions parses shorthand variants as label=model", () => {
+    const parsed = parseMatrixCommandOptions({
+      variant: ["qwen=qwen3.5-plus", "doubao=doubao-2.0-lite"],
+    });
+
+    assert.equal(parsed.variants.length, 2);
+    assert.equal(parsed.variants[0]?.label, "qwen");
+    assert.equal(parsed.variants[0]?.overrides["model"], "qwen3.5-plus");
+    assert.equal(parsed.variants[1]?.label, "doubao");
+    assert.equal(parsed.variants[1]?.overrides["model"], "doubao-2.0-lite");
   });
 
   it("parseMatrixCommandOptions rejects duplicate variant labels", () => {
     assert.throws(
       () =>
         parseMatrixCommandOptions({
-          variant: [
-            '{"label":"v1","model":"a"}',
-            '{"label":"v1","model":"b"}',
-          ],
+          variant: ['{"label":"v1","model":"a"}', '{"label":"v1","model":"b"}'],
         }),
       (error) => {
         assertCliError(error);
@@ -167,6 +180,18 @@ describe("cli option parsers", () => {
         assertCliError(error);
         assert.equal(error.kind, "Validation");
         assert.match(error.issues.join("\n"), /label/);
+        return true;
+      },
+    );
+  });
+
+  it("parseMatrixCommandOptions rejects invalid shorthand variant", () => {
+    assert.throws(
+      () => parseMatrixCommandOptions({ variant: "qwen=" }),
+      (error) => {
+        assertCliError(error);
+        assert.equal(error.kind, "Validation");
+        assert.match(error.issues.join("\n"), /label>=<model>/);
         return true;
       },
     );

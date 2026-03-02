@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { renderRunHtmlReport, renderRunHtmlReportV3 } from "../reporter/html.ts";
-import type { EvalResult, EvalSummary } from "../types.ts";
+import { renderMatrixHtmlReport, renderRunHtmlReport, renderRunHtmlReportV3 } from "../reporter/html.ts";
+import type { EvalResult, EvalSummary, MatrixSummary } from "../types.ts";
 
 describe("renderRunHtmlReport", () => {
   it("renders a valid HTML document with embedded data", async () => {
@@ -212,6 +212,68 @@ describe("renderRunHtmlReport", () => {
   });
 });
 
+describe("renderMatrixHtmlReport", () => {
+  it("renders a valid matrix HTML document", async () => {
+    const summary = makeMatrixSummary();
+
+    const html = await renderMatrixHtmlReport(summary);
+
+    assert.ok(html.includes("<!DOCTYPE html>"), "should include doctype");
+    assert.ok(html.includes("<html"), "should include html tag");
+    assert.ok(html.includes("</html>"), "should include closing html tag");
+    assert.ok(html.includes("Matrix Heatmap"), "should include matrix title");
+
+    assert.ok(
+      !html.includes('"{{REPORT_DATA}}"'),
+      "should replace data placeholder",
+    );
+    assert.ok(html.includes("REPORT_DATA"), "should have REPORT_DATA variable");
+  });
+
+  it("embeds base64-encoded matrix payload", async () => {
+    const summary = makeMatrixSummary();
+
+    const payload = await decodeMatrixPayload(summary);
+
+    assert.equal(payload.variants.length, 2);
+    assert.equal(payload.case_ids.length, 2);
+    assert.equal(payload.total, 4);
+    assert.equal(payload.passed, 2);
+    assert.ok(payload.generated_at, "should have generated timestamp");
+  });
+
+  it("includes all matrix cells", async () => {
+    const summary = makeMatrixSummary();
+
+    const payload = await decodeMatrixPayload(summary);
+
+    assert.equal(payload.cells.length, 4);
+    assert.ok(payload.cells.some((c: { case_id: string; variant_label: string }) => c.case_id === "case-a" && c.variant_label === "variant-1"));
+    assert.ok(payload.cells.some((c: { case_id: string; variant_label: string }) => c.case_id === "case-a" && c.variant_label === "variant-2"));
+    assert.ok(payload.cells.some((c: { case_id: string; variant_label: string }) => c.case_id === "case-b" && c.variant_label === "variant-1"));
+    assert.ok(payload.cells.some((c: { case_id: string; variant_label: string }) => c.case_id === "case-b" && c.variant_label === "variant-2"));
+  });
+
+  it("handles empty matrix", async () => {
+    const summary: MatrixSummary = {
+      variants: [],
+      case_ids: [],
+      cells: [],
+      total: 0,
+      passed: 0,
+      failed: 0,
+      errored: 0,
+      duration_ms: 0,
+    };
+
+    const payload = await decodeMatrixPayload(summary);
+
+    assert.equal(payload.variants.length, 0);
+    assert.equal(payload.case_ids.length, 0);
+    assert.equal(payload.cells.length, 0);
+  });
+});
+
 async function decodePayload(summary: EvalSummary) {
   const html = await renderRunHtmlReport(summary);
   const match = html.match(/const REPORT_DATA = "([^"]+)";/);
@@ -220,6 +282,50 @@ async function decodePayload(summary: EvalSummary) {
   assert.ok(base64Data);
   const decoded = Buffer.from(base64Data, "base64").toString("utf8");
   return JSON.parse(decoded);
+}
+
+async function decodeMatrixPayload(summary: MatrixSummary) {
+  const html = await renderMatrixHtmlReport(summary);
+  const match = html.match(/const REPORT_DATA = "([^"]+)";/);
+  assert.ok(match, "should have REPORT_DATA assignment");
+  const base64Data = match[1];
+  assert.ok(base64Data);
+  const decoded = Buffer.from(base64Data, "base64").toString("utf8");
+  return JSON.parse(decoded);
+}
+
+function makeMatrixSummary(): MatrixSummary {
+  return {
+    variants: ["variant-1", "variant-2"],
+    case_ids: ["case-a", "case-b"],
+    cells: [
+      {
+        case_id: "case-a",
+        variant_label: "variant-1",
+        result: makeResult("case-a", true),
+      },
+      {
+        case_id: "case-a",
+        variant_label: "variant-2",
+        result: makeResult("case-a", false),
+      },
+      {
+        case_id: "case-b",
+        variant_label: "variant-1",
+        result: makeResult("case-b", true),
+      },
+      {
+        case_id: "case-b",
+        variant_label: "variant-2",
+        result: makeResult("case-b", false),
+      },
+    ],
+    total: 4,
+    passed: 2,
+    failed: 2,
+    errored: 0,
+    duration_ms: 4000,
+  };
 }
 
 function makeSummary(results: EvalResult[]): EvalSummary {

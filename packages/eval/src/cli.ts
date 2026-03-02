@@ -6,6 +6,7 @@ import {
   doctorCommand,
   inspectCommand,
   listCommand,
+  matrixReportCommand,
   pullOnlineCommand,
   reportCommand,
 } from "./cli/aux-commands.ts";
@@ -24,6 +25,7 @@ import {
   parseDoctorCommandOptions,
   parseInspectCommandOptions,
   parseMatrixCommandOptions,
+  parseMatrixReportCommandOptions,
   parsePullOnlineCommandOptions,
   parseReportCommandOptions,
   parseRunCommandOptions,
@@ -134,7 +136,9 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
       default: "all",
     })
     .action((options: Record<string, unknown>) => {
-      setPending(Promise.resolve(doctorCommand(parseDoctorCommandOptions(options))));
+      setPending(
+        Promise.resolve(doctorCommand(parseDoctorCommandOptions(options))),
+      );
     });
 
   cli
@@ -170,7 +174,7 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
     .option("--type <type>", "Filter by case type (plain/agent)")
     .option(
       "--variant <json>",
-      'Variant config with required "label" field (repeatable)',
+      'Variant config (repeatable): shorthand <label>=<model> or JSON with required "label" field',
     )
     .option(
       "--concurrency <n>",
@@ -213,6 +217,30 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
     })
     .action((options: Record<string, unknown>) => {
       setPending(reportCommand(parseReportCommandOptions(options)));
+    });
+
+  cli
+    .command("matrix-report", "Generate HTML report from matrix result files")
+    .option(
+      "--from <dir>",
+      "Directory containing variant subdirectories with .result.json files (required)",
+    )
+    .option(
+      "--out <path>",
+      "Output HTML file path (default: <from>/matrix-report.html)",
+    )
+    .option("--share", "Auto-upload HTML report and print share link", {
+      default: true,
+    })
+    .option(
+      "--share-base-url <url>",
+      "Share service base URL (fallback: EVAL_SHARE_BASE_URL)",
+    )
+    .option("--format <fmt>", "Output format: terminal or json", {
+      default: "terminal",
+    })
+    .action((options: Record<string, unknown>) => {
+      setPending(matrixReportCommand(parseMatrixReportCommandOptions(options)));
     });
 
   cli.help();
