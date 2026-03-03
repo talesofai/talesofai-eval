@@ -1,14 +1,14 @@
+export {
+  type AggregatedResult,
+  type AggregationMethod,
+  aggregateScores,
+  calcConfidence,
+  formatAggregatedReason,
+  type JudgeScore,
+} from "./aggregate.ts";
 export { callJudge, type JudgeScoreResult } from "./call.ts";
 export {
-	callMultiJudge,
-	callJudgeUnified,
-	isMultiJudgeConfigured,
+  callJudgeUnified,
+  callMultiJudge,
+  isMultiJudgeConfigured,
 } from "./multi.ts";
-export {
-	aggregateScores,
-	calcConfidence,
-	formatAggregatedReason,
-	type AggregationMethod,
-	type AggregatedResult,
-	type JudgeScore,
-} from "./aggregate.ts";

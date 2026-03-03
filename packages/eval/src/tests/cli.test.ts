@@ -479,7 +479,9 @@ describe("agent-eval CLI UX", () => {
       false,
     );
     assert.equal(
-      payload.checks.some((c: { key: string }) => c.key === "EVAL_PLAIN_BASE_URL"),
+      payload.checks.some(
+        (c: { key: string }) => c.key === "EVAL_PLAIN_BASE_URL",
+      ),
       false,
     );
   });

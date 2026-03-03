@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { afterEach, describe, it } from "node:test";
 import { runAgent } from "../runner/agent.ts";
 import { runPlain } from "../runner/plain.ts";
@@ -10,7 +14,9 @@ type ChatRequestBody = {
   messages: Array<{ role: string; content: unknown }>;
 };
 
-async function startFakeOpenAIServer(onRequest: (body: ChatRequestBody) => void) {
+async function startFakeOpenAIServer(
+  onRequest: (body: ChatRequestBody) => void,
+) {
   const server = createServer(
     (req: IncomingMessage, res: ServerResponse<IncomingMessage>) => {
       if (req.method !== "POST" || req.url !== "/chat/completions") {

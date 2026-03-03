@@ -1,5 +1,5 @@
 export interface StreamOptions {
-	temperature?: number;
-	maxTokens?: number;
-	responseFormat?: { type: "json_object" };
+  temperature?: number;
+  maxTokens?: number;
+  responseFormat?: { type: "json_object" };
 }

@@ -62,9 +62,23 @@ export type AssertionConfig =
       expected_tools?: string[];
       forbidden_tools?: string[];
     }
-  | { type: "final_status"; tier?: EvalTier; expected_status: "SUCCESS" | "PENDING" | "FAILURE" }
-  | { type: "llm_judge"; tier?: EvalTier; prompt: string; pass_threshold: number }
-  | { type: "task_success"; tier?: EvalTier; user_goal?: string; pass_threshold: number }
+  | {
+      type: "final_status";
+      tier?: EvalTier;
+      expected_status: "SUCCESS" | "PENDING" | "FAILURE";
+    }
+  | {
+      type: "llm_judge";
+      tier?: EvalTier;
+      prompt: string;
+      pass_threshold: number;
+    }
+  | {
+      type: "task_success";
+      tier?: EvalTier;
+      user_goal?: string;
+      pass_threshold: number;
+    }
   | {
       type: "tool_parameter_accuracy";
       tier?: EvalTier;
@@ -72,7 +86,12 @@ export type AssertionConfig =
       expected_description: string;
       pass_threshold: number;
     }
-  | { type: "error_recovery"; tier?: EvalTier; tool_name?: string; pass_threshold?: number }
+  | {
+      type: "error_recovery";
+      tier?: EvalTier;
+      tool_name?: string;
+      pass_threshold?: number;
+    }
   | { type: "human_review"; tier?: EvalTier; reason?: string };
 
 export type EvalCriteria = {

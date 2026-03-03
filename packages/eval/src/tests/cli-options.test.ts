@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { CliError } from "../errors.ts";
 import {
   parseDiffCommandOptions,
   parseDoctorCommandOptions,
@@ -10,6 +9,7 @@ import {
   parseReportCommandOptions,
   parseRunCommandOptions,
 } from "../cli/options.ts";
+import type { CliError } from "../errors.ts";
 
 function assertCliError(error: unknown): asserts error is CliError {
   assert.ok(error && typeof error === "object");

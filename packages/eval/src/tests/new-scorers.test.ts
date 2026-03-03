@@ -49,7 +49,9 @@ function makeEvalCase(assertions: AssertionConfig[]): PlainEvalCase {
 describe("scoreErrorRecovery", () => {
   it("vacuously passes when no tool errors", () => {
     const trace = makeTrace({
-      tools_called: [makeCall("make_image_v1", { prompt: "cat" }, { ok: true })],
+      tools_called: [
+        makeCall("make_image_v1", { prompt: "cat" }, { ok: true }),
+      ],
     });
     const assertion: AssertionConfig = {
       type: "error_recovery",
@@ -322,7 +324,9 @@ describe("scoreTrace tier filtering", () => {
     });
     const result = await scoreTrace(evalCase, trace, { tierMax: 3 });
     assert.equal(result.passed, false);
-    const reviewDim = result.dimensions.find((d) => d.dimension === "human_review");
+    const reviewDim = result.dimensions.find(
+      (d) => d.dimension === "human_review",
+    );
     assert.ok(reviewDim, "human_review dimension present");
     assert.equal(reviewDim.passed, true);
   });
@@ -349,7 +353,11 @@ describe("scoreTaskSuccess user_goal inference", () => {
     ]);
     const guardResult = await scoreTaskSuccess(
       trace,
-      { type: "llm_judge", prompt: "x", pass_threshold: 0.7 } as AssertionConfig,
+      {
+        type: "llm_judge",
+        prompt: "x",
+        pass_threshold: 0.7,
+      } as AssertionConfig,
       evalCase,
     );
     assert.equal(guardResult.passed, false);

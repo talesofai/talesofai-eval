@@ -136,7 +136,12 @@ function isDimensionResult(value: unknown): boolean {
   }
 
   // tier is optional; if present must be 1, 2, or 3
-  if ("tier" in value && value["tier"] !== 1 && value["tier"] !== 2 && value["tier"] !== 3) {
+  if (
+    "tier" in value &&
+    value["tier"] !== 1 &&
+    value["tier"] !== 2 &&
+    value["tier"] !== 3
+  ) {
     return false;
   }
 

@@ -96,7 +96,10 @@ export function resolveJudgeModels(
     return undefined;
   }
 
-  return value.split(",").map((model) => model.trim()).filter(Boolean);
+  return value
+    .split(",")
+    .map((model) => model.trim())
+    .filter(Boolean);
 }
 
 export function resolveJudgeAggregation(

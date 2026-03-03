@@ -1,5 +1,10 @@
-import { safeParseJson } from "../utils/safe-parse-json.ts";
 import OpenAI from "openai";
+import {
+  resolveMcpXToken,
+  resolveRunnerApiKey,
+  resolveRunnerBaseURL,
+  resolveRunnerXToken,
+} from "../config.ts";
 import type {
   CommonLLMMessage,
   EvalMessage,
@@ -8,14 +13,9 @@ import type {
   RunnerOptions,
   ToolCallRecord,
 } from "../types.ts";
-import {
-  resolveMcpXToken,
-  resolveRunnerApiKey,
-  resolveRunnerBaseURL,
-  resolveRunnerXToken,
-} from "../config.ts";
-import { extractMessageText } from "./message-utils.ts";
+import { safeParseJson } from "../utils/safe-parse-json.ts";
 import { createMcpClient, type McpClient, type McpTool } from "./mcp.ts";
+import { extractMessageText } from "./message-utils.ts";
 
 type PlainRunnableCase = Omit<PlainEvalCase, "type"> & {
   type: "plain" | "agent";
@@ -79,7 +79,10 @@ export const runPlain = async (
   let mcpClient: McpClient | null = null;
 
   if (!toolsExplicitlyDisabled) {
-    mcpClient = await createMcpClient(opts.mcpServerBaseURL, resolveMcpXToken());
+    mcpClient = await createMcpClient(
+      opts.mcpServerBaseURL,
+      resolveMcpXToken(),
+    );
     const connectedMcpClient = mcpClient;
 
     const cacheKey = `${opts.mcpServerBaseURL}::${makeMcpToolFilterKey(input.allowed_tool_names)}`;
@@ -106,8 +109,9 @@ export const runPlain = async (
         parameters: {
           type: t.inputSchema["type"] as "object",
           properties:
-            (t.inputSchema["properties"] as Record<string, unknown> | undefined) ??
-            {},
+            (t.inputSchema["properties"] as
+              | Record<string, unknown>
+              | undefined) ?? {},
           required: (t.inputSchema["required"] as string[] | undefined) ?? [],
         },
       },
@@ -301,7 +305,10 @@ export const runPlain = async (
           tool_call_id: tc.id,
           name: tc.function.name,
           arguments: args ?? {},
-          output: { error: "timeout", message: "Tool call exceeded 5 minute timeout" },
+          output: {
+            error: "timeout",
+            message: "Tool call exceeded 5 minute timeout",
+          },
           duration_ms: callDuration,
         };
         toolsCalled.push(timeoutRecord);
@@ -326,7 +333,9 @@ export const runPlain = async (
       const callDuration = Date.now() - callStart;
 
       const outputStr =
-        typeof result === "string" ? result : (JSON.stringify(result) ?? "null");
+        typeof result === "string"
+          ? result
+          : (JSON.stringify(result) ?? "null");
 
       const record: ToolCallRecord = {
         tool_call_id: tc.id,

@@ -73,7 +73,9 @@ export const buildFromFlags = (flags: {
 
     if (typeof flags.systemPrompt === "string") {
       if (!flags.model) {
-        throw new Error("agent case model is required when system prompt is set");
+        throw new Error(
+          "agent case model is required when system prompt is set",
+        );
       }
 
       return {

@@ -231,10 +231,7 @@ describe("injectAndReplaceCharacters", () => {
     const testCase = createTestCase("Hello world");
     const apis = createMockProvider([makeMockCharacter(0)]);
 
-    const result = await injectAndReplaceCharacters(
-      testCase,
-      apis,
-    );
+    const result = await injectAndReplaceCharacters(testCase, apis);
 
     assert.strictEqual(result, testCase);
   });
@@ -245,10 +242,7 @@ describe("injectAndReplaceCharacters", () => {
     mockChar.name = "Alice";
     const apis = createMockProvider([mockChar]);
 
-    const result = await injectAndReplaceCharacters(
-      testCase,
-      apis,
-    );
+    const result = await injectAndReplaceCharacters(testCase, apis);
 
     assert.equal(
       (result.input.messages[0] as { content: string }).content,
@@ -264,10 +258,7 @@ describe("injectAndReplaceCharacters", () => {
     char1.name = "Bob";
     const apis = createMockProvider(mockChars);
 
-    const result = await injectAndReplaceCharacters(
-      testCase,
-      apis,
-    );
+    const result = await injectAndReplaceCharacters(testCase, apis);
 
     const message = result.input.messages[0];
     assert.ok(message);
@@ -282,10 +273,7 @@ describe("injectAndReplaceCharacters", () => {
     char1.name = "Charlie";
     const apis = createMockProvider(mockChars);
 
-    const result = await injectAndReplaceCharacters(
-      testCase,
-      apis,
-    );
+    const result = await injectAndReplaceCharacters(testCase, apis);
 
     const message = result.input.messages[0];
     assert.ok(message);
@@ -314,10 +302,7 @@ describe("injectAndReplaceCharacters", () => {
     mockChar.name = "Dave";
     const apis = createMockProvider([mockChar]);
 
-    const result = await injectAndReplaceCharacters(
-      testCase,
-      apis,
-    );
+    const result = await injectAndReplaceCharacters(testCase, apis);
 
     const msg = result.input.messages[0] as {
       content: Array<{ type: string; text: string }>;
@@ -348,10 +333,7 @@ describe("injectAndReplaceCharacters", () => {
     mockChar.name = "Eve";
     const apis = createMockProvider([mockChar]);
 
-    const result = await injectAndReplaceCharacters(
-      testCase,
-      apis,
-    );
+    const result = await injectAndReplaceCharacters(testCase, apis);
 
     const msg = result.input.messages[0] as {
       content: Array<{ type: string; text: string }>;
@@ -400,10 +382,7 @@ describe("injectAndReplaceCharacters", () => {
     const mockChar = makeMockCharacter(0);
     const apis = createMockProvider([mockChar]);
 
-    const result = await injectAndReplaceCharacters(
-      testCase,
-      apis,
-    );
+    const result = await injectAndReplaceCharacters(testCase, apis);
 
     assert.equal(result.id, testCase.id);
     assert.equal(result.description, testCase.description);

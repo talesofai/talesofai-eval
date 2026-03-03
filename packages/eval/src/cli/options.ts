@@ -1,4 +1,4 @@
-import { z, ZodError } from "zod3";
+import { type ZodError, z } from "zod3";
 import { invalidArgs, invalidJson, validationError } from "../errors.ts";
 import type { EvalTier, MatrixVariant } from "../types.ts";
 import { formatZodIssues, type OutputFormat } from "./helpers.ts";

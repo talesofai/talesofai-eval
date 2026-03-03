@@ -1,10 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  DEFAULT_MCP_SERVER_BASE_URL,
-  DEFAULT_UPSTREAM_API_BASE_URL,
-} from "../constants.ts";
-import {
   resolveJudgeAggregation,
   resolveJudgeModels,
   resolveLegacyAgentPromptFile,
@@ -16,6 +12,10 @@ import {
   resolveUpstreamBaseURL,
   resolveUpstreamXToken,
 } from "../config.ts";
+import {
+  DEFAULT_MCP_SERVER_BASE_URL,
+  DEFAULT_UPSTREAM_API_BASE_URL,
+} from "../constants.ts";
 
 describe("config resolvers", () => {
   it("resolveRunnerBaseURL: case-level override wins", () => {

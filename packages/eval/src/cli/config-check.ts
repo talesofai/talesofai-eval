@@ -59,7 +59,10 @@ export function getMissingJudgeConfig(): string[] {
   const missing: string[] = [];
   const multiJudgeModels = resolveJudgeModels();
 
-  if ((!multiJudgeModels || multiJudgeModels.length === 0) && !resolveJudgeModel()) {
+  if (
+    (!multiJudgeModels || multiJudgeModels.length === 0) &&
+    !resolveJudgeModel()
+  ) {
     missing.push(ENV_KEYS.JUDGE_MODEL);
   }
 

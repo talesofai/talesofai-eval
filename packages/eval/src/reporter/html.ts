@@ -3,7 +3,12 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { minify } from "html-minifier-terser";
 import { summarizeTraceMetrics } from "../metrics/trace-metrics.ts";
-import type { EvalResult, EvalSummary, MatrixSummary, TraceMetricsSummary } from "../types.ts";
+import type {
+  EvalResult,
+  EvalSummary,
+  MatrixSummary,
+  TraceMetricsSummary,
+} from "../types.ts";
 import {
   buildCaseMetricsView,
   buildCaseRowView,
