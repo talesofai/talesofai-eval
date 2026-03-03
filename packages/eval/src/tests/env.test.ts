@@ -5,9 +5,8 @@ import {
   DEFAULT_UPSTREAM_API_BASE_URL,
 } from "../constants.ts";
 import {
-  resolveJudgeApiKey,
-  resolveJudgeBaseURL,
-  resolveJudgeModel,
+  resolveJudgeAggregation,
+  resolveJudgeModels,
   resolveLegacyAgentPromptFile,
   resolveMcpServerBaseURL,
   resolveMcpXToken,
@@ -16,9 +15,9 @@ import {
   resolveRunnerXToken,
   resolveUpstreamBaseURL,
   resolveUpstreamXToken,
-} from "../env.ts";
+} from "../config.ts";
 
-describe("env resolvers", () => {
+describe("config resolvers", () => {
   it("resolveRunnerBaseURL: case-level override wins", () => {
     const env = {
       OPENAI_BASE_URL: "https://openai-base.example/v1",
@@ -69,62 +68,27 @@ describe("env resolvers", () => {
     assert.equal(value, undefined);
   });
 
-  it("resolveJudgeBaseURL: prefers EVAL_JUDGE_BASE_URL", () => {
-    const env = {
-      EVAL_JUDGE_BASE_URL: "https://judge-base.example/v1",
-      OPENAI_BASE_URL: "https://openai-base.example/v1",
-    };
+  it("resolveJudgeModels: parses comma-separated model list", () => {
+    const value = resolveJudgeModels({
+      EVAL_JUDGE_MODELS: "model-a, model-b,model-c ",
+    });
 
-    const value = resolveJudgeBaseURL(env);
-    assert.equal(value, "https://judge-base.example/v1");
+    assert.deepEqual(value, ["model-a", "model-b", "model-c"]);
   });
 
-  it("resolveJudgeBaseURL: falls back to OPENAI_BASE_URL", () => {
-    const env = {
-      OPENAI_BASE_URL: "https://openai-base.example/v1",
-    };
-
-    const value = resolveJudgeBaseURL(env);
-    assert.equal(value, "https://openai-base.example/v1");
-  });
-
-  it("resolveJudgeBaseURL: returns undefined when both missing", () => {
-    const value = resolveJudgeBaseURL({});
+  it("resolveJudgeModels: returns undefined when absent", () => {
+    const value = resolveJudgeModels({});
     assert.equal(value, undefined);
   });
 
-  it("resolveJudgeApiKey: prefers EVAL_JUDGE_API_KEY", () => {
-    const env = {
-      EVAL_JUDGE_API_KEY: "judge-key",
-      OPENAI_API_KEY: "openai-key",
-    };
-
-    const value = resolveJudgeApiKey(env);
-    assert.equal(value, "judge-key");
+  it("resolveJudgeAggregation: defaults to median", () => {
+    const value = resolveJudgeAggregation({});
+    assert.equal(value, "median");
   });
 
-  it("resolveJudgeApiKey: falls back to OPENAI_API_KEY", () => {
-    const env = {
-      OPENAI_API_KEY: "openai-key",
-    };
-
-    const value = resolveJudgeApiKey(env);
-    assert.equal(value, "openai-key");
-  });
-
-  it("resolveJudgeApiKey: returns undefined when both missing", () => {
-    const value = resolveJudgeApiKey({});
-    assert.equal(value, undefined);
-  });
-
-  it("resolveJudgeModel: returns set value", () => {
-    const value = resolveJudgeModel({ EVAL_JUDGE_MODEL: "qwen-plus" });
-    assert.equal(value, "qwen-plus");
-  });
-
-  it("resolveJudgeModel: returns undefined when absent", () => {
-    const value = resolveJudgeModel({});
-    assert.equal(value, undefined);
+  it("resolveJudgeAggregation: returns configured value", () => {
+    const value = resolveJudgeAggregation({ EVAL_JUDGE_AGGREGATION: "mean" });
+    assert.equal(value, "mean");
   });
 
   it("resolveLegacyAgentPromptFile: returns env value when set", () => {

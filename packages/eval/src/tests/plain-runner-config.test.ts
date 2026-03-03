@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { resolveRunnerApiKey, resolveRunnerBaseURL } from "../env.ts";
+import { resolveRunnerApiKey, resolveRunnerBaseURL } from "../config.ts";
 import type { PlainEvalCase } from "../types.ts";
 
 const baseInput: PlainEvalCase["input"] = {

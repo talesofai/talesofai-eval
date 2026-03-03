@@ -13,6 +13,7 @@
     "agent-eval": "pnpm -C packages/eval agent-eval"
   },
   "devDependencies": {
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }

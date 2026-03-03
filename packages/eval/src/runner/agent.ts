@@ -1,7 +1,7 @@
 import {
   resolveUpstreamBaseURL,
   resolveUpstreamXToken,
-} from "../env.ts";
+} from "../config.ts";
 import type {
   AgentEvalCase,
   CharacterFromSelect,

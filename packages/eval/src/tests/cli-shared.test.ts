@@ -4,7 +4,7 @@ import {
   collectDoctorChecks,
   computeRunExitCode,
   shouldUseJsonErrors,
-} from "../cli-shared.ts";
+} from "../cli/shared.ts";
 
 describe("computeRunExitCode", () => {
   it("returns 0 when all pass", () => {
@@ -150,7 +150,7 @@ describe("shouldUseJsonErrors", () => {
   it("returns true when run format is json", () => {
     const value = shouldUseJsonErrors([
       "node",
-      "src/cli.ts",
+      "src/cli/index.ts",
       "run",
       "--format",
       "json",
@@ -161,7 +161,7 @@ describe("shouldUseJsonErrors", () => {
   it("returns true when pull-online format is json", () => {
     const value = shouldUseJsonErrors([
       "node",
-      "src/cli.ts",
+      "src/cli/index.ts",
       "pull-online",
       "--format",
       "json",
@@ -172,7 +172,7 @@ describe("shouldUseJsonErrors", () => {
   it("returns false for unrelated command", () => {
     const value = shouldUseJsonErrors([
       "node",
-      "src/cli.ts",
+      "src/cli/index.ts",
       "doctor",
       "--format",
       "json",

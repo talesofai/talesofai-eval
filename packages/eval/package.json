@@ -4,7 +4,7 @@
   "private": false,
   "type": "module",
   "bin": {
-    "agent-eval": "./dist/cli.js"
+    "agent-eval": "./dist/cli/index.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -18,11 +18,11 @@
     "build": "tsc -p tsconfig.build.json && node scripts/copy-report-templates.mjs",
     "dev": "tsc -p tsconfig.build.json --watch",
     "prepublishOnly": "pnpm build",
-    "agent-eval": "node dist/cli.js",
+    "agent-eval": "node dist/cli/index.js",
     "test": "node --test src/tests/*.test.ts",
     "test:coverage": "c8 --check-coverage --lines 80 --branches 75 --functions 85 --statements 80 --reporter=text-summary --reporter=lcov node --test src/tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "pnpm dlx @biomejs/biome check src/cli.ts src/cli/resolve-cases.ts src/cli/command-utils.ts src/cli/run-command.ts src/cli/diff-command.ts src/cli/matrix-command.ts src/runners/normalize-agent-input.ts src/tests/normalize-agent-input.test.ts",
+    "lint": "pnpm dlx @biomejs/biome check src/cli/index.ts src/cli/resolve-cases.ts src/cli/command-utils.ts src/cli/run-command.ts src/cli/diff-command.ts src/cli/matrix-command.ts src/runner/normalize-agent-input.ts src/tests/normalize-agent-input.test.ts",
     "generate-schema": "node scripts/generate-schema.ts"
   },
   "dependencies": {

@@ -8,7 +8,6 @@ import type {
 } from "../types.ts";
 import { isKnownAssertionType, SCORER_REGISTRY } from "./registry.ts";
 
-export { compareTraces } from "./diff.ts";
 export { SCORER_REGISTRY } from "./registry.ts";
 
 const DEFAULT_TIER: Record<AssertionConfig["type"], EvalTier> = {

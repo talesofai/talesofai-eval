@@ -6,7 +6,7 @@ import {
 } from "node:http";
 import { afterEach, describe, it } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { runPlain } from "../runners/plain.ts";
+import { runPlain } from "../runner/plain.ts";
 import type { PlainEvalCase } from "../types.ts";
 
 type ChatRequestBody = {

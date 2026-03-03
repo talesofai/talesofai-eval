@@ -1,4 +1,4 @@
-import type { EvalResult } from "./types.ts";
+import type { EvalResult } from "../types.ts";
 
 export type DoctorCheck = {
   key: string;

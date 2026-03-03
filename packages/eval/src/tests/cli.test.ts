@@ -14,7 +14,7 @@ type CliResult = {
 };
 
 function runCli(args: string[], env?: Record<string, string>): CliResult {
-  const proc = spawnSync("node", ["src/cli.ts", ...args], {
+  const proc = spawnSync("node", ["src/cli/index.ts", ...args], {
     cwd: EVAL_ROOT,
     env: {
       ...process.env,

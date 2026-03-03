@@ -28,7 +28,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function runCli(args: string[], env?: Record<string, string>): CliResult {
-  const proc = spawnSync("node", ["src/cli.ts", ...args], {
+  const proc = spawnSync("node", ["src/cli/index.ts", ...args], {
     cwd: EVAL_ROOT,
     env: {
       ...process.env,
@@ -58,7 +58,7 @@ async function runCliAsync(
   env?: Record<string, string>,
 ): Promise<CliResult> {
   return new Promise((resolve, reject) => {
-    const proc = spawn("node", ["src/cli.ts", ...args], {
+    const proc = spawn("node", ["src/cli/index.ts", ...args], {
       cwd: EVAL_ROOT,
       env: {
         ...process.env,
@@ -602,6 +602,7 @@ describe("agent-eval replay mode", () => {
           EVAL_JUDGE_BASE_URL: "",
           EVAL_JUDGE_API_KEY: "",
           EVAL_JUDGE_MODEL: "",
+          EVAL_JUDGE_MODELS: "",
           EVAL_MCP_SERVER_BASE_URL: "",
           EVAL_UPSTREAM_API_BASE_URL: "",
         },

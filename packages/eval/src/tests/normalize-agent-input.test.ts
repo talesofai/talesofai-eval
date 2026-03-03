@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { getMissingRunConfig } from "../cli/config-check.ts";
-import { normalizeAgentInput } from "../runners/normalize-agent-input.ts";
+import { normalizeAgentInput } from "../runner/normalize-agent-input.ts";
 import type { AgentEvalCase } from "../types.ts";
 
 const baseLegacyCase = (): AgentEvalCase => ({

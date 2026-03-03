@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { afterEach, describe, it } from "node:test";
-import { runAgent } from "../runners/agent.ts";
-import { runPlain } from "../runners/plain.ts";
+import { runAgent } from "../runner/agent.ts";
+import { runPlain } from "../runner/plain.ts";
 import type { AgentEvalCase } from "../types.ts";
 
 type ChatRequestBody = {

@@ -378,14 +378,14 @@ describe("scoreTaskSuccess user_goal inference", () => {
     delete process.env["EVAL_JUDGE_API_KEY"];
 
     try {
-      await assert.rejects(
-        scoreTaskSuccess(
-          trace,
-          { type: "task_success", pass_threshold: 0.7 },
-          evalCase,
-        ),
-        /missing required/,
+      const result = await scoreTaskSuccess(
+        trace,
+        { type: "task_success", pass_threshold: 0.7 },
+        evalCase,
       );
+      assert.equal(result.passed, false);
+      assert.equal(result.score, 0);
+      assert.match(result.reason, /missing required/);
     } finally {
       if (origModel) process.env["EVAL_JUDGE_MODEL"] = origModel;
     }

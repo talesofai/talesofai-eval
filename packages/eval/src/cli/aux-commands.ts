@@ -2,12 +2,12 @@ import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import pc from "picocolors";
 import YAML from "yaml";
-import { collectDoctorChecks, type DoctorMode } from "../cli-shared.ts";
+import { collectDoctorChecks, type DoctorMode } from "./shared.ts";
 import {
   resolveRunnerXToken,
   resolveUpstreamBaseURL,
   resolveUpstreamXToken,
-} from "../env.ts";
+} from "../config.ts";
 import { invalidArgs, noCases } from "../errors.ts";
 import { extractAgentCaseFromCollection } from "../online/extract.ts";
 import { renderMatrixHtmlReport, renderRunHtmlReport, renderRunHtmlReportV3 } from "../reporter/html.ts";

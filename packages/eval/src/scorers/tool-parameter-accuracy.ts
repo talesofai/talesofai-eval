@@ -4,11 +4,7 @@ import type {
 	EvalCase,
 	EvalTrace,
 } from "../types.ts";
-import { callJudge, createJudgeClient } from "../utils/judge-client.ts";
-import {
-	callMultiJudge,
-	isMultiJudgeConfigured,
-} from "../utils/multi-judge-client.ts";
+import { callJudgeUnified } from "../judge/multi.ts";
 
 type ToolParameterAccuracyAssertion = Extract<
 	AssertionConfig,
@@ -59,31 +55,7 @@ ${a.expected_description}
 ## 实际调用参数
 ${callsBlock}`;
 
-	// Use multi-model judging if configured
-	if (isMultiJudgeConfigured()) {
-		const result = await callMultiJudge(systemPrompt, userPrompt);
-
-		if ("error" in result) {
-			return {
-				dimension: "tool_parameter_accuracy",
-				passed: false,
-				score: 0,
-				reason: result.error,
-			};
-		}
-
-		const passed = result.score >= a.pass_threshold;
-		return {
-			dimension: "tool_parameter_accuracy",
-			passed,
-			score: result.score,
-			reason: result.reason,
-		};
-	}
-
-	// Fallback to single-model judging
-	const { openai, model } = createJudgeClient();
-	const result = await callJudge(openai, model, systemPrompt, userPrompt);
+	const result = await callJudgeUnified(systemPrompt, userPrompt);
 
 	if ("error" in result) {
 		return {

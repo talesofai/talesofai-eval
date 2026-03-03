@@ -4,8 +4,8 @@ import {
 	aggregateScores,
 	calcConfidence,
 	formatAggregatedReason,
-} from "../utils/aggregate-scores.ts";
-import type { AggregatedResult, JudgeScore } from "../utils/aggregate-scores.ts";
+} from "../judge/aggregate.ts";
+import type { AggregatedResult, JudgeScore } from "../judge/aggregate.ts";
 
 describe("aggregateScores", () => {
 	it("returns median by default", () => {

@@ -1,5 +1,3 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { safeParseJson } from "../utils/safe-parse-json.ts";
 import OpenAI from "openai";
 import type {
@@ -15,16 +13,15 @@ import {
   resolveRunnerApiKey,
   resolveRunnerBaseURL,
   resolveRunnerXToken,
-} from "../env.ts";
+} from "../config.ts";
+import { extractMessageText } from "./message-utils.ts";
+import { createMcpClient, type McpClient, type McpTool } from "./mcp.ts";
 
 type PlainRunnableCase = Omit<PlainEvalCase, "type"> & {
   type: "plain" | "agent";
 };
-import { extractMessageText } from "./message-utils.ts";
 
 const MAX_TURNS = 20;
-
-type McpTool = Awaited<ReturnType<Client["listTools"]>>["tools"][number];
 
 const RUN_MCP_TOOL_SCHEMA_CACHE = new WeakMap<
   RunnerOptions,
@@ -79,27 +76,10 @@ export const runPlain = async (
 
   // 1. MCP client — list & filter tools (skipped when tools are explicitly disabled)
   let openaiTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [];
-  let mcpClient: Client | null = null;
+  let mcpClient: McpClient | null = null;
 
   if (!toolsExplicitlyDisabled) {
-    mcpClient = new Client({
-      name: "eval-plain-runner",
-      version: "0.0.1",
-    });
-    const mcpToken = resolveMcpXToken();
-    const transport = new StreamableHTTPClientTransport(
-      new URL(`${opts.mcpServerBaseURL}/mcp`),
-      mcpToken
-        ? {
-            requestInit: {
-              headers: {
-                "x-token": mcpToken,
-              },
-            },
-          }
-        : undefined,
-    );
-    await mcpClient.connect(transport);
+    mcpClient = await createMcpClient(opts.mcpServerBaseURL, resolveMcpXToken());
     const connectedMcpClient = mcpClient;
 
     const cacheKey = `${opts.mcpServerBaseURL}::${makeMcpToolFilterKey(input.allowed_tool_names)}`;
@@ -107,9 +87,7 @@ export const runPlain = async (
       runnerOptions: opts,
       cacheKey,
       load: async () => {
-        const allTools = await connectedMcpClient
-          .listTools()
-          .then((r) => r.tools);
+        const allTools = await connectedMcpClient.listTools();
         if (!input.allowed_tool_names) {
           return allTools;
         }
@@ -126,9 +104,11 @@ export const runPlain = async (
         name: t.name,
         description: t.description ?? "",
         parameters: {
-          type: t.inputSchema.type as "object",
-          properties: t.inputSchema.properties ?? {},
-          required: (t.inputSchema.required ?? []) as string[],
+          type: t.inputSchema["type"] as "object",
+          properties:
+            (t.inputSchema["properties"] as Record<string, unknown> | undefined) ??
+            {},
+          required: (t.inputSchema["required"] as string[] | undefined) ?? [],
         },
       },
     }));
@@ -307,12 +287,12 @@ export const runPlain = async (
       // 5 minute timeout for MCP tool calls
       const MCP_TOOL_TIMEOUT_MS = 60_000 * 5;
 
-      let result: Awaited<ReturnType<Client["callTool"]>>;
+      let result: unknown;
       try {
         result = await mcpClient.callTool(
-          { name: tc.function.name, arguments: toolArgs },
-          undefined,
-          { timeout: MCP_TOOL_TIMEOUT_MS },
+          tc.function.name,
+          toolArgs,
+          MCP_TOOL_TIMEOUT_MS,
         );
       } catch (error) {
         // Handle timeout - return timeout result
@@ -346,15 +326,13 @@ export const runPlain = async (
       const callDuration = Date.now() - callStart;
 
       const outputStr =
-        typeof result.content === "string"
-          ? result.content
-          : JSON.stringify(result.content);
+        typeof result === "string" ? result : (JSON.stringify(result) ?? "null");
 
       const record: ToolCallRecord = {
         tool_call_id: tc.id,
         name: tc.function.name,
         arguments: args ?? {},
-        output: result.content,
+        output: result,
         duration_ms: callDuration,
       };
       toolsCalled.push(record);

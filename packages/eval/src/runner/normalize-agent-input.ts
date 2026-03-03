@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { resolveLegacyAgentPromptFile } from "../env.ts";
+import { resolveLegacyAgentPromptFile } from "../config.ts";
 import type { AgentEvalCase, PlainEvalCase } from "../types.ts";
 
 export type NormalizedAgentCase = Omit<PlainEvalCase, "type"> & {

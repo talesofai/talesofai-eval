@@ -1,4 +1,4 @@
-import { resolveRunnerBaseURL } from "../env.ts";
+import { resolveRunnerBaseURL } from "../config.ts";
 import {
   DEFAULT_AGENT_PRESET_KEY,
   type EvalCase,

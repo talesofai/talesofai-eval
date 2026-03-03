@@ -1,12 +1,9 @@
 import type { AssertionConfig, DimensionResult, EvalTrace } from "../types.ts";
 import {
 	callJudge,
-	createJudgeClient,
-} from "../utils/judge-client.ts";
-import {
 	callMultiJudge,
 	isMultiJudgeConfigured,
-} from "../utils/multi-judge-client.ts";
+} from "../judge/index.ts";
 
 type LlmJudgeAssertion = Extract<AssertionConfig, { type: "llm_judge" }>;
 
@@ -61,8 +58,7 @@ ${formattedTrace}`;
 	}
 
 	// Fallback to single-model judging
-	const { openai, model } = createJudgeClient();
-	const result = await callJudge(openai, model, systemPrompt, userPrompt);
+	const result = await callJudge(systemPrompt, userPrompt);
 
 	if ("error" in result) {
 		return {
