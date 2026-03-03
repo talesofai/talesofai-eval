@@ -4,6 +4,7 @@ import { resolveMcpServerBaseURL } from "../env.ts";
 import { missingConfig, noCases } from "../errors.ts";
 import { createJsonMatrixReporter } from "../reporter/json.ts";
 import { createTerminalMatrixReporter } from "../reporter/terminal.ts";
+import { loadResult } from "../traces.ts";
 import type { MatrixCell, MatrixReporter, MatrixSummary, RunnerOptions } from "../types.ts";
 import { runConcurrently } from "../utils/concurrency.ts";
 import { resolveMatrixRecordDir } from "../utils/recording.ts";
@@ -67,7 +68,37 @@ export async function matrixCommand(options: MatrixCommandOptions): Promise<numb
     mcpServerBaseURL: resolveMcpServerBaseURL(),
   };
 
+  // Check for existing results (resume capability)
+  const loadExistingResult = async (
+    caseId: string,
+    variantLabel: string,
+  ): Promise<MatrixCell | null> => {
+    if (!recordDir) return null;
+    const variantDir = join(recordDir, variantLabel);
+    const existing = await loadResult(caseId, variantDir);
+    if (existing) {
+      return {
+        case_id: caseId,
+        variant_label: variantLabel,
+        result: existing,
+      };
+    }
+    return null;
+  };
+
   const tasks = pairs.map((pair, index) => async (): Promise<MatrixCell> => {
+    // Check if already completed
+    const existing = await loadExistingResult(pair.evalCase.id, pair.variant.label);
+    if (existing) {
+      if (format === "terminal") {
+        process.stderr.write(
+          pc.dim(`  ⏭ [${index + 1}/${pairs.length}] ${pair.evalCase.id} × ${pair.variant.label}  (cached)\n`),
+        );
+      }
+      reporter.onCellResult(existing);
+      return existing;
+    }
+
     reporter.onCellStart(
       pair.evalCase.id,
       pair.variant.label,

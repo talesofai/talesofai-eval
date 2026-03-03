@@ -16,16 +16,12 @@ input:
   messages:
     - role: user
       content: 带{@character}去中山大学南校园打卡拍照
-  allowed_tool_names:
-    - request_character_v1
-    - request_text_v1
-    - edit_image_v1
   auto_followup:
     mode: adversarial_help_choose
     max_turns: 1
 criteria:
   llm_judge:
-    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
+    prompt: 评估该回合执行质量（0-1分）。核心原则：1）结果导向：最终输出是否满足用户意图？2）工具使用合理：是否正确使用工具完成任务？不强制要求特定工具名，关注功能合理性；3）无干扰行为：未调用与任务无关的工具。评分：1.0=完美完成，0.7-0.9=基本完成有轻微冗余，0.4-0.6=部分完成有缺陷，0.1-0.3=严重偏离，0=完全失败。注意：执行计划仅供参考，工具名称可能变化，允许合理的多轮交互。
       若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
       明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
     pass_threshold: 0.7

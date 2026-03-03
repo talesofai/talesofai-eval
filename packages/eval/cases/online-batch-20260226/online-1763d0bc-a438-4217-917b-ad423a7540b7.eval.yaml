@@ -6,29 +6,15 @@ input:
   parameters:
     preset_description: 包含角色、三种星级卡面文案及对应卡面图、角色弹弹球图的抽卡模拟器
     reference_planning: /*<group><request_character><assign>character</assign><hint></hint><placeholder></placeholder></request_character></group><group><request_text><hint></hint><placeholder></placeholder><assign>text1</assign></request_text><request_text><hint></hint><placeholder></placeholder><assign>text2</assign></request_text><request_text><hint></hint><placeholder></placeholder><assign>text3</assign></request_text></group><group><make_image><prompt></prompt><aspect></aspect><assign>三星卡面</assign></make_image><make_image><prompt></prompt><aspect></aspect><assign>四星卡面</assign></make_image><make_image><prompt></prompt><aspect></aspect><assign>五星卡面</assign></make_image><make_image><prompt></prompt><aspect></aspect><assign>角色弹弹球</assign></make_image></group><group><end></end></group>*/
-    reference_content: "text1: 「...花...会开吗？」透明蓝眸映着枯萎花瓣，指尖轻轻触碰却又缩回; text2:
-      「你...要听花开的声音吗？」蹲坐成光球滚到旅人脚边，裙摆沾着星屑; text3:
-      「牵、牵手的话...花会开得更漂亮哦」红着脸递出缠满蓝睡莲的手腕; 三星卡面2-1_prompt:
-      {character}，/厚涂，透明蓝眸，枯萎花瓣，指尖轻触花朵，孤独感，要求图片比例3:4; 四星卡面2-2_prompt:
-      {character}，/厚涂，蹲坐成光球，裙摆沾星屑，旅人脚边，蓝睡莲元素，要求图片比例3:4; 五星卡面2-3_prompt:
-      {character}，/厚涂，红着脸，递出缠蓝睡莲的手腕，永恒花海背景，月光，要求图片比例3:4; 角色弹弹球2-4_prompt:
-      {character}，/Q版，圆形弹球造型，保留蓝睡莲裙摆特征，透明蓝眸，呆萌表情，要求图片比例1:1"
-    reference_content_schema: "character: object 卡面相关的角色; text1: string 三星卡面文案;
-      text2: string 四星卡面文案; text3: string 五星卡面文案; 角色弹弹球: image url 角色弹弹球图片;
-      三星卡面: image url 三星卡面图片; 四星卡面: image url 四星卡面图片; 五星卡面: image url 五星卡面图片"
+    reference_content: "text1: ...花...会开吗？透明蓝眸映着枯萎花瓣，指尖轻轻触碰却又缩回; text2: 你...要听花开的声音吗？蹲坐成光球滚到旅人脚边，裙摆沾着星屑; text3: 花开的声音...要听吗？透明蓝眸映着枯萎花瓣，指尖轻轻触碰却又缩回; 三星卡面: {character}，三星卡面，忧郁蓝调，蓝睡莲裙摆，透明蓝眸，枯萎花瓣背景，要求图片比例3:4; 四星卡面: {character}，四星卡面，梦幻光影，蓝睡莲裙摆，透明蓝眸，星光点缀，要求图片比例3:4; 五星卡面: {character}，五星卡面，华丽绽放，蓝睡莲裙摆，透明蓝眸，花海背景，要求图片比例3:4; 角色弹弹球: {character}，Q版，圆形弹球造型，保留蓝睡莲裙摆特征，透明蓝眸，呆萌表情，要求图片比例1:1"
+    reference_content_schema: "character: object 卡面相关的角色; text1: string 三星卡面文案; text2: string 四星卡面文案; text3: string 五星卡面文案; 角色弹弹球: image url 角色弹弹球图片; 三星卡面: image url 三星卡面图片; 四星卡面: image url 四星卡面图片; 五星卡面: image url 五星卡面图片"
   messages:
     - role: user
       content: 捏一个{@character}的抽卡模拟器，包含三星、四星、五星卡面及对应文案
-  allowed_tool_names:
-    - request_text_v1
-    - request_character_v1
-    - request_image_v1
   auto_followup:
     mode: adversarial_help_choose
     max_turns: 1
 criteria:
   llm_judge:
-    prompt: 判断该回合是否合理完成当前轮目标。规则：1) 回答紧扣用户输入与 preset 参考信息；2)
-      若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant
-      明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
+    prompt: 评估该回合执行质量（0-1分）。核心原则：1）结果导向：最终输出是否满足用户意图？2）工具使用合理：是否正确使用工具完成任务？不强制要求特定工具名，关注功能合理性；3）无干扰行为：未调用与任务无关的工具。评分：1.0=完美完成，0.7-0.9=基本完成有轻微冗余，0.4-0.6=部分完成有缺陷，0.1-0.3=严重偏离，0=完全失败。注意：执行计划仅供参考，工具名称可能变化，允许合理的多轮交互。若任务信息充足，应继续执行并尽量产出结果，不应空谈；3) 若任务天然需要用户补充关键信息（如先选角色），assistant明确提出所需信息也可判通过；4) 偏题、拒答、无关闲聊、关键步骤缺失判不通过。
     pass_threshold: 0.7
