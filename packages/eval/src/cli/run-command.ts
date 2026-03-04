@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import pc from "picocolors";
-import { resolveMcpServerBaseURL, resolveRunnerModel } from "../config.ts";
+import { resolveMcpServerBaseURL } from "../config.ts";
 import { missingConfig, noCases } from "../errors.ts";
 import { renderRunHtmlReport } from "../reporter/html.ts";
 import { renderRunMarkdownReport } from "../reporter/terminal.ts";
@@ -242,13 +242,9 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
   const reporter = createReporterFromFormat(format, verbose, concurrency);
   const startTime = Date.now();
 
-  // Model selection priority: CLI --model > EVAL_RUNNER_MODEL
-  const defaultModel = options.model ?? resolveRunnerModel();
-
   const runnerOpts = createRunnerOptions({
     reporter,
     mcpServerBaseURL: resolveMcpServerBaseURL(),
-    defaultModel,
   });
 
   const tasks = cases.map(

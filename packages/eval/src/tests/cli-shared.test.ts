@@ -169,7 +169,7 @@ describe("shouldUseJsonErrors", () => {
     assert.equal(value, true);
   });
 
-  it("returns true for any command when --format json is present", () => {
+  it("returns false for unrelated command", () => {
     const value = shouldUseJsonErrors([
       "node",
       "src/cli/index.ts",
@@ -177,6 +177,6 @@ describe("shouldUseJsonErrors", () => {
       "--format",
       "json",
     ]);
-    assert.equal(value, true);
+    assert.equal(value, false);
   });
 });

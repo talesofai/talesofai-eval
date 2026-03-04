@@ -145,7 +145,6 @@ export type RunCommandOptions = CaseResolveOptions & {
   verbose: boolean;
   tierMax?: EvalTier;
   concurrency?: number;
-  judgeModel?: string;
 };
 
 export type DiffCommandOptions = {
@@ -637,27 +636,5 @@ export function parseMatrixCommandOptions(raw: unknown): MatrixCommandOptions {
     record: parsed.record,
     format: parsed.format ?? "terminal",
     tierMax: parseTierMaxOrThrow(parsed.tierMax, "matrix"),
-  };
-}
-
-export type ListCommandOptions = {
-  scan: boolean;
-  format: OutputFormat;
-};
-
-export function parseListCommandOptions(raw: unknown): ListCommandOptions {
-  const parsed = parseWithSchema(
-    z
-      .object({
-        scan: z.boolean().default(false),
-        format: outputFormatSchema.default("terminal"),
-      })
-      .passthrough(),
-    raw,
-  );
-
-  return {
-    scan: parsed.scan ?? false,
-    format: parsed.format ?? "terminal",
   };
 }

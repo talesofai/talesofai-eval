@@ -89,93 +89,6 @@ reason: gemini-3.5-flash: 0.80 - accurate | qwen3.5-plus: 0.90 - detailed |
 
 ---
 
-## Case Discovery
-
-| Method | Command | Description |
-|--------|---------|-------------|
-| Registered case | `--case <id>` | Only cases registered via `registerCase()` in `src/cases/index.ts` |
-| YAML file | `--file <path>` | Any `.eval.yaml` file |
-| Run all | `--case all` | Run all registered cases (excludes YAML files) |
-
-```bash
-# Registered case
-agent-eval run --case agent-make-image-basic
-
-# YAML file
-agent-eval run --file my-test.eval.yaml
-
-# List registered cases
-agent-eval list
-
-# Scan for YAML files
-agent-eval list --scan
-```
-
-> ⚠️ **Note**: `--case` only finds cases registered via `registerCase()`. It does not auto-scan YAML files. For new `.eval.yaml` files, use `--file`.
-
----
-
-## Variant Override Semantics
-
-The `--variant` parameter in matrix commands is **merged** into the case's `input`:
-
-| Scenario | Config | Effect |
-|----------|--------|--------|
-| Override field | `{"model": "gpt-4o"}` | Use specified value |
-| No override | Omit the field | Use case's original value |
-| Empty string | `{"system_prompt": ""}` | ❌ Error (agent case requires non-empty system_prompt) |
-
-### Example: Compare Two Prompts
-
-```bash
-# baseline: no system_prompt override, uses default legacy prompt
-# improved: provides new system_prompt
-agent-eval matrix \
-  --file my-case.eval.yaml \
-  --variant '{"label":"baseline"}' \
-  --variant '{"label":"improved","system_prompt":"You are an autonomous agent that proactively executes tasks..."}'
-```
-
-### End-to-End Example
-
-```bash
-# 1. Create a test case
-cat > my-case.eval.yaml << 'EOF'
-type: agent
-id: my-test
-description: Test agent autonomous execution
-input:
-  model: qwen3.5-plus
-  parameters:
-    preset_description: ""
-    reference_planning: ""
-    reference_content: ""
-    reference_content_schema: ""
-  messages:
-    - role: user
-      content: Generate a cat image for me
-  allowed_tool_names: [make_image_v1]
-criteria:
-  assertions:
-    - type: tool_usage
-      expected_tools: [make_image_v1]
-    - type: llm_judge
-      prompt: Agent should proactively call tools without waiting for user
-      pass_threshold: 0.7
-EOF
-
-# 2. Run matrix comparison
-agent-eval matrix \
-  --file my-case.eval.yaml \
-  --variant '{"label":"baseline"}' \
-  --variant '{"label":"improved","system_prompt":"You are a proactive agent. Execute tasks without waiting for user confirmation."}'
-
-# 3. View detailed report
-agent-eval matrix-report --from .eval-records/matrix-xxx
-```
-
----
-
 ## Commands
 
 | Command | Description |
@@ -219,16 +132,10 @@ type: agent
 id: make-image
 description: Agent should call make_image
 input:
-  model: qwen3.5-plus
-  parameters:
-    preset_description: ""
-    reference_planning: ""
-    reference_content: ""
-    reference_content_schema: ""
+  preset_key: my-preset
   messages:
     - role: user
       content: Generate a cat image
-  allowed_tool_names: [make_image_v1]
 criteria:
   assertions:
     - type: tool_usage
@@ -240,57 +147,10 @@ criteria:
 
 ---
 
-## Model Configuration
-
-`models.json` is the source of truth for all available models. Select which model to use at runtime:
-
-### Selection Priority
-
-```
-CLI --model > EVAL_RUNNER_MODEL > case.input.model
-```
-
-### Examples
-
-```bash
-# 1. Via CLI (highest priority)
-agent-eval run --case all --model qwen3.5-plus
-
-# 2. Via environment variable
-EVAL_RUNNER_MODEL=qwen3.5-plus agent-eval run --case all
-
-# 3. In case definition (lowest priority)
-# my-case.eval.yaml
-input:
-  model: qwen3.5-plus
-```
-
-### models.json Format
-
-```json
-{
-  "models": {
-    "qwen3.5-plus": {
-      "id": "qwen3.5-plus",
-      "name": "Qwen 3.5 Plus",
-      "api": "openai-completions",
-      "provider": "alibaba",
-      "baseUrl": "${OPENAI_BASE_URL}",
-      "headers": {
-        "Authorization": "Bearer ${OPENAI_API_KEY}"
-      }
-    }
-  }
-}
-```
-
----
-
 ## Environment Variables
 
 ### Runner
 - `OPENAI_BASE_URL`, `OPENAI_API_KEY`
-- `EVAL_RUNNER_MODEL` - Default model id for runner (from models.json)
 
 ### Judge
 - `EVAL_MODELS_PATH` - Optional path to model registry JSON

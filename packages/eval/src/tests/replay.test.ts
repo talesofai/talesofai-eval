@@ -601,7 +601,7 @@ describe("agent-eval replay mode", () => {
           OPENAI_API_KEY: "test-key",
           EVAL_JUDGE_BASE_URL: "",
           EVAL_JUDGE_API_KEY: "",
-          EVAL_JUDGE_MODELS: "",
+          EVAL_JUDGE_MODEL: "",
           EVAL_JUDGE_MODELS: "",
           EVAL_MCP_SERVER_BASE_URL: "",
           EVAL_UPSTREAM_API_BASE_URL: "",
@@ -638,7 +638,7 @@ describe("agent-eval replay mode", () => {
       assert.deepEqual(caseResult?.["dimensions"], []);
       assert.equal(typeof caseResult?.["error"], "string");
       assert.match(String(caseResult?.["error"]), /Replay cache miss/);
-      assert.match(String(caseResult?.["error"]), /EVAL_JUDGE_MODELS/);
+      assert.match(String(caseResult?.["error"]), /EVAL_JUDGE_MODEL/);
 
       const summary = lines.find((line) => line["type"] === "summary");
       assert.ok(summary, "should output summary line in json mode");
@@ -707,7 +707,7 @@ describe("agent-eval replay mode", () => {
           OPENAI_API_KEY: "",
           EVAL_JUDGE_BASE_URL: "",
           EVAL_JUDGE_API_KEY: "",
-          EVAL_JUDGE_MODELS: "",
+          EVAL_JUDGE_MODEL: "",
           EVAL_MCP_SERVER_BASE_URL: "",
           EVAL_UPSTREAM_API_BASE_URL: "",
         },

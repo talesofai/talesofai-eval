@@ -1,14 +1,9 @@
-import {
-  globSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import pc from "picocolors";
 import YAML from "yaml";
 import {
+  resolveRunnerXToken,
   resolveUpstreamBaseURL,
   resolveUpstreamXToken,
 } from "../config.ts";
@@ -30,7 +25,6 @@ import { resolveCasesFromArgs } from "./case-resolution.ts";
 import type {
   DoctorCommandOptions,
   InspectCommandOptions,
-  ListCommandOptions,
   MatrixReportCommandOptions,
   PullOnlineCommandOptions,
   ReportCommandOptions,
@@ -38,75 +32,14 @@ import type {
 import { maybeShareHtmlReport } from "./share.ts";
 import { collectDoctorChecks, type DoctorMode } from "./shared.ts";
 
-export function listCommand(options: ListCommandOptions): number {
-  const format = options.format;
-  const scan = options.scan;
-
-  // Get registered cases
-  const { cases: registeredCases } = resolveCasesFromArgs({ case: "all" });
-
-  // Scan for YAML files if requested
-  const yamlCases: Array<{ id: string; type: string; source: string }> = [];
-  if (scan) {
-    const yamlFiles = globSync("**/*.eval.yaml");
-    for (const file of yamlFiles) {
-      try {
-        const content = readFileSync(file, "utf8");
-        const parsed = YAML.parse(content) as {
-          id?: string;
-          type?: string;
-        } | null;
-        if (parsed?.id) {
-          yamlCases.push({
-            id: parsed.id,
-            type: parsed.type ?? "unknown",
-            source: file,
-          });
-        }
-      } catch {
-        // Skip unparseable files
-      }
-    }
-  }
-
-  if (format === "json") {
-    const output = [
-      ...registeredCases.map((evalCase) => ({
-        id: evalCase.id,
-        type: evalCase.type,
-        source: "registered",
-      })),
-      ...yamlCases,
-    ];
-    process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
-    return 0;
-  }
-
-  // Terminal format
-  if (registeredCases.length > 0) {
-    process.stderr.write(`${pc.bold("Registered cases:")} (use --case <id>)\n`);
-    for (const evalCase of registeredCases) {
-      process.stderr.write(
-        `  ${pc.green(evalCase.id)} ${pc.dim(`[${evalCase.type}]`)} ${pc.dim(evalCase.description?.slice(0, 50) ?? "")}\n`,
-      );
-    }
-  }
-
-  if (yamlCases.length > 0) {
-    process.stderr.write(`\n${pc.bold("YAML files:")} (use --file <path>)\n`);
-    for (const yc of yamlCases) {
-      process.stderr.write(
-        `  ${pc.cyan(yc.id)} ${pc.dim(`[${yc.type}]`)} ${pc.dim(yc.source)}\n`,
-      );
-    }
-  }
-
-  if (!scan && registeredCases.length === 0) {
-    process.stderr.write(
-      `${pc.dim("No registered cases found. Use --scan to search for .eval.yaml files.")}\n`,
-    );
-  }
-
+export function listCommand(): number {
+  const { cases } = resolveCasesFromArgs({ case: "all" });
+  const output = cases.map((evalCase) => ({
+    id: evalCase.id,
+    type: evalCase.type,
+    description: evalCase.description,
+  }));
+  process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
   return 0;
 }
 
@@ -177,11 +110,12 @@ export async function pullOnlineCommand(
     );
   }
 
-  const token = options.xToken ?? resolveUpstreamXToken();
+  const token =
+    options.xToken ?? resolveUpstreamXToken() ?? resolveRunnerXToken();
   if (!token || token.trim().length === 0) {
     throw invalidArgs(
       "missing x-token",
-      "Set --x-token or env EVAL_UPSTREAM_X_TOKEN",
+      "Set --x-token or env EVAL_UPSTREAM_X_TOKEN/OPENAI_X_TOKEN",
     );
   }
 

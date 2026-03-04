@@ -3,11 +3,16 @@ import { complete } from "../inference/index.ts";
 import type { ModelConfig } from "../models/index.ts";
 import { resolveModel } from "../models/index.ts";
 import { safeParseJson } from "../utils/safe-parse-json.ts";
-import { resolveJudgeModels } from "../config.ts";
 
 export type JudgeScoreResult =
   | { score: number; reason: string }
   | { error: string };
+
+function resolveJudgeModelId(): string | undefined {
+  const value = process.env["EVAL_JUDGE_MODEL"];
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : undefined;
+}
 
 export async function callJudgeForModel(
   modelId: string,
@@ -79,10 +84,9 @@ export async function callJudge(
   userPrompt: string,
   retries = 1,
 ): Promise<JudgeScoreResult> {
-  const models = resolveJudgeModels();
-  const modelId = models?.[0];
+  const modelId = resolveJudgeModelId();
   if (!modelId) {
-    return { error: "missing required EVAL_JUDGE_MODELS" };
+    return { error: "missing required EVAL_JUDGE_MODEL" };
   }
 
   return callJudgeForModel(modelId, systemPrompt, userPrompt, retries);

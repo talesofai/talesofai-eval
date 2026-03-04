@@ -26,6 +26,16 @@ function resolveAssertionTier(assertion: AssertionConfig): EvalTier {
   return assertion.tier ?? DEFAULT_TIER[assertion.type];
 }
 
+function resolveJudgeModel(): string | undefined {
+  const value = process.env[ENV_KEYS.JUDGE_MODEL];
+  if (!value) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 export function caseNeedsJudge(
   evalCase: EvalCase,
   options?: { tierMax?: EvalTier },
@@ -46,11 +56,17 @@ export function caseNeedsJudge(
 }
 
 export function getMissingJudgeConfig(): string[] {
-  const models = resolveJudgeModels();
-  if (!models || models.length === 0) {
-    return [ENV_KEYS.JUDGE_MODELS];
+  const missing: string[] = [];
+  const multiJudgeModels = resolveJudgeModels();
+
+  if (
+    (!multiJudgeModels || multiJudgeModels.length === 0) &&
+    !resolveJudgeModel()
+  ) {
+    missing.push(ENV_KEYS.JUDGE_MODEL);
   }
-  return [];
+
+  return missing;
 }
 
 export function getMissingRunConfig(
@@ -61,6 +77,9 @@ export function getMissingRunConfig(
   const tierMax = options?.tierMax ?? 2;
 
   if (replay) {
+    // Replay prefers cached *.result.json when available, so no upfront judge
+    // env requirement here. If cache is missing for a case with llm_judge,
+    // that case falls back to scoring and may require judge config then.
     return [];
   }
 
@@ -92,9 +111,8 @@ export function getMissingDiffConfig(cases: EvalCase[]): string[] {
     getMissingRunConfig(cases, { replay: false }),
   );
 
-  const models = resolveJudgeModels();
-  if (!models || models.length === 0) {
-    missing.add(ENV_KEYS.JUDGE_MODELS);
+  if (!resolveJudgeModel()) {
+    missing.add(ENV_KEYS.JUDGE_MODEL);
   }
 
   return [...missing];

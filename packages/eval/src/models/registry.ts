@@ -61,21 +61,8 @@ export function listModels(): string[] {
 
 /**
  * Resolve ${VAR} environment variable references in a string.
- * Supports fallback syntax: ${VAR1:-VAR2} means use VAR1 if set, else VAR2.
  * @internal
  */
 export function resolveEnvVars(str: string): string {
-  return str.replace(
-    /\$\{(\w+)(?::-([\w]+))?\}/g,
-    (_, primary: string, fallback?: string) => {
-      const primaryValue = process.env[primary];
-      if (primaryValue && primaryValue.trim().length > 0) {
-        return primaryValue;
-      }
-      if (fallback) {
-        return process.env[fallback] ?? "";
-      }
-      return "";
-    },
-  );
+  return str.replace(/\$\{(\w+)\}/g, (_, name) => process.env[name] ?? "");
 }

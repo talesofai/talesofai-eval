@@ -380,8 +380,8 @@ describe("scoreTaskSuccess user_goal inference", () => {
       },
     };
 
-    const origModel = process.env["EVAL_JUDGE_MODELS"];
-    delete process.env["EVAL_JUDGE_MODELS"];
+    const origModel = process.env["EVAL_JUDGE_MODEL"];
+    delete process.env["EVAL_JUDGE_MODEL"];
     delete process.env["EVAL_JUDGE_BASE_URL"];
     delete process.env["EVAL_JUDGE_API_KEY"];
 
@@ -395,7 +395,7 @@ describe("scoreTaskSuccess user_goal inference", () => {
       assert.equal(result.score, 0);
       assert.match(result.reason, /missing required/);
     } finally {
-      if (origModel) process.env["EVAL_JUDGE_MODELS"] = origModel;
+      if (origModel) process.env["EVAL_JUDGE_MODEL"] = origModel;
     }
   });
 });
