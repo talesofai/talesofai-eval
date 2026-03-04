@@ -83,6 +83,22 @@ export const scoreTrace = async (
   const rawAssertions = normalizeAssertions(evalCase.criteria);
 
   if (rawAssertions.length === 0) {
+    if (trace.status === "error" || trace.error) {
+      const reason = trace.error ?? "runner returned error trace";
+      process.stderr.write(
+        `WARN: case '${evalCase.id}': no assertions defined but trace errored — marking failed\n`,
+      );
+      return makeResult(evalCase, trace, false, [
+        {
+          dimension: "final_status",
+          tier: 1,
+          passed: false,
+          score: 0,
+          reason,
+        },
+      ]);
+    }
+
     process.stderr.write(
       `WARN: case '${evalCase.id}': no assertions defined — skipping scoring\n`,
     );

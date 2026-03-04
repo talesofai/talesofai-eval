@@ -28,6 +28,7 @@
     "generate-schema": "node scripts/generate-schema.ts"
   },
   "dependencies": {
+    "@mariozechner/pi-ai": "^0.55.4",
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@openai/agents": "^0.4.4",
     "axios": "^1.13.2",

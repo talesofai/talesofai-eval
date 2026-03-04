@@ -62,6 +62,7 @@ async function runCliAsync(
       cwd: EVAL_ROOT,
       env: {
         ...process.env,
+        AGENT_EVAL_DISABLE_ENV_AUTOLOAD: "1",
         ...env,
       },
       stdio: ["ignore", "pipe", "pipe"],
@@ -135,13 +136,33 @@ function writeCaseFile(path: string, id: string): void {
     description: id,
     input: {
       system_prompt: "sys",
-      model: "qwen-plus",
+      model: "test-model",
       messages: [{ role: "user", content: "hello" }],
       allowed_tool_names: [],
     },
     criteria: {},
   };
   writeFileSync(path, JSON.stringify(payload, null, 2));
+}
+
+function writeModelsFile(dir: string, baseURL: string): string {
+  const modelsPath = join(dir, "models.json");
+  writeFileSync(
+    modelsPath,
+    JSON.stringify({
+      models: {
+        "test-model": {
+          id: "test-model",
+          name: "Test Model",
+          api: "openai-completions",
+          provider: "test",
+          baseUrl: baseURL,
+          apiKey: "test-key",
+        },
+      },
+    }),
+  );
+  return modelsPath;
 }
 
 async function startFakeOpenAiServer(): Promise<{
@@ -165,7 +186,7 @@ async function startFakeOpenAiServer(): Promise<{
       id: "chatcmpl-test",
       object: "chat.completion.chunk",
       created: 0,
-      model: "qwen-plus",
+      model: "test-model",
       choices: [
         {
           index: 0,
@@ -179,7 +200,7 @@ async function startFakeOpenAiServer(): Promise<{
       id: "chatcmpl-test",
       object: "chat.completion.chunk",
       created: 0,
-      model: "qwen-plus",
+      model: "test-model",
       choices: [
         {
           index: 0,
@@ -193,7 +214,7 @@ async function startFakeOpenAiServer(): Promise<{
       id: "chatcmpl-test",
       object: "chat.completion.chunk",
       created: 0,
-      model: "qwen-plus",
+      model: "test-model",
       choices: [],
       usage: {
         prompt_tokens: 1,
@@ -249,6 +270,7 @@ describe("agent-eval replay mode", () => {
 
     try {
       const recordDir = join(tempRoot, "traces");
+      const modelsPath = writeModelsFile(tempRoot, fake.baseURL);
       const caseId = "record-case";
       const inlineCase = JSON.stringify({
         type: "plain",
@@ -256,7 +278,7 @@ describe("agent-eval replay mode", () => {
         description: "record test",
         input: {
           system_prompt: "sys",
-          model: "qwen-plus",
+          model: "test-model",
           messages: [{ role: "user", content: "hello" }],
           allowed_tool_names: [],
         },
@@ -266,8 +288,7 @@ describe("agent-eval replay mode", () => {
       const result = await runCliAsync(
         ["run", "--inline", inlineCase, "--record", recordDir],
         {
-          OPENAI_BASE_URL: fake.baseURL,
-          OPENAI_API_KEY: "test-key",
+          EVAL_MODELS_PATH: modelsPath,
           EVAL_MCP_SERVER_BASE_URL: "",
           EVAL_UPSTREAM_API_BASE_URL: "",
         },
@@ -295,6 +316,7 @@ describe("agent-eval replay mode", () => {
 
     try {
       const recordDir = join(tempRoot, "traces");
+      const modelsPath = writeModelsFile(tempRoot, fake.baseURL);
       const caseId = "record-case-html";
       const inlineCase = JSON.stringify({
         type: "plain",
@@ -302,7 +324,7 @@ describe("agent-eval replay mode", () => {
         description: "record test for html report",
         input: {
           system_prompt: "sys",
-          model: "qwen-plus",
+          model: "test-model",
           messages: [{ role: "user", content: "hello" }],
           allowed_tool_names: [],
         },
@@ -312,8 +334,7 @@ describe("agent-eval replay mode", () => {
       const result = await runCliAsync(
         ["run", "--inline", inlineCase, "--record", recordDir],
         {
-          OPENAI_BASE_URL: fake.baseURL,
-          OPENAI_API_KEY: "test-key",
+          EVAL_MODELS_PATH: modelsPath,
           EVAL_MCP_SERVER_BASE_URL: "",
           EVAL_UPSTREAM_API_BASE_URL: "",
         },
@@ -361,6 +382,7 @@ describe("agent-eval replay mode", () => {
 
     try {
       const recordDir = join(tempRoot, "traces");
+      const modelsPath = writeModelsFile(tempRoot, fake.baseURL);
       const caseId = "record-case-all-fail";
       const inlineCase = JSON.stringify({
         type: "plain",
@@ -368,7 +390,7 @@ describe("agent-eval replay mode", () => {
         description: "record test for all failed",
         input: {
           system_prompt: "sys",
-          model: "qwen-plus",
+          model: "test-model",
           messages: [{ role: "user", content: "hello" }],
           allowed_tool_names: [],
         },
@@ -380,8 +402,7 @@ describe("agent-eval replay mode", () => {
       const result = await runCliAsync(
         ["run", "--inline", inlineCase, "--record", recordDir],
         {
-          OPENAI_BASE_URL: fake.baseURL,
-          OPENAI_API_KEY: "test-key",
+          EVAL_MODELS_PATH: modelsPath,
           EVAL_MCP_SERVER_BASE_URL: "",
           EVAL_UPSTREAM_API_BASE_URL: "",
         },
@@ -418,7 +439,7 @@ describe("agent-eval replay mode", () => {
         description: "replay offline",
         input: {
           system_prompt: "sys",
-          model: "qwen-plus",
+          model: "test-model",
           messages: [{ role: "user", content: "hello" }],
           allowed_tool_names: [],
         },
@@ -428,15 +449,13 @@ describe("agent-eval replay mode", () => {
       const tracePath = join(replayDir, `${sanitizeCaseId(caseId)}.trace.json`);
       writeFileSync(tracePath, JSON.stringify(makeTrace(caseId), null, 2));
 
-      const result = runCli(
-        ["run", "--inline", inlineCase, "--replay", replayDir],
-        {
-          OPENAI_BASE_URL: "",
-          OPENAI_API_KEY: "",
-          EVAL_MCP_SERVER_BASE_URL: "",
-          EVAL_UPSTREAM_API_BASE_URL: "",
-        },
-      );
+      const result = runCli([
+        "run",
+        "--inline",
+        inlineCase,
+        "--replay",
+        replayDir,
+      ]);
 
       assert.equal(result.status, 0);
       assert.doesNotMatch(result.stderr, /E_MISSING_CONFIG/);
@@ -481,15 +500,13 @@ describe("agent-eval replay mode", () => {
         JSON.stringify(makeTrace(caseB), null, 2),
       );
 
-      const result = runCli(
-        ["run", "--file", join(casesDir, "*.json"), "--replay", replayDir],
-        {
-          OPENAI_BASE_URL: "",
-          OPENAI_API_KEY: "",
-          EVAL_MCP_SERVER_BASE_URL: "",
-          EVAL_UPSTREAM_API_BASE_URL: "",
-        },
-      );
+      const result = runCli([
+        "run",
+        "--file",
+        join(casesDir, "*.json"),
+        "--replay",
+        replayDir,
+      ]);
 
       assert.equal(result.status, 0);
       assert.match(result.stderr, /running\.\.\./);
@@ -514,7 +531,7 @@ describe("agent-eval replay mode", () => {
         description: "replay cache",
         input: {
           system_prompt: "sys",
-          model: "qwen-plus",
+          model: "test-model",
           messages: [{ role: "user", content: "hello" }],
           allowed_tool_names: [],
         },
@@ -533,8 +550,6 @@ describe("agent-eval replay mode", () => {
       const result = runCli(
         ["run", "--inline", inlineCase, "--replay", replayDir],
         {
-          OPENAI_BASE_URL: "",
-          OPENAI_API_KEY: "",
           EVAL_JUDGE_BASE_URL: "",
           EVAL_JUDGE_API_KEY: "",
           EVAL_MCP_SERVER_BASE_URL: "",
@@ -566,7 +581,7 @@ describe("agent-eval replay mode", () => {
         description: "replay judge miss",
         input: {
           system_prompt: "sys",
-          model: "qwen-plus",
+          model: "test-model",
           messages: [{ role: "user", content: "hello" }],
           allowed_tool_names: [],
         },
@@ -597,8 +612,6 @@ describe("agent-eval replay mode", () => {
           "json",
         ],
         {
-          OPENAI_BASE_URL: "http://127.0.0.1:9/v1",
-          OPENAI_API_KEY: "test-key",
           EVAL_JUDGE_BASE_URL: "",
           EVAL_JUDGE_API_KEY: "",
           EVAL_JUDGE_MODEL: "",
@@ -664,7 +677,7 @@ describe("agent-eval replay mode", () => {
         description: "replay tiermax filter",
         input: {
           system_prompt: "sys",
-          model: "qwen-plus",
+          model: "test-model",
           messages: [{ role: "user", content: "hello" }],
           allowed_tool_names: [],
         },
@@ -703,8 +716,6 @@ describe("agent-eval replay mode", () => {
           "json",
         ],
         {
-          OPENAI_BASE_URL: "",
-          OPENAI_API_KEY: "",
           EVAL_JUDGE_BASE_URL: "",
           EVAL_JUDGE_API_KEY: "",
           EVAL_JUDGE_MODEL: "",
@@ -775,7 +786,7 @@ describe("agent-eval replay mode", () => {
         description: "replay readonly metrics",
         input: {
           system_prompt: "sys",
-          model: "qwen-plus",
+          model: "test-model",
           messages: [{ role: "user", content: "hello" }],
           allowed_tool_names: [],
         },
@@ -788,15 +799,13 @@ describe("agent-eval replay mode", () => {
       );
       await saveResult(makeResult(caseId), replayDir);
 
-      const cliResult = runCli(
-        ["run", "--inline", inlineCase, "--replay", replayDir],
-        {
-          OPENAI_BASE_URL: "",
-          OPENAI_API_KEY: "",
-          EVAL_MCP_SERVER_BASE_URL: "",
-          EVAL_UPSTREAM_API_BASE_URL: "",
-        },
-      );
+      const cliResult = runCli([
+        "run",
+        "--inline",
+        inlineCase,
+        "--replay",
+        replayDir,
+      ]);
 
       assert.equal(cliResult.status, 0);
 
@@ -833,7 +842,7 @@ describe("agent-eval replay mode", () => {
         description: "replay writeback metrics",
         input: {
           system_prompt: "sys",
-          model: "qwen-plus",
+          model: "test-model",
           messages: [{ role: "user", content: "hello" }],
           allowed_tool_names: [],
         },
@@ -846,22 +855,14 @@ describe("agent-eval replay mode", () => {
       );
       await saveResult(makeResult(caseId), replayDir);
 
-      const cliResult = runCli(
-        [
-          "run",
-          "--inline",
-          inlineCase,
-          "--replay",
-          replayDir,
-          "--replay-write-metrics",
-        ],
-        {
-          OPENAI_BASE_URL: "",
-          OPENAI_API_KEY: "",
-          EVAL_MCP_SERVER_BASE_URL: "",
-          EVAL_UPSTREAM_API_BASE_URL: "",
-        },
-      );
+      const cliResult = runCli([
+        "run",
+        "--inline",
+        inlineCase,
+        "--replay",
+        replayDir,
+        "--replay-write-metrics",
+      ]);
 
       assert.equal(cliResult.status, 0);
 
@@ -904,7 +905,7 @@ describe("agent-eval replay mode", () => {
         description: "replay metrics stability",
         input: {
           system_prompt: "sys",
-          model: "qwen-plus",
+          model: "test-model",
           messages: [{ role: "user", content: "hello" }],
           allowed_tool_names: [],
         },
@@ -923,38 +924,25 @@ describe("agent-eval replay mode", () => {
       await saveResult(makeResult(caseId), plainDir);
       await saveResult(makeResult(caseId), verboseDir);
 
-      const baseEnv = {
-        OPENAI_BASE_URL: "",
-        OPENAI_API_KEY: "",
-        EVAL_MCP_SERVER_BASE_URL: "",
-        EVAL_UPSTREAM_API_BASE_URL: "",
-      };
-
-      const plainRun = runCli(
-        [
-          "run",
-          "--inline",
-          inlineCase,
-          "--replay",
-          plainDir,
-          "--replay-write-metrics",
-        ],
-        baseEnv,
-      );
+      const plainRun = runCli([
+        "run",
+        "--inline",
+        inlineCase,
+        "--replay",
+        plainDir,
+        "--replay-write-metrics",
+      ]);
       assert.equal(plainRun.status, 0);
 
-      const verboseRun = runCli(
-        [
-          "run",
-          "--inline",
-          inlineCase,
-          "--replay",
-          verboseDir,
-          "--replay-write-metrics",
-          "--verbose",
-        ],
-        baseEnv,
-      );
+      const verboseRun = runCli([
+        "run",
+        "--inline",
+        inlineCase,
+        "--replay",
+        verboseDir,
+        "--replay-write-metrics",
+        "--verbose",
+      ]);
       assert.equal(verboseRun.status, 0);
 
       const plainResult = JSON.parse(
@@ -1000,7 +988,7 @@ describe("agent-eval replay mode", () => {
         description: "replay error trace",
         input: {
           system_prompt: "sys",
-          model: "qwen-plus",
+          model: "test-model",
           messages: [{ role: "user", content: "hello" }],
           allowed_tool_names: [],
         },
@@ -1032,8 +1020,6 @@ describe("agent-eval replay mode", () => {
       const result = runCli(
         ["run", "--inline", inlineCase, "--replay", replayDir],
         {
-          OPENAI_BASE_URL: "",
-          OPENAI_API_KEY: "",
           EVAL_JUDGE_BASE_URL: "",
           EVAL_JUDGE_API_KEY: "",
           EVAL_MCP_SERVER_BASE_URL: "",
@@ -1075,23 +1061,15 @@ describe("agent-eval replay mode", () => {
         JSON.stringify(makeTrace(caseA), null, 2),
       );
 
-      const result = runCli(
-        [
-          "run",
-          "--file",
-          caseAPath,
-          "--file",
-          caseBPath,
-          "--replay",
-          replayDir,
-        ],
-        {
-          OPENAI_BASE_URL: "",
-          OPENAI_API_KEY: "",
-          EVAL_MCP_SERVER_BASE_URL: "",
-          EVAL_UPSTREAM_API_BASE_URL: "",
-        },
-      );
+      const result = runCli([
+        "run",
+        "--file",
+        caseAPath,
+        "--file",
+        caseBPath,
+        "--replay",
+        replayDir,
+      ]);
 
       assert.equal(result.status, 2);
       assert.match(result.stderr, /Trace not found/);

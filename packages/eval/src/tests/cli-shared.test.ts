@@ -83,10 +83,14 @@ describe("computeRunExitCode", () => {
 });
 
 describe("collectDoctorChecks", () => {
-  it("reports failures for missing env", () => {
+  it("passes when models.json exists in cwd", () => {
+    // The test runs from packages/eval where models.json exists
     const checks = collectDoctorChecks({});
     assert.ok(
-      checks.some((check) => check.key === "OPENAI_API_KEY" && !check.ok),
+      checks.some(
+        (check) =>
+          check.key === "EVAL_MODELS_PATH or ./models.json" && check.ok,
+      ),
     );
     assert.ok(
       checks.some(
@@ -94,13 +98,6 @@ describe("collectDoctorChecks", () => {
           check.key === "cli-name" &&
           check.ok &&
           check.hint.includes("eval run"),
-      ),
-    );
-    assert.ok(
-      checks.some(
-        (check) =>
-          check.key === "OPENAI_BASE_URL" &&
-          check.hint.includes("OPENAI_BASE_URL"),
       ),
     );
   });

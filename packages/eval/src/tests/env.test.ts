@@ -6,8 +6,6 @@ import {
   resolveLegacyAgentPromptFile,
   resolveMcpServerBaseURL,
   resolveMcpXToken,
-  resolveRunnerApiKey,
-  resolveRunnerBaseURL,
   resolveRunnerXToken,
   resolveUpstreamBaseURL,
   resolveUpstreamXToken,
@@ -18,56 +16,6 @@ import {
 } from "../constants.ts";
 
 describe("config resolvers", () => {
-  it("resolveRunnerBaseURL: case-level override wins", () => {
-    const env = {
-      OPENAI_BASE_URL: "https://openai-base.example/v1",
-    };
-
-    const value = resolveRunnerBaseURL(
-      { openai_base_url: "https://case-base.example/v1" },
-      env,
-    );
-
-    assert.equal(value, "https://case-base.example/v1");
-  });
-
-  it("resolveRunnerBaseURL: falls back to OPENAI_BASE_URL", () => {
-    const env = {
-      OPENAI_BASE_URL: "https://openai-base.example/v1",
-    };
-
-    const value = resolveRunnerBaseURL(undefined, env);
-    assert.equal(value, "https://openai-base.example/v1");
-  });
-
-  it("resolveRunnerBaseURL: returns undefined when missing", () => {
-    const value = resolveRunnerBaseURL(undefined, {});
-    assert.equal(value, undefined);
-  });
-
-  it("resolveRunnerApiKey: case-level override wins", () => {
-    const env = {
-      OPENAI_API_KEY: "openai-key",
-    };
-
-    const value = resolveRunnerApiKey({ openai_api_key: "case-key" }, env);
-    assert.equal(value, "case-key");
-  });
-
-  it("resolveRunnerApiKey: falls back to OPENAI_API_KEY", () => {
-    const env = {
-      OPENAI_API_KEY: "openai-key",
-    };
-
-    const value = resolveRunnerApiKey(undefined, env);
-    assert.equal(value, "openai-key");
-  });
-
-  it("resolveRunnerApiKey: returns undefined when missing", () => {
-    const value = resolveRunnerApiKey(undefined, {});
-    assert.equal(value, undefined);
-  });
-
   it("resolveJudgeModels: parses comma-separated model list", () => {
     const value = resolveJudgeModels({
       EVAL_JUDGE_MODELS: "model-a, model-b,model-c ",

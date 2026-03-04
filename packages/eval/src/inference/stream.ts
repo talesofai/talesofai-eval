@@ -1,5 +1,6 @@
 import {
   type Api,
+  type AssistantMessageEventStream,
   type Context,
   type Model,
   stream as piStream,
@@ -41,18 +42,36 @@ export async function* stream(
   context: Context,
   options?: StreamOptions,
 ): AsyncGenerator<string> {
-  const piModel = toPiModel(model);
-
-  const eventStream = piStream(piModel, context, {
-    temperature: options?.temperature,
-    maxTokens: options?.maxTokens,
-  });
+  const eventStream = streamEvents(model, context, options);
 
   for await (const event of eventStream) {
     if (event.type === "text_delta") {
       yield event.delta;
     }
   }
+}
+
+/**
+ * Get the raw event stream from an LLM model.
+ * Use this when you need access to all events (tool calls, usage, etc).
+ */
+export function streamEvents(
+  model: ModelConfig,
+  context: Context,
+  options?: StreamOptions,
+): AssistantMessageEventStream {
+  const piModel = toPiModel(model);
+
+  // Merge apiKey: options > model.apiKey
+  // Merge headers: model.headers + options.headers (options wins on conflict)
+  const mergedHeaders = { ...model.headers, ...options?.headers };
+
+  return piStream(piModel, context, {
+    temperature: options?.temperature,
+    maxTokens: options?.maxTokens,
+    apiKey: options?.apiKey ?? model.apiKey,
+    headers: Object.keys(mergedHeaders).length > 0 ? mergedHeaders : undefined,
+  });
 }
 
 /**

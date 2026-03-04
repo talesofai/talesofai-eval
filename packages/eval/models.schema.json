@@ -37,6 +37,10 @@
 						"type": "string",
 						"description": "Base URL for the API endpoint (supports ${ENV_VAR} substitution)"
 					},
+					"apiKey": {
+						"type": "string",
+						"description": "API key for authentication (supports ${ENV_VAR} substitution)"
+					},
 					"reasoning": {
 						"type": "boolean",
 						"description": "Whether the model supports reasoning capabilities"

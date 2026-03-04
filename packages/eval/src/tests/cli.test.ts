@@ -128,17 +128,36 @@ describe("agent-eval CLI UX", () => {
     assert.doesNotMatch(result.stderr, /Unhandled rejection|node:internal/);
   });
 
-  it("fails fast when config missing", () => {
-    const result = runCli(["run", "--case", "all"], {
-      OPENAI_BASE_URL: "",
-      OPENAI_API_KEY: "",
+  it("error trace maps to FAILURE status", () => {
+    // When model is not found, runner returns error trace (status: "error")
+    // which maps to FAILURE for final_status assertions
+    const inlineCase = JSON.stringify({
+      type: "plain",
+      id: "model-not-found-test",
+      description: "test model not found",
+      input: {
+        system_prompt: "sys",
+        model: "nonexistent-model",
+        messages: [{ role: "user", content: "hello" }],
+        allowed_tool_names: [],
+      },
+      criteria: {
+        assertions: [
+          {
+            type: "final_status",
+            expected_status: "FAILURE",
+          },
+        ],
+      },
+    });
+    const result = runCli(["run", "--inline", inlineCase], {
+      EVAL_MODELS_PATH: "",
       EVAL_MCP_SERVER_BASE_URL: "",
       EVAL_UPSTREAM_API_BASE_URL: "",
     });
-    assert.equal(result.status, 2);
-    assert.match(result.stderr, /E_MISSING_CONFIG/);
-    assert.match(result.stderr, /OPENAI_BASE_URL/);
-    assert.match(result.stderr, /OPENAI_API_KEY/);
+    // Test passes because error → FAILURE
+    assert.equal(result.status, 0);
+    assert.match(result.stderr, /status matched: FAILURE/);
   });
 
   it("fails fast when judge model is missing for llm_judge case", () => {
@@ -164,8 +183,6 @@ describe("agent-eval CLI UX", () => {
     });
 
     const result = runCli(["run", "--inline", inlineCase], {
-      OPENAI_BASE_URL: "http://127.0.0.1:9/v1",
-      OPENAI_API_KEY: "test-key",
       EVAL_JUDGE_BASE_URL: "http://127.0.0.1:9/v1",
       EVAL_JUDGE_API_KEY: "judge-key",
       EVAL_JUDGE_MODEL: "",
@@ -195,11 +212,10 @@ describe("agent-eval CLI UX", () => {
   // P2: tool-less plain cases (allowed_tool_names: []) don't require MCP config
   it("does not require EVAL_MCP_SERVER_BASE_URL for tool-free plain cases", () => {
     // system-prompt-tone has allowed_tool_names: [], so MCP is not needed.
-    // With only OPENAI_* missing, error should be E_MISSING_CONFIG for OPENAI vars,
+    // With models.json missing, error should be E_MISSING_CONFIG for models.json,
     // NOT for EVAL_MCP_SERVER_BASE_URL.
     const result = runCli(["run", "--case", "system-prompt-tone"], {
-      OPENAI_BASE_URL: "",
-      OPENAI_API_KEY: "",
+      EVAL_MODELS_PATH: "",
       EVAL_MCP_SERVER_BASE_URL: "",
       EVAL_UPSTREAM_API_BASE_URL: "",
     });
@@ -208,12 +224,9 @@ describe("agent-eval CLI UX", () => {
     assert.doesNotMatch(result.stderr, /EVAL_MCP_SERVER_BASE_URL/);
   });
 
-  it("plain case ignores EVAL_PLAIN_* and still requires OPENAI_*", () => {
+  it("missing judge model in registry fails llm_judge assertions", () => {
     const result = runCli(["run", "--case", "system-prompt-tone"], {
-      OPENAI_BASE_URL: "",
-      OPENAI_API_KEY: "",
-      EVAL_PLAIN_BASE_URL: "http://127.0.0.1:9/v1",
-      EVAL_PLAIN_API_KEY: "plain-key",
+      EVAL_MODELS_PATH: "",
       EVAL_MCP_SERVER_BASE_URL: "",
       EVAL_UPSTREAM_API_BASE_URL: "",
       EVAL_JUDGE_BASE_URL: "http://127.0.0.1:9/v1",
@@ -221,10 +234,8 @@ describe("agent-eval CLI UX", () => {
       EVAL_JUDGE_MODEL: "judge-model",
     });
 
-    assert.equal(result.status, 2);
-    assert.match(result.stderr, /E_MISSING_CONFIG/);
-    assert.match(result.stderr, /OPENAI_BASE_URL/);
-    assert.match(result.stderr, /OPENAI_API_KEY/);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /judge model resolution failed/);
   });
 
   // P2: glob pattern that matches no files reports the pattern name
@@ -249,8 +260,6 @@ describe("agent-eval CLI UX", () => {
         "json",
       ],
       {
-        OPENAI_BASE_URL: "http://127.0.0.1:9/v1",
-        OPENAI_API_KEY: "test-key",
         EVAL_MCP_SERVER_BASE_URL: "",
         EVAL_UPSTREAM_API_BASE_URL: "",
         EVAL_JUDGE_BASE_URL: "http://127.0.0.1:9/v1",
@@ -350,8 +359,6 @@ describe("agent-eval CLI UX", () => {
 
   it("doctor default (all): no EVAL_UPSTREAM_API_BASE_URL row", () => {
     const result = runCli(["doctor"], {
-      OPENAI_BASE_URL: "http://fake-llm",
-      OPENAI_API_KEY: "fake-key",
       EVAL_JUDGE_MODEL: "qwen3.5-plus",
       EVAL_MCP_SERVER_BASE_URL: "http://fake-mcp",
       EVAL_UPSTREAM_API_BASE_URL: "",
@@ -362,8 +369,6 @@ describe("agent-eval CLI UX", () => {
 
   it("doctor --mode agent: no EVAL_UPSTREAM_API_BASE_URL row", () => {
     const result = runCli(["doctor", "--mode", "agent"], {
-      OPENAI_BASE_URL: "http://fake-llm",
-      OPENAI_API_KEY: "fake-key",
       EVAL_JUDGE_MODEL: "qwen3.5-plus",
       EVAL_MCP_SERVER_BASE_URL: "http://fake-mcp",
       EVAL_UPSTREAM_API_BASE_URL: "",
@@ -449,8 +454,6 @@ describe("agent-eval CLI UX", () => {
 
   it("doctor --mode plain: no EVAL_UPSTREAM_API_BASE_URL row", () => {
     const result = runCli(["doctor", "--mode", "plain"], {
-      OPENAI_BASE_URL: "http://fake-llm",
-      OPENAI_API_KEY: "fake-key",
       EVAL_MCP_SERVER_BASE_URL: "http://fake-mcp",
     });
     assert.doesNotMatch(result.stderr, /EVAL_UPSTREAM_API_BASE_URL/);
@@ -458,8 +461,6 @@ describe("agent-eval CLI UX", () => {
 
   it("doctor --mode plain: no EVAL_PLAIN_BASE_URL row", () => {
     const result = runCli(["doctor", "--mode", "plain"], {
-      OPENAI_BASE_URL: "http://fake-llm",
-      OPENAI_API_KEY: "fake-key",
       EVAL_JUDGE_MODEL: "qwen3.5-plus",
       EVAL_MCP_SERVER_BASE_URL: "http://fake-mcp",
       EVAL_PLAIN_BASE_URL: "",

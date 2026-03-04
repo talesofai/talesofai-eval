@@ -165,7 +165,6 @@ describe("parseInlineJson", () => {
         input: {
           system_prompt: "hello",
           model: "qwen-plus",
-          openai_base_url: "https://example.com",
           messages: [{ role: "user", content: "hi" }],
         },
         criteria: {},
@@ -191,7 +190,6 @@ describe("parseInlineJson", () => {
           input: {
             system_prompt: "hi",
             model: "qwen-plus",
-            openai_base_url: "https://example.com",
             messages: [{ role: "user", content: "hi" }],
           },
           criteria: {

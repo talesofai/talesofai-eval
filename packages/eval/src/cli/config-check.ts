@@ -1,9 +1,4 @@
-import {
-  ENV_KEYS,
-  resolveJudgeModels,
-  resolveRunnerApiKey,
-  resolveRunnerBaseURL,
-} from "../config.ts";
+import { ENV_KEYS, resolveJudgeModels } from "../config.ts";
 import type { AssertionConfig, EvalCase, EvalTier } from "../types.ts";
 
 const JUDGE_ASSERTION_TYPES = new Set<AssertionConfig["type"]>([
@@ -85,17 +80,8 @@ export function getMissingRunConfig(
 
   const missing = new Set<string>();
 
+  // Check for judge config on cases that need it
   for (const evalCase of cases) {
-    const input = evalCase.type === "plain" ? evalCase.input : undefined;
-
-    if (!resolveRunnerBaseURL(input)) {
-      missing.add(ENV_KEYS.OPENAI_BASE_URL);
-    }
-
-    if (!resolveRunnerApiKey(input)) {
-      missing.add(ENV_KEYS.OPENAI_API_KEY);
-    }
-
     if (caseNeedsJudge(evalCase, { tierMax })) {
       for (const key of getMissingJudgeConfig()) {
         missing.add(key);

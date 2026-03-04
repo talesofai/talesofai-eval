@@ -43,32 +43,18 @@ export function collectDoctorChecks(
       hint: "Use `agent-eval ...`; do not use `eval run` (shell builtin).",
     },
     {
-      key: "OPENAI_BASE_URL",
-      requiredFor: "run,diff",
-      ok: isSet("OPENAI_BASE_URL"),
-      hint: "Set OPENAI_BASE_URL, e.g. https://dashscope.aliyuncs.com/compatible-mode/v1.",
-    },
-    {
-      key: "OPENAI_API_KEY",
-      requiredFor: "run,diff",
-      ok: isSet("OPENAI_API_KEY"),
-      hint: "Set OPENAI_API_KEY before running eval.",
-    },
-    {
       key: "EVAL_MODELS_PATH or ./models.json",
-      requiredFor: "llm_judge,diff",
+      requiredFor: "run,llm_judge,diff",
       ok:
         isSet("EVAL_MODELS_PATH") ||
         existsSync(resolve(process.cwd(), "models.json")),
-      hint:
-        "Create ./models.json with your model registry, or set EVAL_MODELS_PATH=<path>. See README for format.",
+      hint: "Create ./models.json with your model registry, or set EVAL_MODELS_PATH=<path>. See README for format.",
     },
     {
       key: "EVAL_JUDGE_MODEL",
       requiredFor: "llm_judge,diff",
       ok: isSet("EVAL_JUDGE_MODEL") || isSet("EVAL_JUDGE_MODELS"),
-      hint:
-        "Set EVAL_JUDGE_MODEL (or EVAL_JUDGE_MODELS for multi-model) to a model id defined in your registry.",
+      hint: "Set EVAL_JUDGE_MODEL (or EVAL_JUDGE_MODELS for multi-model) to a model id defined in your registry.",
     },
     {
       key: "EVAL_MCP_SERVER_BASE_URL",

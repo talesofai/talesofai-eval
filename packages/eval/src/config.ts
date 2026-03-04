@@ -4,9 +4,7 @@ import {
 } from "./constants.ts";
 
 export const ENV_KEYS = {
-  // Runner (shared by plain + agent)
-  OPENAI_BASE_URL: "OPENAI_BASE_URL",
-  OPENAI_API_KEY: "OPENAI_API_KEY",
+  // Runner
   OPENAI_X_TOKEN: "OPENAI_X_TOKEN",
 
   // MCP
@@ -29,11 +27,6 @@ export const ENV_KEYS = {
   LEGACY_AGENT_PROMPT_FILE: "EVAL_LEGACY_AGENT_PROMPT_FILE",
 } as const;
 
-type RunnerInput = {
-  openai_base_url?: string;
-  openai_api_key?: string;
-};
-
 function readTrimmedValue(value: string | undefined): string | undefined {
   if (!value) {
     return undefined;
@@ -45,26 +38,6 @@ function readTrimmedValue(value: string | undefined): string | undefined {
 
 function readEnvValue(env: NodeJS.ProcessEnv, key: string): string | undefined {
   return readTrimmedValue(env[key]);
-}
-
-export function resolveRunnerBaseURL(
-  input?: RunnerInput,
-  env: NodeJS.ProcessEnv = process.env,
-): string | undefined {
-  return (
-    readTrimmedValue(input?.openai_base_url) ??
-    readEnvValue(env, ENV_KEYS.OPENAI_BASE_URL)
-  );
-}
-
-export function resolveRunnerApiKey(
-  input?: RunnerInput,
-  env: NodeJS.ProcessEnv = process.env,
-): string | undefined {
-  return (
-    readTrimmedValue(input?.openai_api_key) ??
-    readEnvValue(env, ENV_KEYS.OPENAI_API_KEY)
-  );
 }
 
 export function resolveRunnerXToken(

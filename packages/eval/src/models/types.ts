@@ -4,6 +4,7 @@ export interface ModelConfig {
   api: "openai-completions" | "anthropic-messages" | string;
   provider: string;
   baseUrl: string;
+  apiKey?: string;
   reasoning?: boolean;
   input?: ("text" | "image")[];
   cost?: {

@@ -42,9 +42,12 @@ export async function loadModels(path?: string): Promise<ModelRegistry> {
   const content = await readFile(resolveModelsPath(path), "utf-8");
   const raw: ModelRegistry = JSON.parse(content);
 
-  // Resolve ${VAR} in baseUrl and headers
+  // Resolve ${VAR} in baseUrl, apiKey, and headers
   for (const model of Object.values(raw.models)) {
     model.baseUrl = resolveEnvVars(model.baseUrl);
+    if (model.apiKey) {
+      model.apiKey = resolveEnvVars(model.apiKey);
+    }
     if (model.headers) {
       for (const [key, value] of Object.entries(model.headers)) {
         model.headers[key] = resolveEnvVars(value);

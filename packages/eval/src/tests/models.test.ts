@@ -124,6 +124,29 @@ describe("models", () => {
       assert.equal(testModel.headers["Authorization"], "Bearer secret123");
       delete process.env["TEST_API_KEY"];
     });
+
+    it("resolves env vars in apiKey field", async () => {
+      process.env["MY_API_KEY"] = "sk-test-123";
+      const modelsData = {
+        models: {
+          "test-model": {
+            id: "test-model",
+            name: "Test Model",
+            api: "openai-completions",
+            provider: "test",
+            baseUrl: "https://api.test.com",
+            apiKey: "$" + "{MY_API_KEY}",
+          },
+        },
+      };
+      await writeFile(tempFile, JSON.stringify(modelsData, null, 2));
+
+      const registry = await loadModels(tempFile);
+      const testModel = registry.models["test-model"];
+      assert.ok(testModel);
+      assert.equal(testModel.apiKey, "sk-test-123");
+      delete process.env["MY_API_KEY"];
+    });
   });
 
   describe("resolveModel", () => {

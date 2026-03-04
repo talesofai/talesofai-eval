@@ -1,7 +1,7 @@
 import type { Context } from "@mariozechner/pi-ai";
 import { complete } from "../inference/index.ts";
-import { listModels, resolveModel } from "../models/index.ts";
 import type { ModelConfig } from "../models/index.ts";
+import { listModels, resolveModel } from "../models/index.ts";
 import { safeParseJson } from "../utils/safe-parse-json.ts";
 
 export type JudgeScoreResult =

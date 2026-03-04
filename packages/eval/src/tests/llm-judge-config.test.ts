@@ -25,8 +25,6 @@ describe("scoreLlmJudgeAssertion config errors", () => {
     delete process.env["EVAL_JUDGE_MODEL"];
     delete process.env["EVAL_JUDGE_BASE_URL"];
     delete process.env["EVAL_JUDGE_API_KEY"];
-    delete process.env["OPENAI_BASE_URL"];
-    delete process.env["OPENAI_API_KEY"];
   });
 
   it("returns error result when EVAL_JUDGE_MODEL is missing", async () => {

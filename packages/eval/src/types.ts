@@ -117,9 +117,8 @@ export type PlainEvalCase = {
   description: string;
   input: {
     system_prompt: string;
+    /** Model ID to resolve from models.json */
     model: string;
-    openai_base_url?: string;
-    openai_api_key?: string;
     messages: EvalMessage[];
     allowed_tool_names?: string[];
   };

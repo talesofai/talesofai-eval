@@ -70,8 +70,8 @@ agent-eval diff --case my-case --base '{"model":"gpt-4o"}' --candidate '{"model"
 
 | Type | What it does | Required env |
 |------|-------------|--------------|
-| `plain` | Sends messages to a chat completion endpoint; scores the response | `OPENAI_BASE_URL`, `OPENAI_API_KEY` |
-| `agent` | Runs a full agent loop with MCP tool calls; scores the full trace | Same + `EVAL_MCP_*` for agent tools |
+| `plain` | Sends messages to a chat completion endpoint; scores the response | `EVAL_MODELS_PATH` (or `./models.json`) + env vars referenced by that model |
+| `agent` | Runs a full agent loop with MCP tool calls; scores the full trace | Same + `EVAL_MCP_*` when your MCP server requires auth/override |
 
 ---
 
@@ -201,15 +201,11 @@ id: tone-check                        # unique kebab-case id
 description: Response should be friendly and casual
 
 input:
-  model: gpt-4o-mini                  # model name passed to your LLM endpoint
+  model: gpt-4o-mini                  # model id from models.json
   system_prompt: You are a friendly assistant.
   messages:
     - role: user
       content: Tell me a story
-
-  # Optional: override endpoint for this case only
-  # openai_base_url: https://other-api.com/v1
-  # openai_api_key: sk-...
 
   # Optional: limit which tools are injected (plain cases rarely use tools)
   # allowed_tool_names: [tool_a, tool_b]
@@ -739,6 +735,7 @@ models and endpoints are available.
 | `api` | ✅ | `openai-completions` or `anthropic-messages` |
 | `provider` | ✅ | Provider label (informational) |
 | `baseUrl` | ✅ | API base URL. Supports `${ENV_VAR}` interpolation. |
+| `apiKey` | — | Per-model API key. Supports `${ENV_VAR}` interpolation. |
 | `headers` | — | HTTP headers. Supports `${ENV_VAR}` interpolation. |
 | `input` | — | `["text"]` or `["text", "image"]` |
 | `contextWindow` | — | Context window size in tokens |
@@ -761,9 +758,12 @@ EVAL_JUDGE_MODEL=qwen3.5-plus
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `OPENAI_BASE_URL` | ✅ | — | OpenAI-compatible API base URL |
-| `OPENAI_API_KEY` | ✅ | — | API key for the runner endpoint |
-| `OPENAI_X_TOKEN` | — | — | Optional extra token header |
+| `EVAL_MODELS_PATH` | ✅* | `./models.json` in cwd | Path to your model registry JSON. Required unless `./models.json` exists in cwd. |
+| `OPENAI_BASE_URL` | — | — | Optional convenience env var for `${OPENAI_BASE_URL}` placeholders in `models.json`. |
+| `OPENAI_API_KEY` | — | — | Optional convenience env var for `${OPENAI_API_KEY}` placeholders in `models.json`. |
+| `OPENAI_X_TOKEN` | — | — | Optional extra `x-token` header for runner requests. |
+
+`*` runner also needs any env vars referenced by your `models.json` entries (e.g. `${ANTHROPIC_API_KEY}`).
 
 ### Judge (required for `llm_judge`, `task_success`, `diff`)
 

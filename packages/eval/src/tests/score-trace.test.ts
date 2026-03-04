@@ -29,7 +29,6 @@ describe("scoreTrace", () => {
       input: {
         system_prompt: "",
         model: "qwen-plus",
-        openai_base_url: "https://example.com",
         messages: [{ role: "user", content: "hi" }],
       },
       criteria: {
@@ -59,7 +58,6 @@ describe("scoreTrace", () => {
       input: {
         system_prompt: "",
         model: "qwen-plus",
-        openai_base_url: "https://example.com",
         messages: [{ role: "user", content: "hi" }],
       },
       criteria: {
@@ -88,7 +86,6 @@ describe("scoreTrace", () => {
       input: {
         system_prompt: "",
         model: "qwen-plus",
-        openai_base_url: "https://example.com",
         messages: [{ role: "user", content: "hi" }],
       },
       criteria: {},
@@ -99,5 +96,33 @@ describe("scoreTrace", () => {
 
     assert.equal(result.passed, true);
     assert.equal(result.dimensions.length, 0);
+  });
+
+  it("fails with empty criteria when trace is error", async () => {
+    const evalCase: PlainEvalCase = {
+      type: "plain",
+      id: "test-4",
+      description: "test",
+      input: {
+        system_prompt: "",
+        model: "qwen-plus",
+        messages: [{ role: "user", content: "hi" }],
+      },
+      criteria: {},
+    };
+
+    const trace: EvalTrace = {
+      ...makeTrace([]),
+      status: "error",
+      final_response: null,
+      error: "model not found",
+    };
+
+    const result = await scoreTrace(evalCase, trace);
+
+    assert.equal(result.passed, false);
+    assert.equal(result.dimensions.length, 1);
+    assert.equal(result.dimensions[0]?.dimension, "final_status");
+    assert.equal(result.dimensions[0]?.score, 0);
   });
 });
