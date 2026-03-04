@@ -1,8 +1,20 @@
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ModelConfig, ModelRegistry } from "./types.ts";
 
 let registry: ModelRegistry | null = null;
+
+const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+
+function resolveModelsPath(path?: string): string {
+  const configuredPath = path ?? process.env["EVAL_MODELS_PATH"];
+  if (configuredPath) {
+    return resolve(configuredPath);
+  }
+
+  return resolve(PACKAGE_ROOT, "models.json");
+}
 
 /**
  * Reset the registry cache. Useful for testing.
@@ -12,8 +24,7 @@ export function resetRegistry(): void {
 }
 
 export async function loadModels(path?: string): Promise<ModelRegistry> {
-  const modelsPath = path ?? process.env["EVAL_MODELS_PATH"] ?? "models.json";
-  const content = await readFile(resolve(modelsPath), "utf-8");
+  const content = await readFile(resolveModelsPath(path), "utf-8");
   const raw: ModelRegistry = JSON.parse(content);
 
   // Resolve ${VAR} in baseUrl and headers

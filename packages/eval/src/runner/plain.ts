@@ -298,7 +298,7 @@ export const runPlain = async (
           toolArgs,
           MCP_TOOL_TIMEOUT_MS,
         );
-      } catch (error) {
+      } catch (_error) {
         // Handle timeout - return timeout result
         const callDuration = Date.now() - callStart;
         const timeoutRecord: ToolCallRecord = {

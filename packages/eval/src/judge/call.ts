@@ -41,7 +41,6 @@ export async function callJudgeForModel(
 
       const content = await complete(model, context, {
         temperature: 0,
-        responseFormat: { type: "json_object" },
       });
 
       if (!content) {

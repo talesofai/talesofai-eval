@@ -37,12 +37,13 @@ Edit with your credentials:
 OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_API_KEY=sk-...
 
-# Judge - Single model mode
+# Optional: custom model registry path (default: packaged models.json)
+# EVAL_MODELS_PATH=./models.json
+
+# Judge - Single model mode (model id from models.json)
 EVAL_JUDGE_MODEL=gpt-4o-mini
 
-# Judge - Multi-model mode (via LiteLLM)
-# EVAL_JUDGE_BASE_URL=https://your-litellm.com/v1
-# EVAL_JUDGE_API_KEY=sk-...
+# Judge - Multi-model mode (comma-separated model ids from models.json)
 # EVAL_JUDGE_MODELS=gemini-3.5-flash,qwen3.5-plus,doubao-2.0-mini
 # EVAL_JUDGE_AGGREGATION=median
 ```
@@ -62,11 +63,10 @@ Use multiple LLMs to judge the same output and aggregate their scores for higher
 
 ### Setup
 
-Configure via LiteLLM or any OpenAI-compatible unified endpoint:
+1) define judge model ids in `models.json` (or `EVAL_MODELS_PATH` target file)
+2) configure multi-judge ids and aggregation:
 
 ```bash
-EVAL_JUDGE_BASE_URL=https://your-litellm-endpoint.com/v1
-EVAL_JUDGE_API_KEY=your-key
 EVAL_JUDGE_MODELS=gemini-3.5-flash,qwen3.5-plus,doubao-2.0-mini
 EVAL_JUDGE_AGGREGATION=median
 ```
@@ -153,10 +153,10 @@ criteria:
 - `OPENAI_BASE_URL`, `OPENAI_API_KEY`
 
 ### Judge
-- `EVAL_JUDGE_MODEL` - Single model
-- `EVAL_JUDGE_MODELS` - Multi-model (comma-separated)
+- `EVAL_MODELS_PATH` - Optional path to model registry JSON
+- `EVAL_JUDGE_MODEL` - Single model id from registry
+- `EVAL_JUDGE_MODELS` - Multi-model ids (comma-separated)
 - `EVAL_JUDGE_AGGREGATION` - `median`/`mean`/`iqm`
-- `EVAL_JUDGE_BASE_URL`, `EVAL_JUDGE_API_KEY`
 
 ### Agent
 - `EVAL_MCP_SERVER_BASE_URL`

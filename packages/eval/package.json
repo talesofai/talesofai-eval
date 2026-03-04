@@ -10,6 +10,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
+    "models.json",
+    "models.schema.json",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"

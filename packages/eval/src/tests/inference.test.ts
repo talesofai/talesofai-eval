@@ -58,10 +58,5 @@ describe("inference", () => {
       const options = { maxTokens: 100 };
       assert.equal(options.maxTokens, 100);
     });
-
-    it("accepts responseFormat option", () => {
-      const options = { responseFormat: { type: "json_object" as const } };
-      assert.deepEqual(options.responseFormat, { type: "json_object" });
-    });
   });
 });

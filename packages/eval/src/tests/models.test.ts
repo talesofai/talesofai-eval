@@ -14,22 +14,24 @@ import { resolveEnvVars } from "../models/registry.ts";
 
 describe("models", () => {
   describe("resolveEnvVars", () => {
-    it("replaces ${VAR} with environment variable value", () => {
+    it("replaces env placeholders with environment variable value", () => {
       process.env["TEST_VAR"] = "test_value";
-      const result = resolveEnvVars("prefix_${TEST_VAR}_suffix");
+      const result = resolveEnvVars("prefix_" + "$" + "{TEST_VAR}" + "_suffix");
       assert.equal(result, "prefix_test_value_suffix");
       delete process.env["TEST_VAR"];
     });
 
     it("replaces with empty string if env var not set", () => {
-      const result = resolveEnvVars("prefix_${UNDEFINED_VAR}_suffix");
+      const result = resolveEnvVars(
+        "prefix_" + "$" + "{UNDEFINED_VAR}" + "_suffix",
+      );
       assert.equal(result, "prefix__suffix");
     });
 
     it("handles multiple env vars", () => {
       process.env["VAR1"] = "first";
       process.env["VAR2"] = "second";
-      const result = resolveEnvVars("${VAR1}_and_${VAR2}");
+      const result = resolveEnvVars("$" + "{VAR1}" + "_and_" + "$" + "{VAR2}");
       assert.equal(result, "first_and_second");
       delete process.env["VAR1"];
       delete process.env["VAR2"];
@@ -69,9 +71,10 @@ describe("models", () => {
       await writeFile(tempFile, JSON.stringify(modelsData, null, 2));
 
       const registry = await loadModels(tempFile);
-      assert.ok(registry.models["test-model"]);
-      assert.equal(registry.models["test-model"]!.id, "test-model");
-      assert.equal(registry.models["test-model"]!.name, "Test Model");
+      const testModel = registry.models["test-model"];
+      assert.ok(testModel);
+      assert.equal(testModel.id, "test-model");
+      assert.equal(testModel.name, "Test Model");
     });
 
     it("resolves env vars in baseUrl", async () => {
@@ -83,18 +86,16 @@ describe("models", () => {
             name: "Test Model",
             api: "openai-completions",
             provider: "test",
-            baseUrl: "${TEST_BASE_URL}",
+            baseUrl: "$" + "{TEST_BASE_URL}",
           },
         },
       };
       await writeFile(tempFile, JSON.stringify(modelsData, null, 2));
 
       const registry = await loadModels(tempFile);
-      assert.ok(registry.models["test-model"]);
-      assert.equal(
-        registry.models["test-model"]!.baseUrl,
-        "https://api.test.com",
-      );
+      const testModel = registry.models["test-model"];
+      assert.ok(testModel);
+      assert.equal(testModel.baseUrl, "https://api.test.com");
       delete process.env["TEST_BASE_URL"];
     });
 
@@ -109,7 +110,7 @@ describe("models", () => {
             provider: "test",
             baseUrl: "https://api.test.com",
             headers: {
-              Authorization: "Bearer ${TEST_API_KEY}",
+              Authorization: "Bearer " + "$" + "{TEST_API_KEY}",
             },
           },
         },
@@ -117,12 +118,10 @@ describe("models", () => {
       await writeFile(tempFile, JSON.stringify(modelsData, null, 2));
 
       const registry = await loadModels(tempFile);
-      assert.ok(registry.models["test-model"]);
-      assert.ok(registry.models["test-model"]!.headers);
-      assert.equal(
-        registry.models["test-model"]!.headers!["Authorization"],
-        "Bearer secret123",
-      );
+      const testModel = registry.models["test-model"];
+      assert.ok(testModel);
+      assert.ok(testModel.headers);
+      assert.equal(testModel.headers["Authorization"], "Bearer secret123");
       delete process.env["TEST_API_KEY"];
     });
   });

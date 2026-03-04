@@ -10,6 +10,8 @@
     "includes": [
       "packages/eval/src/**/*.ts",
       "packages/eval/src/**/*.js",
+      "packages/apis/src/**/*.ts",
+      "packages/apis/src/**/*.js",
       "!packages/eval/src/reporter/templates/*.template.js"
     ]
   },

@@ -35,9 +35,6 @@ function toPiModel(model: ModelConfig): Model<Api> {
 /**
  * Stream text from an LLM model.
  * Yields text chunks as they arrive.
- *
- * Note: responseFormat is not yet implemented. Use system prompt instructions
- * for structured output (e.g., "Respond with valid JSON only").
  */
 export async function* stream(
   model: ModelConfig,

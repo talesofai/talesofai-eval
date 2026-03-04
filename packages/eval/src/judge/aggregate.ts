@@ -127,7 +127,6 @@ export function aggregateScores(
     case "iqm":
       aggregatedScore = interquartileMean(scoreValues);
       break;
-    case "median":
     default:
       aggregatedScore = median(scoreValues);
   }
