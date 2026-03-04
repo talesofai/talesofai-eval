@@ -390,6 +390,8 @@ export type DiffResult = {
 
 export type RunnerOptions = {
   mcpServerBaseURL: string;
+  /** Default model to use when case.input.model is not set. Priority: CLI --model > EVAL_RUNNER_MODEL > case.input.model */
+  defaultModel?: string;
   /** LLM streaming token (each turn fires) */
   onDelta?: (delta: string) => void;
   /** Tool call started */

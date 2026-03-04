@@ -53,10 +53,10 @@ export function collectDoctorChecks(
       hint: "Set OPENAI_API_KEY before running eval.",
     },
     {
-      key: "EVAL_JUDGE_MODEL",
+      key: "EVAL_JUDGE_MODELS",
       requiredFor: "llm_judge,diff",
-      ok: isSet("EVAL_JUDGE_MODEL"),
-      hint: "Set EVAL_JUDGE_MODEL explicitly (no default).",
+      ok: isSet("EVAL_JUDGE_MODELS"),
+      hint: "Set EVAL_JUDGE_MODELS (comma-separated model ids from models.json).",
     },
     {
       key: "EVAL_MCP_SERVER_BASE_URL",
@@ -71,30 +71,6 @@ export function collectDoctorChecks(
 }
 
 export function shouldUseJsonErrors(argv: string[]): boolean {
-  const pickCommandFromArgv = (input: string[]): string | null => {
-    const args = input.slice(2);
-    for (const arg of args) {
-      if (arg === "--") {
-        break;
-      }
-      if (arg.startsWith("-")) {
-        continue;
-      }
-      return arg;
-    }
-    return null;
-  };
-
-  const command = pickCommandFromArgv(argv);
-  if (
-    command !== "run" &&
-    command !== "diff" &&
-    command !== "pull-online" &&
-    command !== "matrix"
-  ) {
-    return false;
-  }
-
   const args = argv.slice(2);
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];

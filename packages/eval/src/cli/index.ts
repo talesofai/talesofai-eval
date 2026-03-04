@@ -26,6 +26,7 @@ import {
   parseDiffCommandOptions,
   parseDoctorCommandOptions,
   parseInspectCommandOptions,
+  parseListCommandOptions,
   parseMatrixCommandOptions,
   parseMatrixReportCommandOptions,
   parsePullOnlineCommandOptions,
@@ -45,7 +46,10 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
     .option("--inline <json>", "Inline JSON case definition")
     .option("--type <type>", "Filter by case type (plain/agent)")
     .option("--system-prompt <prompt>", "System prompt (inline plain case)")
-    .option("--model <model>", "Model name (inline plain case)")
+    .option(
+      "--model <model>",
+      "Model id from models.json (overrides case.input.model and EVAL_RUNNER_MODEL)",
+    )
     .option("--preset-key <key>", "Preset key (inline agent case)")
     .option("--message <msg>", "Message in role:content format (repeatable)")
     .option("--expected-tools <tools>", "Expected tool names (comma-separated)")
@@ -114,9 +118,17 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
       setPending(diffCommand(parseDiffCommandOptions(options)));
     });
 
-  cli.command("list", "List built-in cases").action(() => {
-    setPending(Promise.resolve(listCommand()));
-  });
+  cli
+    .command("list", "List available cases")
+    .option("--scan", "Scan for .eval.yaml files in current directory")
+    .option("--format <fmt>", "Output format: terminal or json", {
+      default: "terminal",
+    })
+    .action((options: Record<string, unknown>) => {
+      setPending(
+        Promise.resolve(listCommand(parseListCommandOptions(options))),
+      );
+    });
 
   cli
     .command("inspect", "Show case definition without running")
@@ -175,7 +187,7 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
     .option("--type <type>", "Filter by case type (plain/agent)")
     .option(
       "--variant <json>",
-      'Variant config (repeatable): shorthand <label>=<model> or JSON with required "label" field',
+      'Variant config (repeatable): <label>=<model> shorthand or JSON with "label" and optional "overrides"',
     )
     .option(
       "--concurrency <n>",

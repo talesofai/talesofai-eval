@@ -8,7 +8,6 @@ import {
   resolveMcpXToken,
   resolveRunnerApiKey,
   resolveRunnerBaseURL,
-  resolveRunnerXToken,
   resolveUpstreamBaseURL,
   resolveUpstreamXToken,
 } from "../config.ts";
@@ -131,12 +130,10 @@ describe("config resolvers", () => {
 
   it("optional token resolvers return value when set", () => {
     const env = {
-      OPENAI_X_TOKEN: "runner-token",
       EVAL_MCP_X_TOKEN: "mcp-token",
       EVAL_UPSTREAM_X_TOKEN: "upstream-token",
     };
 
-    assert.equal(resolveRunnerXToken(env), "runner-token");
     assert.equal(resolveMcpXToken(env), "mcp-token");
     assert.equal(resolveUpstreamXToken(env), "upstream-token");
   });
@@ -144,7 +141,6 @@ describe("config resolvers", () => {
   it("optional token resolvers return undefined when absent", () => {
     const env = {};
 
-    assert.equal(resolveRunnerXToken(env), undefined);
     assert.equal(resolveMcpXToken(env), undefined);
     assert.equal(resolveUpstreamXToken(env), undefined);
   });

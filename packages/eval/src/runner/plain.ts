@@ -3,7 +3,6 @@ import {
   resolveMcpXToken,
   resolveRunnerApiKey,
   resolveRunnerBaseURL,
-  resolveRunnerXToken,
 } from "../config.ts";
 import type {
   CommonLLMMessage,
@@ -61,12 +60,32 @@ const loadRunCachedMcpTools = async (options: {
   return pending;
 };
 
+const isToolCallTimeoutError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+  return message.includes("timeout") || message.includes("timed out");
+};
+
 export const runPlain = async (
   evalCase: PlainRunnableCase,
   opts: RunnerOptions,
 ): Promise<EvalTrace> => {
   const startTime = Date.now();
   const { input } = evalCase;
+
+  // Model selection priority: CLI/ENV default > case.input.model
+  const model = opts.defaultModel ?? input.model;
+  if (!model) {
+    throw new Error(
+      "No model specified. Set model via:\n" +
+        "  1. CLI: --model <model_id>\n" +
+        "  2. ENV: EVAL_RUNNER_MODEL=<model_id>\n" +
+        "  3. Case: input.model in .eval.yaml",
+    );
+  }
 
   // Determine tool requirement before connecting to MCP.
   // allowed_tool_names: [] means "no tools" — skip MCP entirely.
@@ -118,264 +137,266 @@ export const runPlain = async (
     }));
   }
 
-  // 2. OpenAI client
-  const openaiToken = resolveRunnerXToken();
-  const baseURL = resolveRunnerBaseURL(input);
-  if (!baseURL) {
-    throw new Error(
-      "invariant: OPENAI_BASE_URL not set — should have been caught at startup",
-    );
-  }
-
-  const apiKey = resolveRunnerApiKey(input);
-  if (!apiKey) {
-    throw new Error(
-      "invariant: OPENAI_API_KEY not set — should have been caught at startup",
-    );
-  }
-
-  const openai = new OpenAI({
-    apiKey,
-    baseURL,
-    defaultHeaders: openaiToken
-      ? {
-          "x-token": openaiToken,
-        }
-      : undefined,
-  });
-
-  // 3. Build initial messages
-  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: "system" as const, content: input.system_prompt },
-  ];
-
-  // Collect trace data
-  const conversation: CommonLLMMessage[] = [
-    { role: "system", content: input.system_prompt },
-  ];
-
-  // Seed conversation from case messages
-  for (const msg of input.messages) {
-    if (msg.role === "user") {
-      const text = extractMessageText(
-        msg.content as EvalMessage["content"],
-        "user",
+  try {
+    // 2. OpenAI client
+    const baseURL = resolveRunnerBaseURL(input);
+    if (!baseURL) {
+      throw new Error(
+        "invariant: OPENAI_BASE_URL not set — should have been caught at startup",
       );
-      messages.push({ role: "user" as const, content: text });
-      conversation.push({ role: "user", content: text });
-    } else if (msg.role === "assistant") {
-      const text = extractMessageText(
-        msg.content as EvalMessage["content"],
-        "assistant",
-      );
-      messages.push({ role: "assistant" as const, content: text });
-      conversation.push({ role: "assistant", content: text });
     }
-  }
-  const toolsCalled: ToolCallRecord[] = [];
-  let totalInputTokens = 0;
-  let totalOutputTokens = 0;
-  let finalResponse: string | null = null;
 
-  // 4. Agentic loop
-  for (let turn = 0; turn < MAX_TURNS; turn++) {
-    const stream = await openai.chat.completions.create({
-      model: input.model,
-      messages,
-      tools: openaiTools.length > 0 ? openaiTools : undefined,
-      stream: true,
-      stream_options: { include_usage: true },
+    const apiKey = resolveRunnerApiKey(input);
+    if (!apiKey) {
+      throw new Error(
+        "invariant: OPENAI_API_KEY not set — should have been caught at startup",
+      );
+    }
+
+    const openai = new OpenAI({
+      apiKey,
+      baseURL,
     });
 
-    let assistantContent = "";
-    let toolCalls: {
-      id: string;
-      type: "function";
-      function: { name: string; arguments: string };
-    }[] = [];
-    let finishReason: string | null = null;
+    // 3. Build initial messages
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+      { role: "system" as const, content: input.system_prompt },
+    ];
 
-    for await (const chunk of stream) {
-      const choice = chunk.choices?.[0];
-      if (choice) {
-        // Content delta
-        const delta = choice.delta;
-        if (delta?.content) {
-          assistantContent += delta.content;
-          opts.onDelta?.(delta.content);
-        }
+    // Collect trace data
+    const conversation: CommonLLMMessage[] = [
+      { role: "system", content: input.system_prompt },
+    ];
 
-        // Tool call deltas
-        if (delta?.tool_calls) {
-          for (const tc of delta.tool_calls) {
-            if (!toolCalls[tc.index]) {
-              toolCalls[tc.index] = {
-                id: tc.id ?? "",
-                type: "function",
-                function: {
-                  name: tc.function?.name ?? "",
-                  arguments: tc.function?.arguments ?? "",
-                },
-              };
-            } else {
-              const existing = toolCalls[tc.index];
-              if (existing) {
-                if (tc.id) existing.id = tc.id;
-                if (tc.function?.name)
-                  existing.function.name = tc.function.name;
-                if (tc.function?.arguments)
-                  existing.function.arguments += tc.function.arguments;
+    // Seed conversation from case messages
+    for (const msg of input.messages) {
+      if (msg.role === "user") {
+        const text = extractMessageText(
+          msg.content as EvalMessage["content"],
+          "user",
+        );
+        messages.push({ role: "user" as const, content: text });
+        conversation.push({ role: "user", content: text });
+      } else if (msg.role === "assistant") {
+        const text = extractMessageText(
+          msg.content as EvalMessage["content"],
+          "assistant",
+        );
+        messages.push({ role: "assistant" as const, content: text });
+        conversation.push({ role: "assistant", content: text });
+      }
+    }
+    const toolsCalled: ToolCallRecord[] = [];
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let finalResponse: string | null = null;
+
+    // 4. Agentic loop
+    for (let turn = 0; turn < MAX_TURNS; turn++) {
+      const stream = await openai.chat.completions.create({
+        model,
+        messages,
+        tools: openaiTools.length > 0 ? openaiTools : undefined,
+        stream: true,
+        stream_options: { include_usage: true },
+      });
+
+      let assistantContent = "";
+      let toolCalls: {
+        id: string;
+        type: "function";
+        function: { name: string; arguments: string };
+      }[] = [];
+      let finishReason: string | null = null;
+
+      for await (const chunk of stream) {
+        const choice = chunk.choices?.[0];
+        if (choice) {
+          // Content delta
+          const delta = choice.delta;
+          if (delta?.content) {
+            assistantContent += delta.content;
+            opts.onDelta?.(delta.content);
+          }
+
+          // Tool call deltas
+          if (delta?.tool_calls) {
+            for (const tc of delta.tool_calls) {
+              if (!toolCalls[tc.index]) {
+                toolCalls[tc.index] = {
+                  id: tc.id ?? "",
+                  type: "function",
+                  function: {
+                    name: tc.function?.name ?? "",
+                    arguments: tc.function?.arguments ?? "",
+                  },
+                };
+              } else {
+                const existing = toolCalls[tc.index];
+                if (existing) {
+                  if (tc.id) existing.id = tc.id;
+                  if (tc.function?.name)
+                    existing.function.name = tc.function.name;
+                  if (tc.function?.arguments)
+                    existing.function.arguments += tc.function.arguments;
+                }
               }
             }
           }
+
+          if (choice.finish_reason) {
+            finishReason = choice.finish_reason;
+          }
         }
 
-        if (choice.finish_reason) {
-          finishReason = choice.finish_reason;
+        // Usage
+        if (chunk.usage) {
+          totalInputTokens += chunk.usage.prompt_tokens;
+          totalOutputTokens += chunk.usage.completion_tokens;
         }
       }
 
-      // Usage
-      if (chunk.usage) {
-        totalInputTokens += chunk.usage.prompt_tokens;
-        totalOutputTokens += chunk.usage.completion_tokens;
-      }
-    }
+      // Compact toolCalls array (remove any sparse gaps)
+      toolCalls = toolCalls.filter(Boolean);
 
-    // Compact toolCalls array (remove any sparse gaps)
-    toolCalls = toolCalls.filter(Boolean);
-
-    // Record assistant message in conversation
-    const assistantMsg: CommonLLMMessage = {
-      role: "assistant",
-      content: assistantContent || null,
-      ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
-    };
-    conversation.push(assistantMsg);
-
-    // Push to OpenAI messages
-    const oaiAssistant: OpenAI.Chat.Completions.ChatCompletionAssistantMessageParam =
-      {
+      // Record assistant message in conversation
+      const assistantMsg: CommonLLMMessage = {
         role: "assistant",
         content: assistantContent || null,
+        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
       };
-    if (toolCalls.length > 0) {
-      oaiAssistant.tool_calls = toolCalls;
-    }
-    messages.push(oaiAssistant);
+      conversation.push(assistantMsg);
 
-    // If stop → done
-    if (finishReason === "stop" || toolCalls.length === 0) {
-      finalResponse = assistantContent || null;
-      break;
-    }
+      // Push to OpenAI messages
+      const oaiAssistant: OpenAI.Chat.Completions.ChatCompletionAssistantMessageParam =
+        {
+          role: "assistant",
+          content: assistantContent || null,
+        };
+      if (toolCalls.length > 0) {
+        oaiAssistant.tool_calls = toolCalls;
+      }
+      messages.push(oaiAssistant);
 
-    // Execute tool calls
-    for (const tc of toolCalls) {
-      const args = safeParseJson<Record<string, unknown>>(
-        tc.function.arguments,
-      );
-      const toolArgs = args ?? {};
-      opts.onToolStart?.({
-        name: tc.function.name,
-        arguments: toolArgs,
-      });
-
-      const callStart = Date.now();
-      if (!mcpClient) {
-        throw new Error(
-          "invariant: tool call attempted but MCP client is not connected",
-        );
+      // If stop → done
+      if (finishReason === "stop" || toolCalls.length === 0) {
+        finalResponse = assistantContent || null;
+        break;
       }
 
-      // 5 minute timeout for MCP tool calls
-      const MCP_TOOL_TIMEOUT_MS = 60_000 * 5;
-
-      let result: unknown;
-      try {
-        result = await mcpClient.callTool(
-          tc.function.name,
-          toolArgs,
-          MCP_TOOL_TIMEOUT_MS,
+      // Execute tool calls
+      for (const tc of toolCalls) {
+        const args = safeParseJson<Record<string, unknown>>(
+          tc.function.arguments,
         );
-      } catch (_error) {
-        // Handle timeout - return timeout result
+        const toolArgs = args ?? {};
+        opts.onToolStart?.({
+          name: tc.function.name,
+          arguments: toolArgs,
+        });
+
+        const callStart = Date.now();
+        if (!mcpClient) {
+          throw new Error(
+            "invariant: tool call attempted but MCP client is not connected",
+          );
+        }
+
+        // 5 minute timeout for MCP tool calls
+        const MCP_TOOL_TIMEOUT_MS = 60_000 * 5;
+
+        let result: unknown;
+        try {
+          result = await mcpClient.callTool(
+            tc.function.name,
+            toolArgs,
+            MCP_TOOL_TIMEOUT_MS,
+          );
+        } catch (error) {
+          const callDuration = Date.now() - callStart;
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          const isTimeout = isToolCallTimeoutError(error);
+
+          const toolErrorRecord: ToolCallRecord = {
+            tool_call_id: tc.id,
+            name: tc.function.name,
+            arguments: args ?? {},
+            output: {
+              error: isTimeout ? "timeout" : "tool_call_failed",
+              message: isTimeout
+                ? "Tool call exceeded 5 minute timeout"
+                : errorMessage,
+            },
+            duration_ms: callDuration,
+          };
+          toolsCalled.push(toolErrorRecord);
+          opts.onToolCall?.(toolErrorRecord);
+
+          const toolErrorMsg = isTimeout
+            ? "[timeout] Tool call exceeded 5 minute timeout"
+            : `[tool_error] ${errorMessage}`;
+          conversation.push({
+            role: "tool",
+            content: toolErrorMsg,
+            tool_call_id: tc.id,
+          });
+          messages.push({
+            role: "tool" as const,
+            content: toolErrorMsg,
+            tool_call_id: tc.id,
+          });
+
+          // Continue to next tool call instead of failing
+          continue;
+        }
         const callDuration = Date.now() - callStart;
-        const timeoutRecord: ToolCallRecord = {
+
+        const outputStr =
+          typeof result === "string"
+            ? result
+            : (JSON.stringify(result) ?? "null");
+
+        const record: ToolCallRecord = {
           tool_call_id: tc.id,
           name: tc.function.name,
           arguments: args ?? {},
-          output: {
-            error: "timeout",
-            message: "Tool call exceeded 5 minute timeout",
-          },
+          output: result,
           duration_ms: callDuration,
         };
-        toolsCalled.push(timeoutRecord);
-        opts.onToolCall?.(timeoutRecord);
+        toolsCalled.push(record);
+        opts.onToolCall?.(record);
 
-        // Record tool timeout message
-        const timeoutMsg = "[timeout] Tool call exceeded 5 minute timeout";
+        // Record tool message
         conversation.push({
           role: "tool",
-          content: timeoutMsg,
+          content: outputStr,
           tool_call_id: tc.id,
         });
+
         messages.push({
           role: "tool" as const,
-          content: timeoutMsg,
+          content: outputStr,
           tool_call_id: tc.id,
         });
-
-        // Continue to next tool call instead of failing
-        continue;
       }
-      const callDuration = Date.now() - callStart;
-
-      const outputStr =
-        typeof result === "string"
-          ? result
-          : (JSON.stringify(result) ?? "null");
-
-      const record: ToolCallRecord = {
-        tool_call_id: tc.id,
-        name: tc.function.name,
-        arguments: args ?? {},
-        output: result,
-        duration_ms: callDuration,
-      };
-      toolsCalled.push(record);
-      opts.onToolCall?.(record);
-
-      // Record tool message
-      conversation.push({
-        role: "tool",
-        content: outputStr,
-        tool_call_id: tc.id,
-      });
-
-      messages.push({
-        role: "tool" as const,
-        content: outputStr,
-        tool_call_id: tc.id,
-      });
     }
+
+    return {
+      case_id: evalCase.id,
+      case_type: evalCase.type,
+      conversation,
+      tools_called: toolsCalled,
+      final_response: finalResponse,
+      status: "success",
+      usage: {
+        input_tokens: totalInputTokens,
+        output_tokens: totalOutputTokens,
+        total_tokens: totalInputTokens + totalOutputTokens,
+      },
+      duration_ms: Date.now() - startTime,
+    };
+  } finally {
+    await mcpClient?.close().catch(() => {});
   }
-
-  await mcpClient?.close();
-
-  return {
-    case_id: evalCase.id,
-    case_type: evalCase.type,
-    conversation,
-    tools_called: toolsCalled,
-    final_response: finalResponse,
-    status: "success",
-    usage: {
-      input_tokens: totalInputTokens,
-      output_tokens: totalOutputTokens,
-      total_tokens: totalInputTokens + totalOutputTokens,
-    },
-    duration_ms: Date.now() - startTime,
-  };
 };

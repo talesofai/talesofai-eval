@@ -124,9 +124,11 @@ export async function runAndScore(options: {
 export function createRunnerOptions(options: {
   reporter: Reporter;
   mcpServerBaseURL: string;
+  defaultModel?: string;
 }): RunnerOptions {
   return {
     mcpServerBaseURL: options.mcpServerBaseURL,
+    defaultModel: options.defaultModel,
     onDelta: (delta: string) => options.reporter.onDelta(delta),
     onToolStart: (call: ToolCallStartRecord) =>
       options.reporter.onToolStart(call),

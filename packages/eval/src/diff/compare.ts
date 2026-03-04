@@ -4,6 +4,7 @@ import type { ModelConfig } from "../models/index.ts";
 import { resolveModel } from "../models/index.ts";
 import type { DiffResult, EvalCase, EvalTrace } from "../types.ts";
 import { safeParseJson } from "../utils/safe-parse-json.ts";
+import { resolveJudgeModels } from "../config.ts";
 
 /**
  * Compare two traces for the same case and produce a verdict via LLM judge.
@@ -15,12 +16,13 @@ export async function compareTraces(
   baseLabel: string,
   candidateLabel: string,
 ): Promise<DiffResult> {
-  const modelId = process.env["EVAL_JUDGE_MODEL"];
+  const models = resolveJudgeModels();
+  const modelId = models?.[0];
   if (!modelId) {
     return {
       case_id: evalCase.id,
       verdict: "error",
-      reason: "missing required EVAL_JUDGE_MODEL",
+      reason: "missing required EVAL_JUDGE_MODELS",
       base,
       candidate,
     };

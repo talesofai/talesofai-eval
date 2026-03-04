@@ -34,10 +34,10 @@ export function autoLoadEnvFiles(cwd: string = process.cwd()): void {
     const envPath = makePath(dir, ".env");
 
     if (existsSync(localEnvPath)) {
-      config({ path: localEnvPath, override: false });
+      config({ path: localEnvPath, override: false, quiet: true });
     }
     if (existsSync(envPath)) {
-      config({ path: envPath, override: false });
+      config({ path: envPath, override: false, quiet: true });
     }
   }
 }

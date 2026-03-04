@@ -261,7 +261,7 @@ describe("getMissingRunConfig for agent", () => {
     ];
 
     const missing = getMissingRunConfig(cases, { tierMax: 1 });
-    assert.ok(!missing.includes("EVAL_JUDGE_MODEL"));
+    assert.ok(!missing.includes("EVAL_JUDGE_MODELS"));
     assert.ok(
       !missing.includes("EVAL_JUDGE_BASE_URL|OPENAI_BASE_URL"),
       "judge base url should not be required at tierMax=1",
@@ -290,6 +290,6 @@ describe("getMissingRunConfig for agent", () => {
     ];
 
     const missing = getMissingRunConfig(cases, { tierMax: 2 });
-    assert.ok(missing.includes("EVAL_JUDGE_MODEL"));
+    assert.ok(missing.includes("EVAL_JUDGE_MODELS"));
   });
 });

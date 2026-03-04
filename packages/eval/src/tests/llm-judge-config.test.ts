@@ -22,14 +22,14 @@ const assertion: AssertionConfig = {
 
 describe("scoreLlmJudgeAssertion config errors", () => {
   afterEach(() => {
-    delete process.env["EVAL_JUDGE_MODEL"];
+    delete process.env["EVAL_JUDGE_MODELS"];
     delete process.env["EVAL_JUDGE_BASE_URL"];
     delete process.env["EVAL_JUDGE_API_KEY"];
     delete process.env["OPENAI_BASE_URL"];
     delete process.env["OPENAI_API_KEY"];
   });
 
-  it("returns error result when EVAL_JUDGE_MODEL is missing", async () => {
+  it("returns error result when EVAL_JUDGE_MODELS is missing", async () => {
     process.env["EVAL_JUDGE_BASE_URL"] = "https://judge.example/v1";
     process.env["EVAL_JUDGE_API_KEY"] = "judge-key";
 
@@ -37,6 +37,6 @@ describe("scoreLlmJudgeAssertion config errors", () => {
 
     assert.equal(result.passed, false);
     assert.equal(result.score, 0);
-    assert.match(result.reason, /missing required EVAL_JUDGE_MODEL/);
+    assert.match(result.reason, /missing required EVAL_JUDGE_MODELS/);
   });
 });

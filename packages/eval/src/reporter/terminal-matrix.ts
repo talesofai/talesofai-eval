@@ -132,6 +132,37 @@ export function createTerminalMatrixReporterImpl(options?: {
       process.stderr.write(`${renderMatrixGrid(summary)}\n`);
       process.stderr.write("\n");
 
+      // Show detailed dimensions for failed/errored cells
+      const failedCells = summary.cells.filter(
+        (cell) => !cell.result.passed || cell.result.error,
+      );
+      if (failedCells.length > 0) {
+        process.stderr.write(`${pc.bold("Details:")}\n`);
+        for (const cell of failedCells) {
+          const status = cell.result.error ? pc.yellow("ERR") : pc.red("FAIL");
+          process.stderr.write(
+            `\n  ${status} ${pc.cyan(cell.case_id)} ${pc.dim("×")} ${cell.variant_label}\n`,
+          );
+
+          if (cell.result.error) {
+            process.stderr.write(
+              `    ${pc.red("error:")} ${cell.result.error.slice(0, 200)}\n`,
+            );
+            continue;
+          }
+
+          for (const dim of cell.result.dimensions) {
+            const icon = dim.passed ? pc.green("✓") : pc.red("✗");
+            const score = dim.score.toFixed(2);
+            const reason = dim.reason.slice(0, 100);
+            process.stderr.write(
+              `    ${icon} ${pc.dim(dim.dimension)} ${dim.passed ? pc.green(score) : pc.red(score)} ${pc.dim(reason)}\n`,
+            );
+          }
+        }
+        process.stderr.write("\n");
+      }
+
       const parts: string[] = [];
       if (summary.passed > 0) parts.push(pc.green(`${summary.passed} passed`));
       if (summary.failed > 0) parts.push(pc.red(`${summary.failed} failed`));

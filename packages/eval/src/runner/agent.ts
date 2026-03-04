@@ -51,6 +51,14 @@ export const runAgent = async (
     characterProvider,
     opts.logger,
   );
-  const normalizedCase = normalizeAgentInput(injectedCase);
+  
+  // Apply model priority: CLI/ENV default > case.input.model
+  const normalizedCase = normalizeAgentInput({
+    ...injectedCase,
+    input: {
+      ...injectedCase.input,
+      model: injectedCase.input.model ?? opts.defaultModel,
+    },
+  });
   return runPlain(normalizedCase, opts);
 };

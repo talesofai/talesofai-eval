@@ -1,6 +1,74 @@
 {
 	"$schema": "./models.schema.json",
 	"models": {
+		"gemini-3-flash-preview": {
+			"id": "gemini-3-flash-preview",
+			"name": "Gemini 3 Flash Preview",
+			"api": "google-generative-ai",
+			"provider": "google",
+			"baseUrl": "${OPENAI_BASE_URL}",
+			"input": ["text", "image"],
+			"cost": {
+				"input": 0.075,
+				"output": 0.3
+			},
+			"contextWindow": 1000000,
+			"maxTokens": 8192,
+			"headers": {
+				"Authorization": "Bearer ${OPENAI_API_KEY}"
+			}
+		},
+		"qwen3.5-plus": {
+			"id": "qwen3.5-plus",
+			"name": "Qwen 3.5 Plus",
+			"api": "openai-completions",
+			"provider": "alibaba",
+			"baseUrl": "${OPENAI_BASE_URL}",
+			"input": ["text", "image"],
+			"cost": {
+				"input": 0.4,
+				"output": 2
+			},
+			"contextWindow": 128000,
+			"maxTokens": 8192,
+			"headers": {
+				"Authorization": "Bearer ${OPENAI_API_KEY}"
+			}
+		},
+		"qwen3.5-turbo": {
+			"id": "qwen3.5-turbo",
+			"name": "Qwen 3.5 Turbo",
+			"api": "openai-completions",
+			"provider": "alibaba",
+			"baseUrl": "${OPENAI_BASE_URL}",
+			"input": ["text"],
+			"cost": {
+				"input": 0.0003,
+				"output": 0.0006
+			},
+			"contextWindow": 128000,
+			"maxTokens": 8192,
+			"headers": {
+				"Authorization": "Bearer ${OPENAI_API_KEY}"
+			}
+		},
+		"doubao-2.0-mini": {
+			"id": "doubao-2.0-mini",
+			"name": "Doubao 2.0 Mini",
+			"api": "openai-completions",
+			"provider": "bytedance",
+			"baseUrl": "${OPENAI_BASE_URL}",
+			"input": ["text"],
+			"cost": {
+				"input": 0.1,
+				"output": 0.2
+			},
+			"contextWindow": 128000,
+			"maxTokens": 4096,
+			"headers": {
+				"Authorization": "Bearer ${OPENAI_API_KEY}"
+			}
+		},
 		"gpt-4o-mini": {
 			"id": "gpt-4o-mini",
 			"name": "GPT-4o Mini",

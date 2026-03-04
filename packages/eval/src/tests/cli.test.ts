@@ -168,14 +168,14 @@ describe("agent-eval CLI UX", () => {
       OPENAI_API_KEY: "test-key",
       EVAL_JUDGE_BASE_URL: "http://127.0.0.1:9/v1",
       EVAL_JUDGE_API_KEY: "judge-key",
-      EVAL_JUDGE_MODEL: "",
+      EVAL_JUDGE_MODELS: "",
       EVAL_MCP_SERVER_BASE_URL: "",
       EVAL_UPSTREAM_API_BASE_URL: "",
     });
 
     assert.equal(result.status, 2);
     assert.match(result.stderr, /E_MISSING_CONFIG/);
-    assert.match(result.stderr, /EVAL_JUDGE_MODEL/);
+    assert.match(result.stderr, /EVAL_JUDGE_MODELS/);
   });
 
   it("run rejects invalid --tier-max value", () => {
@@ -218,7 +218,7 @@ describe("agent-eval CLI UX", () => {
       EVAL_UPSTREAM_API_BASE_URL: "",
       EVAL_JUDGE_BASE_URL: "http://127.0.0.1:9/v1",
       EVAL_JUDGE_API_KEY: "judge-key",
-      EVAL_JUDGE_MODEL: "judge-model",
+      EVAL_JUDGE_MODELS: "judge-model",
     });
 
     assert.equal(result.status, 2);
@@ -255,7 +255,7 @@ describe("agent-eval CLI UX", () => {
         EVAL_UPSTREAM_API_BASE_URL: "",
         EVAL_JUDGE_BASE_URL: "http://127.0.0.1:9/v1",
         EVAL_JUDGE_API_KEY: "judge-key",
-        EVAL_JUDGE_MODEL: "judge-model",
+        EVAL_JUDGE_MODELS: "judge-model",
       },
     );
 
@@ -352,7 +352,7 @@ describe("agent-eval CLI UX", () => {
     const result = runCli(["doctor"], {
       OPENAI_BASE_URL: "http://fake-llm",
       OPENAI_API_KEY: "fake-key",
-      EVAL_JUDGE_MODEL: "qwen3.5-plus",
+      EVAL_JUDGE_MODELS: "qwen3.5-plus",
       EVAL_MCP_SERVER_BASE_URL: "http://fake-mcp",
       EVAL_UPSTREAM_API_BASE_URL: "",
     });
@@ -364,7 +364,7 @@ describe("agent-eval CLI UX", () => {
     const result = runCli(["doctor", "--mode", "agent"], {
       OPENAI_BASE_URL: "http://fake-llm",
       OPENAI_API_KEY: "fake-key",
-      EVAL_JUDGE_MODEL: "qwen3.5-plus",
+      EVAL_JUDGE_MODELS: "qwen3.5-plus",
       EVAL_MCP_SERVER_BASE_URL: "http://fake-mcp",
       EVAL_UPSTREAM_API_BASE_URL: "",
     });
@@ -460,7 +460,7 @@ describe("agent-eval CLI UX", () => {
     const result = runCli(["doctor", "--mode", "plain"], {
       OPENAI_BASE_URL: "http://fake-llm",
       OPENAI_API_KEY: "fake-key",
-      EVAL_JUDGE_MODEL: "qwen3.5-plus",
+      EVAL_JUDGE_MODELS: "qwen3.5-plus",
       EVAL_MCP_SERVER_BASE_URL: "http://fake-mcp",
       EVAL_PLAIN_BASE_URL: "",
     });

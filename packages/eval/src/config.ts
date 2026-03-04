@@ -7,21 +7,22 @@ export const ENV_KEYS = {
   // Runner (shared by plain + agent)
   OPENAI_BASE_URL: "OPENAI_BASE_URL",
   OPENAI_API_KEY: "OPENAI_API_KEY",
-  OPENAI_X_TOKEN: "OPENAI_X_TOKEN",
+
+  // Default runner model (can be overridden by CLI --model or case.input.model)
+  RUNNER_MODEL: "EVAL_RUNNER_MODEL",
 
   // MCP
   MCP_SERVER_BASE_URL: "EVAL_MCP_SERVER_BASE_URL",
   MCP_X_TOKEN: "EVAL_MCP_X_TOKEN",
 
-  // LLM Judge
+  // LLM Judge (falls back to OPENAI_* if not set)
   JUDGE_BASE_URL: "EVAL_JUDGE_BASE_URL",
   JUDGE_API_KEY: "EVAL_JUDGE_API_KEY",
-  JUDGE_MODEL: "EVAL_JUDGE_MODEL",
-  // Multi-judge (comma-separated model names)
+  // Comma-separated model ids from models.json (single model = just one id)
   JUDGE_MODELS: "EVAL_JUDGE_MODELS",
   JUDGE_AGGREGATION: "EVAL_JUDGE_AGGREGATION",
 
-  // Upstream (character provider)
+  // Upstream (character provider, uses x-token auth)
   UPSTREAM_BASE_URL: "EVAL_UPSTREAM_API_BASE_URL",
   UPSTREAM_X_TOKEN: "EVAL_UPSTREAM_X_TOKEN",
 
@@ -67,10 +68,10 @@ export function resolveRunnerApiKey(
   );
 }
 
-export function resolveRunnerXToken(
+export function resolveRunnerModel(
   env: NodeJS.ProcessEnv = process.env,
 ): string | undefined {
-  return readEnvValue(env, ENV_KEYS.OPENAI_X_TOKEN);
+  return readEnvValue(env, ENV_KEYS.RUNNER_MODEL);
 }
 
 export function resolveMcpServerBaseURL(
@@ -86,6 +87,31 @@ export function resolveMcpXToken(
   env: NodeJS.ProcessEnv = process.env,
 ): string | undefined {
   return readEnvValue(env, ENV_KEYS.MCP_X_TOKEN);
+}
+
+/**
+ * Resolve judge base URL with fallback to OPENAI_BASE_URL.
+ * This allows users to configure a single endpoint for both runner and judge.
+ */
+export function resolveJudgeBaseURL(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  return (
+    readEnvValue(env, ENV_KEYS.JUDGE_BASE_URL) ??
+    readEnvValue(env, ENV_KEYS.OPENAI_BASE_URL)
+  );
+}
+
+/**
+ * Resolve judge API key with fallback to OPENAI_API_KEY.
+ */
+export function resolveJudgeApiKey(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  return (
+    readEnvValue(env, ENV_KEYS.JUDGE_API_KEY) ??
+    readEnvValue(env, ENV_KEYS.OPENAI_API_KEY)
+  );
 }
 
 export function resolveJudgeModels(
