@@ -4,7 +4,7 @@ import {
   collectDoctorChecks,
   computeRunExitCode,
   shouldUseJsonErrors,
-} from "../cli-shared.ts";
+} from "../cli/shared.ts";
 
 describe("computeRunExitCode", () => {
   it("returns 0 when all pass", () => {
@@ -83,10 +83,14 @@ describe("computeRunExitCode", () => {
 });
 
 describe("collectDoctorChecks", () => {
-  it("reports failures for missing env", () => {
+  it("passes when models.json exists in cwd", () => {
+    // The test runs from packages/eval where models.json exists
     const checks = collectDoctorChecks({});
     assert.ok(
-      checks.some((check) => check.key === "OPENAI_API_KEY" && !check.ok),
+      checks.some(
+        (check) =>
+          check.key === "EVAL_MODELS_PATH or ./models.json" && check.ok,
+      ),
     );
     assert.ok(
       checks.some(
@@ -94,13 +98,6 @@ describe("collectDoctorChecks", () => {
           check.key === "cli-name" &&
           check.ok &&
           check.hint.includes("eval run"),
-      ),
-    );
-    assert.ok(
-      checks.some(
-        (check) =>
-          check.key === "OPENAI_BASE_URL" &&
-          check.hint.includes("OPENAI_BASE_URL"),
       ),
     );
   });
@@ -150,7 +147,7 @@ describe("shouldUseJsonErrors", () => {
   it("returns true when run format is json", () => {
     const value = shouldUseJsonErrors([
       "node",
-      "src/cli.ts",
+      "src/cli/index.ts",
       "run",
       "--format",
       "json",
@@ -161,7 +158,7 @@ describe("shouldUseJsonErrors", () => {
   it("returns true when pull-online format is json", () => {
     const value = shouldUseJsonErrors([
       "node",
-      "src/cli.ts",
+      "src/cli/index.ts",
       "pull-online",
       "--format",
       "json",
@@ -172,7 +169,7 @@ describe("shouldUseJsonErrors", () => {
   it("returns false for unrelated command", () => {
     const value = shouldUseJsonErrors([
       "node",
-      "src/cli.ts",
+      "src/cli/index.ts",
       "doctor",
       "--format",
       "json",

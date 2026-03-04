@@ -1,7 +1,4 @@
-import {
-  resolveUpstreamBaseURL,
-  resolveUpstreamXToken,
-} from "../env.ts";
+import { resolveUpstreamBaseURL, resolveUpstreamXToken } from "../config.ts";
 import type {
   AgentEvalCase,
   CharacterFromSelect,
@@ -14,7 +11,9 @@ import { normalizeAgentInput } from "./normalize-agent-input.ts";
 import { runPlain } from "./plain.ts";
 
 const createDefaultCharacterProvider = (): CharacterProvider => ({
-  getRandomCharacters: async (count: number): Promise<CharacterFromSelect[]> => {
+  getRandomCharacters: async (
+    count: number,
+  ): Promise<CharacterFromSelect[]> => {
     const baseURL = resolveUpstreamBaseURL();
     const url = new URL(
       `/v1/collection-interactive/char_roll?num=${count}`,
@@ -45,7 +44,8 @@ export const runAgent = async (
   evalCase: AgentEvalCase,
   opts: RunnerOptions,
 ): Promise<EvalTrace> => {
-  const characterProvider = opts.characterProvider ?? createDefaultCharacterProvider();
+  const characterProvider =
+    opts.characterProvider ?? createDefaultCharacterProvider();
   const injectedCase = await injectAndReplaceCharacters(
     evalCase,
     characterProvider,

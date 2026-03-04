@@ -5,7 +5,6 @@ description: 验证 system prompt 语气风格——回复应轻松活泼
 input:
   system_prompt: 你是一个友好的创作助手，用轻松活泼的语气回复。
   model: qwen-plus
-  openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
   messages:
     - role: user
       content: 帮我想个故事开头

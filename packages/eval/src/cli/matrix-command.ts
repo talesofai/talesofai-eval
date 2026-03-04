@@ -1,11 +1,16 @@
 import { join } from "node:path";
 import pc from "picocolors";
-import { resolveMcpServerBaseURL } from "../env.ts";
+import { resolveMcpServerBaseURL } from "../config.ts";
 import { missingConfig, noCases } from "../errors.ts";
 import { createJsonMatrixReporter } from "../reporter/json.ts";
 import { createTerminalMatrixReporter } from "../reporter/terminal.ts";
 import { loadResult } from "../traces.ts";
-import type { MatrixCell, MatrixReporter, MatrixSummary, RunnerOptions } from "../types.ts";
+import type {
+  MatrixCell,
+  MatrixReporter,
+  MatrixSummary,
+  RunnerOptions,
+} from "../types.ts";
 import { runConcurrently } from "../utils/concurrency.ts";
 import { resolveMatrixRecordDir } from "../utils/recording.ts";
 import { resolveCasesFromArgs } from "./case-resolution.ts";
@@ -17,7 +22,9 @@ import {
 import { getMissingRunConfig } from "./config-check.ts";
 import type { MatrixCommandOptions } from "./options.ts";
 
-export async function matrixCommand(options: MatrixCommandOptions): Promise<number> {
+export async function matrixCommand(
+  options: MatrixCommandOptions,
+): Promise<number> {
   const { cases, unmatchedFilePatterns } = resolveCasesFromArgs(options);
   if (cases.length === 0) {
     throw noCases("matrix", unmatchedFilePatterns);
@@ -88,11 +95,16 @@ export async function matrixCommand(options: MatrixCommandOptions): Promise<numb
 
   const tasks = pairs.map((pair, index) => async (): Promise<MatrixCell> => {
     // Check if already completed
-    const existing = await loadExistingResult(pair.evalCase.id, pair.variant.label);
+    const existing = await loadExistingResult(
+      pair.evalCase.id,
+      pair.variant.label,
+    );
     if (existing) {
       if (format === "terminal") {
         process.stderr.write(
-          pc.dim(`  ⏭ [${index + 1}/${pairs.length}] ${pair.evalCase.id} × ${pair.variant.label}  (cached)\n`),
+          pc.dim(
+            `  ⏭ [${index + 1}/${pairs.length}] ${pair.evalCase.id} × ${pair.variant.label}  (cached)\n`,
+          ),
         );
       }
       reporter.onCellResult(existing);

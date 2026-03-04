@@ -1,4 +1,4 @@
-import { z, ZodError } from "zod3";
+import { type ZodError, z } from "zod3";
 import { invalidArgs, invalidJson, validationError } from "../errors.ts";
 import type { EvalTier, MatrixVariant } from "../types.ts";
 import { formatZodIssues, type OutputFormat } from "./helpers.ts";
@@ -230,7 +230,7 @@ export function parseRunCommandOptions(raw: unknown): RunCommandOptions {
   const parsed = parseWithSchema(
     baseCaseResolveSchema.extend({
       format: outputFormatSchema.default("terminal"),
-      share: z.boolean().default(true),
+      share: z.boolean().default(false),
       shareBaseUrl: z.string().optional(),
       record: z.string().optional(),
       replay: z.string().optional(),
@@ -272,7 +272,7 @@ export function parseRunCommandOptions(raw: unknown): RunCommandOptions {
     judgeThreshold: parsed.judgeThreshold,
     allowedToolNames: splitCsv(parsed.allowedToolNames),
     format: parsed.format ?? "terminal",
-    share: parsed.share ?? true,
+    share: parsed.share ?? false,
     shareBaseUrl: parsed.shareBaseUrl,
     record: parsed.record,
     replay: parsed.replay,
@@ -460,7 +460,7 @@ export function parseReportCommandOptions(raw: unknown): ReportCommandOptions {
       .object({
         from: z.string().optional(),
         out: z.string().optional(),
-        share: z.boolean().default(true),
+        share: z.boolean().default(false),
         shareBaseUrl: z.string().optional(),
         format: outputFormatSchema.default("terminal"),
       })
@@ -479,7 +479,7 @@ export function parseReportCommandOptions(raw: unknown): ReportCommandOptions {
   return {
     from,
     out: parsed.out,
-    share: parsed.share ?? true,
+    share: parsed.share ?? false,
     shareBaseUrl: parsed.shareBaseUrl,
     format: parsed.format ?? "terminal",
   };
@@ -493,7 +493,7 @@ export function parseMatrixReportCommandOptions(
       .object({
         from: z.string().optional(),
         out: z.string().optional(),
-        share: z.boolean().default(true),
+        share: z.boolean().default(false),
         shareBaseUrl: z.string().optional(),
         format: outputFormatSchema.default("terminal"),
       })
@@ -512,7 +512,7 @@ export function parseMatrixReportCommandOptions(
   return {
     from,
     out: parsed.out,
-    share: parsed.share ?? true,
+    share: parsed.share ?? false,
     shareBaseUrl: parsed.shareBaseUrl,
     format: parsed.format ?? "terminal",
   };

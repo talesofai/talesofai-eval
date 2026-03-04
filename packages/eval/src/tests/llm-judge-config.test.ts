@@ -25,17 +25,16 @@ describe("scoreLlmJudgeAssertion config errors", () => {
     delete process.env["EVAL_JUDGE_MODEL"];
     delete process.env["EVAL_JUDGE_BASE_URL"];
     delete process.env["EVAL_JUDGE_API_KEY"];
-    delete process.env["OPENAI_BASE_URL"];
-    delete process.env["OPENAI_API_KEY"];
   });
 
-  it("throws when EVAL_JUDGE_MODEL is missing", async () => {
+  it("returns error result when EVAL_JUDGE_MODEL is missing", async () => {
     process.env["EVAL_JUDGE_BASE_URL"] = "https://judge.example/v1";
     process.env["EVAL_JUDGE_API_KEY"] = "judge-key";
 
-    await assert.rejects(
-      scoreLlmJudgeAssertion(trace, assertion),
-      /missing required EVAL_JUDGE_MODEL/,
-    );
+    const result = await scoreLlmJudgeAssertion(trace, assertion);
+
+    assert.equal(result.passed, false);
+    assert.equal(result.score, 0);
+    assert.match(result.reason, /no judge model configured/);
   });
 });

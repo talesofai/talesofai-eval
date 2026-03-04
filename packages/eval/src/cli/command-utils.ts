@@ -4,7 +4,7 @@ import {
 } from "../metrics/trace-metrics.ts";
 import { createJsonReporter } from "../reporter/json.ts";
 import { createTerminalReporter } from "../reporter/terminal.ts";
-import { runCase } from "../runners/index.ts";
+import { runCase } from "../runner/index.ts";
 import { scoreTrace } from "../scorers/index.ts";
 import { saveResult, saveTrace } from "../traces.ts";
 import type {
@@ -17,7 +17,7 @@ import type {
   ToolCallRecord,
   ToolCallStartRecord,
 } from "../types.ts";
-import { type OutputFormat } from "./helpers.ts";
+import type { OutputFormat } from "./helpers.ts";
 
 export function createReporterFromFormat(
   format: OutputFormat,

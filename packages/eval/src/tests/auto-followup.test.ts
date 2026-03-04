@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import {
   buildAdversarialHelpChooseMessage,
   shouldInjectAdversarialHelpChooseFollowup,
-} from "../runners/auto-followup.ts";
+} from "../runner/auto-followup.ts";
 import type { AgentEvalCase } from "../types.ts";
 
 function makeAgentCase(overrides?: {

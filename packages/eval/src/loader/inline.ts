@@ -1,4 +1,3 @@
-import { resolveRunnerBaseURL } from "../env.ts";
 import {
   DEFAULT_AGENT_PRESET_KEY,
   type EvalCase,
@@ -73,7 +72,9 @@ export const buildFromFlags = (flags: {
 
     if (typeof flags.systemPrompt === "string") {
       if (!flags.model) {
-        throw new Error("agent case model is required when system prompt is set");
+        throw new Error(
+          "agent case model is required when system prompt is set",
+        );
       }
 
       return {
@@ -132,7 +133,6 @@ export const buildFromFlags = (flags: {
     input: {
       system_prompt: flags.systemPrompt ?? "",
       model: flags.model ?? "qwen-plus",
-      openai_base_url: flags.openaiBaseUrl ?? resolveRunnerBaseURL() ?? "",
       messages,
       allowed_tool_names: flags.allowedToolNames,
     },

@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
+import { unlink, writeFile } from "node:fs/promises";
 import {
   createServer,
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
-import { afterEach, describe, it } from "node:test";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { runPlain } from "../runners/plain.ts";
+import { loadModels, resetRegistry } from "../models/index.ts";
+import { runPlain } from "../runner/plain.ts";
 import type { PlainEvalCase } from "../types.ts";
 
 type ChatRequestBody = {
@@ -117,7 +121,7 @@ function makePlainCase(allowedToolNames?: string[]): PlainEvalCase {
     description: "mcp cache",
     input: {
       system_prompt: "sys",
-      model: "gpt-5.2",
+      model: "test-model",
       messages: [{ role: "user", content: "hello" }],
       ...(allowedToolNames ? { allowed_tool_names: allowedToolNames } : {}),
     },
@@ -130,11 +134,14 @@ describe("run-level MCP tool schema cache", () => {
   const originalConnect = Client.prototype.connect;
   const originalListTools = Client.prototype.listTools;
   const originalClose = Client.prototype.close;
+  let modelsFile: string | null = null;
+
+  beforeEach(() => {
+    resetRegistry();
+  });
 
   afterEach(async () => {
-    delete process.env["OPENAI_BASE_URL"];
-    delete process.env["OPENAI_API_KEY"];
-
+    resetRegistry();
     Client.prototype.connect = originalConnect;
     Client.prototype.listTools = originalListTools;
     Client.prototype.close = originalClose;
@@ -142,14 +149,40 @@ describe("run-level MCP tool schema cache", () => {
     for (const cleanup of cleanups.splice(0)) {
       await cleanup();
     }
+    if (modelsFile) {
+      try {
+        await unlink(modelsFile);
+      } catch {
+        // ignore
+      }
+      modelsFile = null;
+    }
   });
+
+  async function setupTestModels(baseURL: string) {
+    modelsFile = join(tmpdir(), `models-test-${Date.now()}.json`);
+    await writeFile(
+      modelsFile,
+      JSON.stringify({
+        models: {
+          "test-model": {
+            id: "test-model",
+            name: "Test Model",
+            api: "openai-completions",
+            provider: "test",
+            baseUrl: baseURL,
+            apiKey: "test-key",
+          },
+        },
+      }),
+    );
+    await loadModels(modelsFile);
+  }
 
   it("reuses listTools result for same baseURL + filter key within one run", async () => {
     const fakeOpenai = await startFakeOpenAIServer(() => {});
     cleanups.push(fakeOpenai.close);
-
-    process.env["OPENAI_BASE_URL"] = fakeOpenai.baseURL;
-    process.env["OPENAI_API_KEY"] = "test-key";
+    await setupTestModels(fakeOpenai.baseURL);
 
     let listToolsCalls = 0;
     const toolSchemas: McpTool[] = [
@@ -180,9 +213,7 @@ describe("run-level MCP tool schema cache", () => {
   it("does not reuse cache when tool filter changes", async () => {
     const fakeOpenai = await startFakeOpenAIServer(() => {});
     cleanups.push(fakeOpenai.close);
-
-    process.env["OPENAI_BASE_URL"] = fakeOpenai.baseURL;
-    process.env["OPENAI_API_KEY"] = "test-key";
+    await setupTestModels(fakeOpenai.baseURL);
 
     let listToolsCalls = 0;
     const toolSchemas: McpTool[] = [

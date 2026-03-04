@@ -1,8 +1,16 @@
 import assert from "node:assert/strict";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { afterEach, describe, it } from "node:test";
-import { runAgent } from "../runners/agent.ts";
-import { runPlain } from "../runners/plain.ts";
+import { unlink, writeFile } from "node:fs/promises";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, it } from "node:test";
+import { loadModels, resetRegistry } from "../models/index.ts";
+import { runAgent } from "../runner/agent.ts";
+import { runPlain } from "../runner/plain.ts";
 import type { AgentEvalCase } from "../types.ts";
 
 type ChatRequestBody = {
@@ -10,7 +18,9 @@ type ChatRequestBody = {
   messages: Array<{ role: string; content: unknown }>;
 };
 
-async function startFakeOpenAIServer(onRequest: (body: ChatRequestBody) => void) {
+async function startFakeOpenAIServer(
+  onRequest: (body: ChatRequestBody) => void,
+) {
   const server = createServer(
     (req: IncomingMessage, res: ServerResponse<IncomingMessage>) => {
       if (req.method !== "POST" || req.url !== "/chat/completions") {
@@ -96,12 +106,24 @@ async function startFakeOpenAIServer(onRequest: (body: ChatRequestBody) => void)
 
 describe("agent runtime oss flow", () => {
   const cleanups: Array<() => Promise<void>> = [];
+  let modelsFile: string | null = null;
+
+  beforeEach(() => {
+    resetRegistry();
+  });
 
   afterEach(async () => {
-    delete process.env["OPENAI_BASE_URL"];
-    delete process.env["OPENAI_API_KEY"];
+    resetRegistry();
     for (const cleanup of cleanups.splice(0)) {
       await cleanup();
+    }
+    if (modelsFile) {
+      try {
+        await unlink(modelsFile);
+      } catch {
+        // ignore
+      }
+      modelsFile = null;
     }
   });
 
@@ -112,8 +134,24 @@ describe("agent runtime oss flow", () => {
     });
     cleanups.push(fakeServer.close);
 
-    process.env["OPENAI_BASE_URL"] = fakeServer.baseURL;
-    process.env["OPENAI_API_KEY"] = "test-key";
+    // Create temp models.json with test model pointing to fake server
+    modelsFile = join(tmpdir(), `models-test-${Date.now()}.json`);
+    await writeFile(
+      modelsFile,
+      JSON.stringify({
+        models: {
+          "test-model": {
+            id: "test-model",
+            name: "Test Model",
+            api: "openai-completions",
+            provider: "test",
+            baseUrl: fakeServer.baseURL,
+            apiKey: "test-key",
+          },
+        },
+      }),
+    );
+    await loadModels(modelsFile);
 
     const trace = await runPlain(
       {
@@ -122,7 +160,7 @@ describe("agent runtime oss flow", () => {
         description: "test",
         input: {
           system_prompt: "sys",
-          model: "gpt-5.2",
+          model: "test-model",
           messages: [{ role: "user", content: "hi" }],
           allowed_tool_names: [],
         },
@@ -155,8 +193,24 @@ describe("agent runtime oss flow", () => {
     });
     cleanups.push(fakeServer.close);
 
-    process.env["OPENAI_BASE_URL"] = fakeServer.baseURL;
-    process.env["OPENAI_API_KEY"] = "test-key";
+    // Create temp models.json with test model pointing to fake server
+    modelsFile = join(tmpdir(), `models-test-${Date.now()}.json`);
+    await writeFile(
+      modelsFile,
+      JSON.stringify({
+        models: {
+          "test-model": {
+            id: "test-model",
+            name: "Test Model",
+            api: "openai-completions",
+            provider: "test",
+            baseUrl: fakeServer.baseURL,
+            apiKey: "test-key",
+          },
+        },
+      }),
+    );
+    await loadModels(modelsFile);
 
     const evalCase: AgentEvalCase = {
       type: "agent",
@@ -165,7 +219,7 @@ describe("agent runtime oss flow", () => {
       input: {
         preset_key: "legacy-key",
         system_prompt: "greet {{hero}}",
-        model: "gpt-5.2",
+        model: "test-model",
         parameters: {
           hero: "{@character}",
         },

@@ -1,4 +1,6 @@
-import type { EvalResult } from "./types.ts";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import type { EvalResult } from "../types.ts";
 
 export type DoctorCheck = {
   key: string;
@@ -41,28 +43,38 @@ export function collectDoctorChecks(
       hint: "Use `agent-eval ...`; do not use `eval run` (shell builtin).",
     },
     {
-      key: "OPENAI_BASE_URL",
-      requiredFor: "run,diff",
-      ok: isSet("OPENAI_BASE_URL"),
-      hint: "Set OPENAI_BASE_URL, e.g. https://dashscope.aliyuncs.com/compatible-mode/v1.",
-    },
-    {
-      key: "OPENAI_API_KEY",
-      requiredFor: "run,diff",
-      ok: isSet("OPENAI_API_KEY"),
-      hint: "Set OPENAI_API_KEY before running eval.",
+      key: "EVAL_MODELS_PATH or ./models.json",
+      requiredFor: "run,llm_judge,diff",
+      ok:
+        isSet("EVAL_MODELS_PATH") ||
+        existsSync(resolve(process.cwd(), "models.json")),
+      hint: "Create ./models.json with your model registry, or set EVAL_MODELS_PATH=<path>. See README for format.",
     },
     {
       key: "EVAL_JUDGE_MODEL",
       requiredFor: "llm_judge,diff",
-      ok: isSet("EVAL_JUDGE_MODEL"),
-      hint: "Set EVAL_JUDGE_MODEL explicitly (no default).",
+      ok: isSet("EVAL_JUDGE_MODEL") || isSet("EVAL_JUDGE_MODELS"),
+      hint: "Set EVAL_JUDGE_MODEL (or EVAL_JUDGE_MODELS for multi-model) to a model id defined in your registry.",
     },
     {
       key: "EVAL_MCP_SERVER_BASE_URL",
       requiredFor: "run,diff",
       ok: true,
       hint: "Optional: defaults to https://mcp.talesofai.cn. Override with EVAL_MCP_SERVER_BASE_URL if needed.",
+      optional: true,
+    },
+    {
+      key: "EVAL_MCP_X_TOKEN",
+      requiredFor: "agent run",
+      ok: isSet("EVAL_MCP_X_TOKEN"),
+      hint: "Set EVAL_MCP_X_TOKEN if your MCP server requires authentication (required for talesofai-hosted MCP).",
+      optional: true,
+    },
+    {
+      key: "EVAL_UPSTREAM_X_TOKEN",
+      requiredFor: "agent run",
+      ok: isSet("EVAL_UPSTREAM_X_TOKEN"),
+      hint: "Set EVAL_UPSTREAM_X_TOKEN for upstream API auth (character/asset provider).",
       optional: true,
     },
   ];

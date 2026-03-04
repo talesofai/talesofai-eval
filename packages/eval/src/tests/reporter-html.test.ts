@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { renderMatrixHtmlReport, renderRunHtmlReport, renderRunHtmlReportV3 } from "../reporter/html.ts";
+import {
+  renderMatrixHtmlReport,
+  renderRunHtmlReport,
+  renderRunHtmlReportV3,
+} from "../reporter/html.ts";
 import type { EvalResult, EvalSummary, MatrixSummary } from "../types.ts";
 
 describe("renderRunHtmlReport", () => {
@@ -43,7 +47,7 @@ describe("renderRunHtmlReport", () => {
     const html = await renderRunHtmlReportV3(summary);
 
     assert.ok(html.includes("<!DOCTYPE html>"), "should include doctype");
-    assert.ok(html.includes("class=\"case-list\""), "should include case list");
+    assert.ok(html.includes('class="case-list"'), "should include case list");
 
     const match = html.match(/const REPORT_DATA = "([^"]+)";/);
     assert.ok(match, "should have REPORT_DATA assignment");
@@ -59,7 +63,9 @@ describe("renderRunHtmlReport", () => {
   it("prefers first user message as report title", async () => {
     const result = makeResult("case-title", true);
     result.description = "fallback description";
-    result.trace.conversation = [{ role: "user", content: "filled user prompt" }];
+    result.trace.conversation = [
+      { role: "user", content: "filled user prompt" },
+    ];
 
     const payload = await decodePayload(makeSummary([result]));
     assert.equal(payload.cases[0].title, "filled user prompt");
@@ -248,10 +254,30 @@ describe("renderMatrixHtmlReport", () => {
     const payload = await decodeMatrixPayload(summary);
 
     assert.equal(payload.cells.length, 4);
-    assert.ok(payload.cells.some((c: { case_id: string; variant_label: string }) => c.case_id === "case-a" && c.variant_label === "variant-1"));
-    assert.ok(payload.cells.some((c: { case_id: string; variant_label: string }) => c.case_id === "case-a" && c.variant_label === "variant-2"));
-    assert.ok(payload.cells.some((c: { case_id: string; variant_label: string }) => c.case_id === "case-b" && c.variant_label === "variant-1"));
-    assert.ok(payload.cells.some((c: { case_id: string; variant_label: string }) => c.case_id === "case-b" && c.variant_label === "variant-2"));
+    assert.ok(
+      payload.cells.some(
+        (c: { case_id: string; variant_label: string }) =>
+          c.case_id === "case-a" && c.variant_label === "variant-1",
+      ),
+    );
+    assert.ok(
+      payload.cells.some(
+        (c: { case_id: string; variant_label: string }) =>
+          c.case_id === "case-a" && c.variant_label === "variant-2",
+      ),
+    );
+    assert.ok(
+      payload.cells.some(
+        (c: { case_id: string; variant_label: string }) =>
+          c.case_id === "case-b" && c.variant_label === "variant-1",
+      ),
+    );
+    assert.ok(
+      payload.cells.some(
+        (c: { case_id: string; variant_label: string }) =>
+          c.case_id === "case-b" && c.variant_label === "variant-2",
+      ),
+    );
   });
 
   it("handles empty matrix", async () => {
