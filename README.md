@@ -1,6 +1,6 @@
 # agent-eval
 
-Evaluation toolkit for LLM completions and agent traces. Write test cases as YAML, run them against any OpenAI-compatible endpoint, and score results with rule-based assertions or LLM-as-a-judge.
+Evaluation toolkit for LLM completions and agent traces. Write test cases as YAML, run them against any model defined in your `models.json` registry, and score results with rule-based assertions or LLM-as-a-judge.
 
 ```
 agent-eval run --file my-case.eval.yaml
@@ -16,6 +16,10 @@ agent-eval diff --case my-case --base '{"model":"gpt-4o"}' --candidate '{"model"
 - [How it works](#how-it-works)
 - [Install](#install)
 - [Configure](#configure)
+  - [Minimal config](#minimal-config-plain-cases-only)
+  - [Full config](#full-config-agent-cases--multi-judge)
+  - [Verify your setup](#verify-your-setup)
+  - [Model registry](#model-registry)
 - [Quick start](#quick-start)
 - [Case format](#case-format)
   - [Plain case](#plain-case)
@@ -27,7 +31,6 @@ agent-eval diff --case my-case --base '{"model":"gpt-4o"}' --candidate '{"model"
   - [Matrix evaluation](#matrix-evaluation)
   - [A/B diff](#ab-diff)
   - [Multi-model judging](#multi-model-judging)
-  - [Model registry](#model-registry-required-for-judging)
   - [Import online cases](#import-online-cases)
 - [Environment variables](#environment-variables)
 - [Exit codes](#exit-codes)
@@ -68,9 +71,9 @@ agent-eval diff --case my-case --base '{"model":"gpt-4o"}' --candidate '{"model"
 
 **Two case types:**
 
-| Type | What it does | Required env |
-|------|-------------|--------------|
-| `plain` | Sends messages to a chat completion endpoint; scores the response | `EVAL_MODELS_PATH` (or `./models.json`) + env vars referenced by that model |
+| Type | What it does | Required config |
+|------|-------------|-----------------|
+| `plain` | Sends messages to a chat completion endpoint; scores the response | `models.json` with the model used in the case |
 | `agent` | Runs a full agent loop with MCP tool calls; scores the full trace | Same + `EVAL_MCP_*` when your MCP server requires auth/override |
 
 ---
@@ -103,12 +106,10 @@ The tool auto-discovers `.env` and `.env.local` by walking up from the working d
 
 ### Minimal config (plain cases only)
 
-```bash
-# LLM endpoint — any OpenAI-compatible API works
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_API_KEY=sk-...
+All model configuration — endpoint, credentials, and model metadata — lives in `models.json`. The runner resolves `input.model` from the case file as a model id in that registry. See [Model registry](#model-registry) below for the full format.
 
-# Model registry — you must provide your own models.json (see Model registry section)
+```bash
+# Path to your model registry (auto-discovered if ./models.json exists in cwd)
 EVAL_MODELS_PATH=./models.json
 
 # Judge model id — must be defined in your models.json
@@ -118,9 +119,8 @@ EVAL_JUDGE_MODEL=gpt-4o-mini
 ### Full config (agent cases + multi-judge)
 
 ```bash
-# Runner
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_API_KEY=sk-...
+# Model registry
+EVAL_MODELS_PATH=./models.json
 
 # LLM judge — single model
 EVAL_JUDGE_MODEL=gpt-4o-mini
@@ -129,7 +129,7 @@ EVAL_JUDGE_MODEL=gpt-4o-mini
 # EVAL_JUDGE_MODELS=gpt-4o-mini,gpt-4o,claude-3-5-sonnet
 # EVAL_JUDGE_AGGREGATION=median        # median (default) | mean | iqm
 
-# Judge endpoint override (if different from runner; e.g. LiteLLM gateway)
+# Judge endpoint override (if different from runner model; e.g. LiteLLM gateway)
 # EVAL_JUDGE_BASE_URL=https://your-litellm.com/v1
 # EVAL_JUDGE_API_KEY=your-litellm-key
 
@@ -140,9 +140,6 @@ EVAL_MCP_X_TOKEN=                                    # auth token for MCP server
 # Agent runner — upstream API (character/asset provider)
 EVAL_UPSTREAM_API_BASE_URL=https://api.talesofai.cn  # default
 EVAL_UPSTREAM_X_TOKEN=                               # auth token for upstream
-
-# Model registry — provide your own models.json (see Model registry section)
-EVAL_MODELS_PATH=./models.json
 ```
 
 ### Verify your setup
@@ -152,6 +149,70 @@ agent-eval doctor
 ```
 
 This checks all required env vars and prints ✅ / ⚠️ / ❌ with hints. Pass `--mode plain` or `--mode agent` to scope the check.
+
+---
+
+### Model registry
+
+All models — for the runner and for judging — must be defined in a `models.json` file that you create and maintain. **No models are bundled with the package** — this is intentional so you control exactly which models and endpoints are available.
+
+The `input.model` field in every case file is resolved as a model id against this registry.
+
+**Resolution order:**
+1. `EVAL_MODELS_PATH` env var (explicit path)
+2. `./models.json` in current working directory (auto-discovered)
+
+**Create `./models.json`** in your project root:
+
+```json
+{
+  "models": {
+    "gpt-4o-mini": {
+      "id": "gpt-4o-mini",
+      "name": "GPT-4o Mini",
+      "api": "openai-completions",
+      "provider": "openai",
+      "baseUrl": "https://api.openai.com/v1",
+      "apiKey": "${OPENAI_API_KEY}"
+    },
+    "qwen-plus": {
+      "id": "qwen-plus",
+      "name": "Qwen Plus",
+      "api": "openai-completions",
+      "provider": "alibaba",
+      "baseUrl": "${DASHSCOPE_BASE_URL}",
+      "apiKey": "${DASHSCOPE_API_KEY}"
+    },
+    "claude-3-5-sonnet": {
+      "id": "claude-3-5-sonnet",
+      "name": "Claude 3.5 Sonnet",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "${ANTHROPIC_BASE_URL}",
+      "headers": {
+        "x-api-key": "${ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+**Field reference:**
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `id` | ✅ | Model identifier (used in case `input.model`, `EVAL_JUDGE_MODEL`, etc.) |
+| `name` | ✅ | Human-readable name |
+| `api` | ✅ | `openai-completions` or `anthropic-messages` |
+| `provider` | ✅ | Provider label (informational) |
+| `baseUrl` | ✅ | API base URL. Supports `${ENV_VAR}` interpolation. |
+| `apiKey` | — | API key for this model. Supports `${ENV_VAR}` interpolation. Preferred over putting auth in `headers`. |
+| `headers` | — | Additional HTTP headers. Supports `${ENV_VAR}` interpolation. |
+| `input` | — | `["text"]` or `["text", "image"]` |
+| `contextWindow` | — | Context window size in tokens |
+| `maxTokens` | — | Max output tokens |
+
+`${VAR_NAME}` in any field is expanded from environment variables at load time.
 
 ---
 
@@ -676,79 +737,9 @@ reason: gpt-4o-mini: 0.80 - accurate | gpt-4o: 0.90 - detailed |
 
 ---
 
-### Model registry (required for judging)
+### Model registry (required for all cases)
 
-Models used for judging must be defined in a `models.json` file that you create and maintain.
-**No models are bundled with the package** — this is intentional so you control exactly which
-models and endpoints are available.
-
-**Resolution order:**
-1. `EVAL_MODELS_PATH` env var (explicit path)
-2. `./models.json` in current working directory (auto-discovered)
-3. Falls back to empty registry (no models available)
-
-**Create `./models.json`** in your project root:
-
-```json
-{
-  "models": {
-    "gpt-4o-mini": {
-      "id": "gpt-4o-mini",
-      "name": "GPT-4o Mini",
-      "api": "openai-completions",
-      "provider": "openai",
-      "baseUrl": "${OPENAI_BASE_URL}",
-      "headers": {
-        "Authorization": "Bearer ${OPENAI_API_KEY}"
-      }
-    },
-    "qwen3.5-plus": {
-      "id": "qwen3.5-plus",
-      "name": "Qwen 3.5 Plus",
-      "api": "openai-completions",
-      "provider": "alibaba",
-      "baseUrl": "${OPENAI_BASE_URL}",
-      "headers": {
-        "Authorization": "Bearer ${OPENAI_API_KEY}"
-      }
-    },
-    "claude-3-5-sonnet": {
-      "id": "claude-3-5-sonnet",
-      "name": "Claude 3.5 Sonnet",
-      "api": "anthropic-messages",
-      "provider": "anthropic",
-      "baseUrl": "${ANTHROPIC_BASE_URL}",
-      "headers": {
-        "x-api-key": "${ANTHROPIC_API_KEY}"
-      }
-    }
-  }
-}
-```
-
-**Field reference:**
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `id` | ✅ | Model identifier (used in `EVAL_JUDGE_MODEL` etc.) |
-| `name` | ✅ | Human-readable name |
-| `api` | ✅ | `openai-completions` or `anthropic-messages` |
-| `provider` | ✅ | Provider label (informational) |
-| `baseUrl` | ✅ | API base URL. Supports `${ENV_VAR}` interpolation. |
-| `apiKey` | — | Per-model API key. Supports `${ENV_VAR}` interpolation. |
-| `headers` | — | HTTP headers. Supports `${ENV_VAR}` interpolation. |
-| `input` | — | `["text"]` or `["text", "image"]` |
-| `contextWindow` | — | Context window size in tokens |
-| `maxTokens` | — | Max output tokens |
-
-`${VAR_NAME}` in `baseUrl` and `headers` is expanded from environment variables at load time.
-
-Then configure the judge in `.env`:
-
-```bash
-EVAL_MODELS_PATH=./models.json    # or omit if ./models.json is in cwd
-EVAL_JUDGE_MODEL=qwen3.5-plus
-```
+See [Model registry](#model-registry) under Configure for the full format and field reference.
 
 ---
 
@@ -759,22 +750,19 @@ EVAL_JUDGE_MODEL=qwen3.5-plus
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `EVAL_MODELS_PATH` | ✅* | `./models.json` in cwd | Path to your model registry JSON. Required unless `./models.json` exists in cwd. |
-| `OPENAI_BASE_URL` | — | — | Optional convenience env var for `${OPENAI_BASE_URL}` placeholders in `models.json`. |
-| `OPENAI_API_KEY` | — | — | Optional convenience env var for `${OPENAI_API_KEY}` placeholders in `models.json`. |
-| `OPENAI_X_TOKEN` | — | — | Optional extra `x-token` header for runner requests. |
+| `EVAL_UPSTREAM_X_TOKEN` | — | — | Optional `x-token` header added to runner requests and upstream API calls. |
 
-`*` runner also needs any env vars referenced by your `models.json` entries (e.g. `${ANTHROPIC_API_KEY}`).
+`*` Any env vars referenced by `${VAR}` placeholders in your `models.json` entries must also be set (e.g. `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`).
 
 ### Judge (required for `llm_judge`, `task_success`, `diff`)
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `EVAL_MODELS_PATH` | ✅* | `./models.json` in cwd | Path to your model registry JSON. Required unless `./models.json` exists in cwd. |
 | `EVAL_JUDGE_MODEL` | ✅* | — | Single judge model id (must be defined in your registry). Required unless `EVAL_JUDGE_MODELS` is set. |
 | `EVAL_JUDGE_MODELS` | — | — | Comma-separated model ids for multi-model judging. Overrides `EVAL_JUDGE_MODEL`. |
 | `EVAL_JUDGE_AGGREGATION` | — | `median` | Aggregation method: `median`, `mean`, or `iqm` |
-| `EVAL_JUDGE_BASE_URL` | — | `OPENAI_BASE_URL` | Judge endpoint (e.g. LiteLLM). Falls back to runner endpoint. |
-| `EVAL_JUDGE_API_KEY` | — | `OPENAI_API_KEY` | Judge API key. Falls back to runner key. |
+| `EVAL_JUDGE_BASE_URL` | — | — | Judge endpoint override (e.g. LiteLLM gateway). Overrides the model's `baseUrl` from registry. |
+| `EVAL_JUDGE_API_KEY` | — | — | Judge API key override. Overrides the model's `apiKey` from registry. |
 
 ### Agent runner
 
