@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { resolveLegacyAgentPromptFile } from "../env.ts";
+import { resolveLegacyAgentPromptFile } from "../config.ts";
 import type { AgentEvalCase, PlainEvalCase } from "../types.ts";
 
 export type NormalizedAgentCase = Omit<PlainEvalCase, "type"> & {
@@ -155,7 +155,7 @@ export function normalizeAgentInput(
 
   if (!input.model) {
     throw new Error(
-      "agent case input.model is required in legacy preset_key mode",
+      "agent case input.model is required when using parameter-templated system prompt",
     );
   }
 

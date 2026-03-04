@@ -1,8 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import pc from "picocolors";
-import { computeRunExitCode } from "../cli-shared.ts";
-import { resolveMcpServerBaseURL } from "../env.ts";
+import { resolveMcpServerBaseURL } from "../config.ts";
 import { missingConfig, noCases } from "../errors.ts";
 import { renderRunHtmlReport } from "../reporter/html.ts";
 import { renderRunMarkdownReport } from "../reporter/terminal.ts";
@@ -31,9 +30,10 @@ import {
   getMissingJudgeConfig,
   getMissingRunConfig,
 } from "./config-check.ts";
-import { type OutputFormat } from "./helpers.ts";
+import type { OutputFormat } from "./helpers.ts";
 import type { RunCommandOptions } from "./options.ts";
 import { maybeShareHtmlReport } from "./share.ts";
+import { computeRunExitCode } from "./shared.ts";
 
 function resolveRunReportPath(options: {
   recordDir?: string;

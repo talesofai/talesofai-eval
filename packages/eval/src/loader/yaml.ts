@@ -161,8 +161,6 @@ const plainCaseSchemaRaw = z.object({
   input: z.object({
     system_prompt: z.string(),
     model: z.string(),
-    openai_base_url: z.string().optional(),
-    openai_api_key: z.string().optional(),
     messages: z.array(evalMessageSchema),
     allowed_tool_names: z.array(z.string()).optional(),
   }),
@@ -185,7 +183,10 @@ const agentInputSchema = z
     preset_key: z.string().default(DEFAULT_AGENT_PRESET_KEY),
     system_prompt: z.string().optional(),
     model: z.string().optional(),
-    parameters: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+    parameters: z.record(
+      z.string(),
+      z.union([z.string(), z.number(), z.boolean()]),
+    ),
     messages: z.array(evalMessageSchema),
     allowed_tool_names: z.array(z.string()).optional(),
     need_approval_tool_names: z.array(z.string()).optional(),

@@ -1,0 +1,98 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Model Registry",
+	"description": "Configuration for LLM models used in evaluation",
+	"type": "object",
+	"required": ["models"],
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "JSON Schema reference"
+		},
+		"models": {
+			"type": "object",
+			"description": "Map of model IDs to their configurations",
+			"additionalProperties": {
+				"type": "object",
+				"required": ["id", "name", "api", "provider", "baseUrl"],
+				"properties": {
+					"id": {
+						"type": "string",
+						"description": "Unique identifier for the model"
+					},
+					"name": {
+						"type": "string",
+						"description": "Human-readable name for the model"
+					},
+					"api": {
+						"type": "string",
+						"description": "API type for the model",
+						"enum": ["openai-completions", "anthropic-messages"]
+					},
+					"provider": {
+						"type": "string",
+						"description": "Provider name (e.g., openai, anthropic)"
+					},
+					"baseUrl": {
+						"type": "string",
+						"description": "Base URL for the API endpoint (supports ${ENV_VAR} substitution)"
+					},
+					"apiKey": {
+						"type": "string",
+						"description": "API key for authentication (supports ${ENV_VAR} substitution)"
+					},
+					"reasoning": {
+						"type": "boolean",
+						"description": "Whether the model supports reasoning capabilities"
+					},
+					"input": {
+						"type": "array",
+						"description": "Supported input types",
+						"items": {
+							"type": "string",
+							"enum": ["text", "image"]
+						}
+					},
+					"cost": {
+						"type": "object",
+						"description": "Cost per million tokens",
+						"required": ["input", "output"],
+						"properties": {
+							"input": {
+								"type": "number",
+								"description": "Cost per million input tokens"
+							},
+							"output": {
+								"type": "number",
+								"description": "Cost per million output tokens"
+							},
+							"cacheRead": {
+								"type": "number",
+								"description": "Cost per million cache read tokens"
+							},
+							"cacheWrite": {
+								"type": "number",
+								"description": "Cost per million cache write tokens"
+							}
+						}
+					},
+					"contextWindow": {
+						"type": "integer",
+						"description": "Maximum context window in tokens"
+					},
+					"maxTokens": {
+						"type": "integer",
+						"description": "Maximum tokens per response"
+					},
+					"headers": {
+						"type": "object",
+						"description": "Additional HTTP headers (supports ${ENV_VAR} substitution)",
+						"additionalProperties": {
+							"type": "string"
+						}
+					}
+				}
+			}
+		}
+	}
+}

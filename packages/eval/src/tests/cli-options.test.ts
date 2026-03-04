@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { CliError } from "../errors.ts";
 import {
   parseDiffCommandOptions,
   parseDoctorCommandOptions,
@@ -10,6 +9,7 @@ import {
   parseReportCommandOptions,
   parseRunCommandOptions,
 } from "../cli/options.ts";
+import type { CliError } from "../errors.ts";
 
 function assertCliError(error: unknown): asserts error is CliError {
   assert.ok(error && typeof error === "object");
@@ -42,7 +42,7 @@ describe("cli option parsers", () => {
     assert.equal(parsed.concurrency, 3);
     assert.equal(parsed.judgeThreshold, 0.8);
     assert.equal(parsed.format, "terminal");
-    assert.equal(parsed.share, true);
+    assert.equal(parsed.share, false);
     assert.equal(parsed.replayWriteMetrics, false);
   });
 

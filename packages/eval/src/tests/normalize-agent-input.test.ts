@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { getMissingRunConfig } from "../cli/config-check.ts";
-import { normalizeAgentInput } from "../runners/normalize-agent-input.ts";
+import { normalizeAgentInput } from "../runner/normalize-agent-input.ts";
 import type { AgentEvalCase } from "../types.ts";
 
 const baseLegacyCase = (): AgentEvalCase => ({
@@ -29,8 +29,6 @@ const temporaryDirs: string[] = [];
 
 describe("normalizeAgentInput", () => {
   afterEach(() => {
-    delete process.env["OPENAI_BASE_URL"];
-    delete process.env["OPENAI_API_KEY"];
     delete process.env["EVAL_UPSTREAM_API_BASE_URL"];
     delete process.env["EVAL_LEGACY_AGENT_PROMPT_FILE"];
 
@@ -167,7 +165,7 @@ describe("normalizeAgentInput", () => {
 
     assert.throws(
       () => normalizeAgentInput(evalCase),
-      /legacy preset_key mode/,
+      /model is required when using parameter-templated system prompt/,
     );
   });
 
@@ -234,12 +232,12 @@ describe("normalizeAgentInput", () => {
 });
 
 describe("getMissingRunConfig for agent", () => {
-  it("requires OPENAI_BASE_URL + OPENAI_API_KEY and not EVAL_UPSTREAM_API_BASE_URL", () => {
+  it("no longer requires OPENAI_BASE_URL + OPENAI_API_KEY (models.json handles this)", () => {
     const cases: AgentEvalCase[] = [baseLegacyCase()];
 
     const missing = getMissingRunConfig(cases);
-    assert.ok(missing.includes("OPENAI_BASE_URL"));
-    assert.ok(missing.includes("OPENAI_API_KEY"));
+    assert.ok(!missing.includes("OPENAI_BASE_URL"));
+    assert.ok(!missing.includes("OPENAI_API_KEY"));
     assert.ok(!missing.includes("EVAL_UPSTREAM_API_BASE_URL"));
   });
 
@@ -262,14 +260,6 @@ describe("getMissingRunConfig for agent", () => {
 
     const missing = getMissingRunConfig(cases, { tierMax: 1 });
     assert.ok(!missing.includes("EVAL_JUDGE_MODEL"));
-    assert.ok(
-      !missing.includes("EVAL_JUDGE_BASE_URL|OPENAI_BASE_URL"),
-      "judge base url should not be required at tierMax=1",
-    );
-    assert.ok(
-      !missing.includes("EVAL_JUDGE_API_KEY|OPENAI_API_KEY"),
-      "judge api key should not be required at tierMax=1",
-    );
   });
 
   it("requires judge config when tierMax includes judge assertions", () => {

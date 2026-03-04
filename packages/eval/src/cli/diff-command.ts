@@ -1,7 +1,7 @@
-import { resolveMcpServerBaseURL } from "../env.ts";
+import { resolveMcpServerBaseURL } from "../config.ts";
+import { compareTraces } from "../diff/index.ts";
 import { missingConfig, noCases } from "../errors.ts";
-import { runCase } from "../runners/index.ts";
-import { compareTraces } from "../scorers/diff.ts";
+import { runCase } from "../runner/index.ts";
 import type { DiffSummary, DiffVerdict, RunnerOptions } from "../types.ts";
 import { runConcurrently } from "../utils/concurrency.ts";
 import { resolveCasesFromArgs } from "./case-resolution.ts";
@@ -14,7 +14,9 @@ import {
 import { getMissingDiffConfig } from "./config-check.ts";
 import type { DiffCommandOptions } from "./options.ts";
 
-export async function diffCommand(options: DiffCommandOptions): Promise<number> {
+export async function diffCommand(
+  options: DiffCommandOptions,
+): Promise<number> {
   const { cases, unmatchedFilePatterns } = resolveCasesFromArgs(options);
   if (cases.length === 0) {
     throw noCases("diff", unmatchedFilePatterns);

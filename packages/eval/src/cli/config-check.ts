@@ -1,11 +1,4 @@
-import {
-  ENV_KEYS,
-  resolveJudgeApiKey,
-  resolveJudgeBaseURL,
-  resolveJudgeModel,
-  resolveRunnerApiKey,
-  resolveRunnerBaseURL,
-} from "../env.ts";
+import { ENV_KEYS, resolveJudgeModels } from "../config.ts";
 import type { AssertionConfig, EvalCase, EvalTier } from "../types.ts";
 
 const JUDGE_ASSERTION_TYPES = new Set<AssertionConfig["type"]>([
@@ -26,6 +19,16 @@ const DEFAULT_TIER: Record<AssertionConfig["type"], EvalTier> = {
 
 function resolveAssertionTier(assertion: AssertionConfig): EvalTier {
   return assertion.tier ?? DEFAULT_TIER[assertion.type];
+}
+
+function resolveJudgeModel(): string | undefined {
+  const value = process.env[ENV_KEYS.JUDGE_MODEL];
+  if (!value) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 export function caseNeedsJudge(
@@ -49,16 +52,12 @@ export function caseNeedsJudge(
 
 export function getMissingJudgeConfig(): string[] {
   const missing: string[] = [];
+  const multiJudgeModels = resolveJudgeModels();
 
-  if (!resolveJudgeBaseURL()) {
-    missing.push(`${ENV_KEYS.JUDGE_BASE_URL}|${ENV_KEYS.OPENAI_BASE_URL}`);
-  }
-
-  if (!resolveJudgeApiKey()) {
-    missing.push(`${ENV_KEYS.JUDGE_API_KEY}|${ENV_KEYS.OPENAI_API_KEY}`);
-  }
-
-  if (!resolveJudgeModel()) {
+  if (
+    (!multiJudgeModels || multiJudgeModels.length === 0) &&
+    !resolveJudgeModel()
+  ) {
     missing.push(ENV_KEYS.JUDGE_MODEL);
   }
 
@@ -81,17 +80,8 @@ export function getMissingRunConfig(
 
   const missing = new Set<string>();
 
+  // Check for judge config on cases that need it
   for (const evalCase of cases) {
-    const input = evalCase.type === "plain" ? evalCase.input : undefined;
-
-    if (!resolveRunnerBaseURL(input)) {
-      missing.add(ENV_KEYS.OPENAI_BASE_URL);
-    }
-
-    if (!resolveRunnerApiKey(input)) {
-      missing.add(ENV_KEYS.OPENAI_API_KEY);
-    }
-
     if (caseNeedsJudge(evalCase, { tierMax })) {
       for (const key of getMissingJudgeConfig()) {
         missing.add(key);
@@ -106,8 +96,10 @@ export function getMissingDiffConfig(cases: EvalCase[]): string[] {
   const missing = new Set<string>(
     getMissingRunConfig(cases, { replay: false }),
   );
-  for (const key of getMissingJudgeConfig()) {
-    missing.add(key);
+
+  if (!resolveJudgeModel()) {
+    missing.add(ENV_KEYS.JUDGE_MODEL);
   }
+
   return [...missing];
 }

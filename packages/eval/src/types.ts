@@ -62,9 +62,23 @@ export type AssertionConfig =
       expected_tools?: string[];
       forbidden_tools?: string[];
     }
-  | { type: "final_status"; tier?: EvalTier; expected_status: "SUCCESS" | "PENDING" | "FAILURE" }
-  | { type: "llm_judge"; tier?: EvalTier; prompt: string; pass_threshold: number }
-  | { type: "task_success"; tier?: EvalTier; user_goal?: string; pass_threshold: number }
+  | {
+      type: "final_status";
+      tier?: EvalTier;
+      expected_status: "SUCCESS" | "PENDING" | "FAILURE";
+    }
+  | {
+      type: "llm_judge";
+      tier?: EvalTier;
+      prompt: string;
+      pass_threshold: number;
+    }
+  | {
+      type: "task_success";
+      tier?: EvalTier;
+      user_goal?: string;
+      pass_threshold: number;
+    }
   | {
       type: "tool_parameter_accuracy";
       tier?: EvalTier;
@@ -72,7 +86,12 @@ export type AssertionConfig =
       expected_description: string;
       pass_threshold: number;
     }
-  | { type: "error_recovery"; tier?: EvalTier; tool_name?: string; pass_threshold?: number }
+  | {
+      type: "error_recovery";
+      tier?: EvalTier;
+      tool_name?: string;
+      pass_threshold?: number;
+    }
   | { type: "human_review"; tier?: EvalTier; reason?: string };
 
 export type EvalCriteria = {
@@ -98,9 +117,8 @@ export type PlainEvalCase = {
   description: string;
   input: {
     system_prompt: string;
+    /** Model ID to resolve from models.json */
     model: string;
-    openai_base_url?: string;
-    openai_api_key?: string;
     messages: EvalMessage[];
     allowed_tool_names?: string[];
   };
@@ -158,7 +176,8 @@ export type AgentEvalCase = {
   id: string;
   description: string;
   input: {
-    preset_key: string;
+    /** @deprecated No longer used by the runner. Kept for case file identification only. Use `system_prompt` + `model` instead. */
+    preset_key?: string;
     system_prompt?: string;
     model?: string;
     preset_description?: string;

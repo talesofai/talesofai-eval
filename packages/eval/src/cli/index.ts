@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 import { type CAC, cac } from "cac";
-import "./cases/index.ts";
+import "../cases/index.ts";
+import { didYouMean, printCliError, unknownCommand } from "../errors.ts";
+import { loadModels } from "../models/index.ts";
 import {
   doctorCommand,
   inspectCommand,
@@ -9,17 +11,17 @@ import {
   matrixReportCommand,
   pullOnlineCommand,
   reportCommand,
-} from "./cli/aux-commands.ts";
-import { diffCommand } from "./cli/diff-command.ts";
-import { autoLoadEnvFiles } from "./cli/env-loader.ts";
+} from "./aux-commands.ts";
+import { diffCommand } from "./diff-command.ts";
+import { autoLoadEnvFiles } from "./env-loader.ts";
 import {
   COMMANDS,
   isCommandName,
   mapUnknownError,
   parseUnknownOption,
   pickCommandFromArgv,
-} from "./cli/helpers.ts";
-import { matrixCommand } from "./cli/matrix-command.ts";
+} from "./helpers.ts";
+import { matrixCommand } from "./matrix-command.ts";
 import {
   parseDiffCommandOptions,
   parseDoctorCommandOptions,
@@ -29,10 +31,9 @@ import {
   parsePullOnlineCommandOptions,
   parseReportCommandOptions,
   parseRunCommandOptions,
-} from "./cli/options.ts";
-import { runCommand } from "./cli/run-command.ts";
-import { shouldUseJsonErrors } from "./cli-shared.ts";
-import { didYouMean, printCliError, unknownCommand } from "./errors.ts";
+} from "./options.ts";
+import { runCommand } from "./run-command.ts";
+import { shouldUseJsonErrors } from "./shared.ts";
 
 function buildCli(setPending: (promise: Promise<number>) => void): CAC {
   const cli = cac("agent-eval");
@@ -144,7 +145,7 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
   cli
     .command(
       "pull-online",
-      "Pull online collection and generate agent case yaml",
+      "[internal] Pull online collection and generate agent case yaml",
     )
     .option("--collection-uuid <uuid>", "Collection UUID")
     .option("--base-url <url>", "Upstream API base URL")
@@ -265,6 +266,14 @@ function installFatalSafetyNet(jsonMode: boolean): void {
 
 async function main(argv: string[]): Promise<number> {
   autoLoadEnvFiles();
+
+  // Load model registry at startup
+  try {
+    await loadModels();
+  } catch {
+    // Ignore errors - will be reported when resolveModel is called
+  }
+
   const jsonMode = shouldUseJsonErrors(argv);
   installFatalSafetyNet(jsonMode);
 
