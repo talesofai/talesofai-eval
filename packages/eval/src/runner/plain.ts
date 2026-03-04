@@ -9,7 +9,7 @@ import {
   Type,
   type Usage,
 } from "@mariozechner/pi-ai";
-import { resolveMcpXToken, resolveRunnerXToken } from "../config.ts";
+import { resolveMcpXToken, resolveUpstreamXToken } from "../config.ts";
 import { streamEvents } from "../inference/index.ts";
 import type { ModelConfig } from "../models/index.ts";
 import { resolveModel } from "../models/index.ts";
@@ -215,7 +215,7 @@ export const runPlain = async (
   const messages: Message[] = input.messages.map(toPiAiMessage);
 
   // Resolve x-token header
-  const xToken = resolveRunnerXToken();
+  const xToken = resolveUpstreamXToken();
   const headers = xToken ? { "x-token": xToken } : undefined;
 
   const context: Context = {

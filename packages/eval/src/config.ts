@@ -4,9 +4,6 @@ import {
 } from "./constants.ts";
 
 export const ENV_KEYS = {
-  // Runner
-  OPENAI_X_TOKEN: "OPENAI_X_TOKEN",
-
   // MCP
   MCP_SERVER_BASE_URL: "EVAL_MCP_SERVER_BASE_URL",
   MCP_X_TOKEN: "EVAL_MCP_X_TOKEN",
@@ -38,12 +35,6 @@ function readTrimmedValue(value: string | undefined): string | undefined {
 
 function readEnvValue(env: NodeJS.ProcessEnv, key: string): string | undefined {
   return readTrimmedValue(env[key]);
-}
-
-export function resolveRunnerXToken(
-  env: NodeJS.ProcessEnv = process.env,
-): string | undefined {
-  return readEnvValue(env, ENV_KEYS.OPENAI_X_TOKEN);
 }
 
 export function resolveMcpServerBaseURL(

@@ -73,8 +73,8 @@ export function collectDoctorChecks(
     {
       key: "EVAL_UPSTREAM_X_TOKEN",
       requiredFor: "agent run",
-      ok: isSet("EVAL_UPSTREAM_X_TOKEN") || isSet("OPENAI_X_TOKEN"),
-      hint: "Set EVAL_UPSTREAM_X_TOKEN for upstream API auth (character/asset provider). Falls back to OPENAI_X_TOKEN.",
+      ok: isSet("EVAL_UPSTREAM_X_TOKEN"),
+      hint: "Set EVAL_UPSTREAM_X_TOKEN for upstream API auth (character/asset provider).",
       optional: true,
     },
   ];

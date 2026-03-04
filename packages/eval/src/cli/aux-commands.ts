@@ -2,11 +2,7 @@ import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import pc from "picocolors";
 import YAML from "yaml";
-import {
-  resolveRunnerXToken,
-  resolveUpstreamBaseURL,
-  resolveUpstreamXToken,
-} from "../config.ts";
+import { resolveUpstreamBaseURL, resolveUpstreamXToken } from "../config.ts";
 import { invalidArgs, noCases } from "../errors.ts";
 import { extractAgentCaseFromCollection } from "../online/extract.ts";
 import {
@@ -110,12 +106,11 @@ export async function pullOnlineCommand(
     );
   }
 
-  const token =
-    options.xToken ?? resolveUpstreamXToken() ?? resolveRunnerXToken();
+  const token = options.xToken ?? resolveUpstreamXToken();
   if (!token || token.trim().length === 0) {
     throw invalidArgs(
       "missing x-token",
-      "Set --x-token or env EVAL_UPSTREAM_X_TOKEN/OPENAI_X_TOKEN",
+      "Set --x-token or env EVAL_UPSTREAM_X_TOKEN",
     );
   }
 
