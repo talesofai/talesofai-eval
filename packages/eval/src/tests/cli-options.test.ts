@@ -42,7 +42,7 @@ describe("cli option parsers", () => {
     assert.equal(parsed.concurrency, 3);
     assert.equal(parsed.judgeThreshold, 0.8);
     assert.equal(parsed.format, "terminal");
-    assert.equal(parsed.share, true);
+    assert.equal(parsed.share, false);
     assert.equal(parsed.replayWriteMetrics, false);
   });
 

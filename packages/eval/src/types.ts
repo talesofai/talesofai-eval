@@ -177,7 +177,8 @@ export type AgentEvalCase = {
   id: string;
   description: string;
   input: {
-    preset_key: string;
+    /** @deprecated No longer used by the runner. Kept for case file identification only. Use `system_prompt` + `model` instead. */
+    preset_key?: string;
     system_prompt?: string;
     model?: string;
     preset_description?: string;

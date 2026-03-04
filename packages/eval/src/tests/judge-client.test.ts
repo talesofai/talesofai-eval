@@ -62,7 +62,7 @@ describe("callJudge", () => {
 
     assert.equal("error" in result, true);
     if ("error" in result) {
-      assert.match(result.error, /Models not loaded/);
+      assert.match(result.error, /Model registry not loaded/);
     }
   });
 });

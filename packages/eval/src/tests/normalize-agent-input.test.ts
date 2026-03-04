@@ -167,7 +167,7 @@ describe("normalizeAgentInput", () => {
 
     assert.throws(
       () => normalizeAgentInput(evalCase),
-      /legacy preset_key mode/,
+      /model is required when using parameter-templated system prompt/,
     );
   });
 

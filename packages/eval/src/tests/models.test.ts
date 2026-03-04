@@ -174,7 +174,7 @@ describe("models", () => {
     it("throws for unknown model", () => {
       assert.throws(
         () => resolveModel("unknown-model"),
-        /Model not found: unknown-model/,
+        /Model not found in registry/,
       );
     });
   });

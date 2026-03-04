@@ -145,7 +145,7 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
   cli
     .command(
       "pull-online",
-      "Pull online collection and generate agent case yaml",
+      "[internal] Pull online collection and generate agent case yaml",
     )
     .option("--collection-uuid <uuid>", "Collection UUID")
     .option("--base-url <url>", "Upstream API base URL")

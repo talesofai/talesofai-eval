@@ -155,7 +155,7 @@ export function normalizeAgentInput(
 
   if (!input.model) {
     throw new Error(
-      "agent case input.model is required in legacy preset_key mode",
+      "agent case input.model is required when using parameter-templated system prompt",
     );
   }
 

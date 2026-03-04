@@ -37,6 +37,6 @@ describe("scoreLlmJudgeAssertion config errors", () => {
 
     assert.equal(result.passed, false);
     assert.equal(result.score, 0);
-    assert.match(result.reason, /missing required EVAL_JUDGE_MODEL/);
+    assert.match(result.reason, /no judge model configured/);
   });
 });

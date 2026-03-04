@@ -393,7 +393,7 @@ describe("scoreTaskSuccess user_goal inference", () => {
       );
       assert.equal(result.passed, false);
       assert.equal(result.score, 0);
-      assert.match(result.reason, /missing required/);
+      assert.match(result.reason, /no judge model configured/);
     } finally {
       if (origModel) process.env["EVAL_JUDGE_MODEL"] = origModel;
     }

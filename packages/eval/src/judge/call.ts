@@ -1,17 +1,33 @@
 import type { Context } from "@mariozechner/pi-ai";
 import { complete } from "../inference/index.ts";
+import { listModels, resolveModel } from "../models/index.ts";
 import type { ModelConfig } from "../models/index.ts";
-import { resolveModel } from "../models/index.ts";
 import { safeParseJson } from "../utils/safe-parse-json.ts";
 
 export type JudgeScoreResult =
   | { score: number; reason: string }
   | { error: string };
 
+/**
+ * Resolve judge model id.
+ * Resolution order:
+ * 1. EVAL_JUDGE_MODEL env var (explicit)
+ * 2. First model in loaded registry (implicit default)
+ */
 function resolveJudgeModelId(): string | undefined {
   const value = process.env["EVAL_JUDGE_MODEL"];
   const trimmed = value?.trim();
-  return trimmed && trimmed.length > 0 ? trimmed : undefined;
+  if (trimmed && trimmed.length > 0) {
+    return trimmed;
+  }
+
+  // Fall back to first model in registry
+  try {
+    const models = listModels();
+    return models[0];
+  } catch {
+    return undefined;
+  }
 }
 
 export async function callJudgeForModel(
@@ -86,7 +102,10 @@ export async function callJudge(
 ): Promise<JudgeScoreResult> {
   const modelId = resolveJudgeModelId();
   if (!modelId) {
-    return { error: "missing required EVAL_JUDGE_MODEL" };
+    return {
+      error:
+        "no judge model configured: set EVAL_JUDGE_MODEL=<id> or ensure models.json has at least one model",
+    };
   }
 
   return callJudgeForModel(modelId, systemPrompt, userPrompt, retries);
