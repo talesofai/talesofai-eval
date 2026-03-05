@@ -1,7 +1,16 @@
 {
-  "name": "agent-eval",
+  "name": "@talesofai/agent-eval",
   "version": "0.1.0",
   "private": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/talesofai/talesofai-eval.git",
+    "directory": "packages/eval"
+  },
   "type": "module",
   "bin": {
     "agent-eval": "./dist/cli/index.js"
