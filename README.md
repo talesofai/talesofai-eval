@@ -80,21 +80,40 @@ agent-eval diff --case my-case --base '{"model":"gpt-4o"}' --candidate '{"model"
 
 ## Install
 
-### Step 1: Configure npm for GitHub Packages
+### Step 1: Authenticate with GitHub Packages
 
-This package is published to GitHub Packages. Add this to your `~/.npmrc`:
+GitHub Packages requires authentication even for public packages. Create a Personal Access Token (PAT) with `read:packages` scope:
+
+1. Go to https://github.com/settings/tokens/new
+2. Select scopes: `read:packages` (minimum)
+3. Generate and copy the token
+
+Then configure npm:
+
+```bash
+# Using GitHub CLI (recommended)
+echo "//npm.pkg.github.com/:_authToken=$(gh auth token)" >> ~/.npmrc
+
+# Or manually with your PAT
+echo "//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN" >> ~/.npmrc
+```
+
+### Step 2: Configure registry scope
+
+Add this to your `~/.npmrc` (or project-level `.npmrc`):
 
 ```bash
 echo "@talesofai:registry=https://npm.pkg.github.com" >> ~/.npmrc
 ```
 
-If you're installing in a CI environment or want project-level config, create `.npmrc` in your project root:
+Your `~/.npmrc` should now contain:
 
 ```
+//npm.pkg.github.com/:_authToken=ghp_xxxx
 @talesofai:registry=https://npm.pkg.github.com
 ```
 
-### Step 2: Install the package
+### Step 3: Install the package
 
 ```bash
 # Global install (recommended for CLI usage)
@@ -104,7 +123,7 @@ npm install -g @talesofai/agent-eval
 npm install @talesofai/agent-eval
 ```
 
-### Step 3: Verify installation
+### Step 4: Verify installation
 
 ```bash
 agent-eval --version
