@@ -1,5 +1,6 @@
 import { parseToolOutput } from "../metrics/trace-metrics.ts";
 import type { EvalResult, EvalTrace, Span, TimingSummary, ToolCallRecord } from "../types.ts";
+import { computeTimingSummary as computeTimingSummaryCore } from "../utils/span-collector.ts";
 import { isRecord } from "../utils/type-guards.ts";
 import {
   resolveMetrics,
@@ -330,40 +331,5 @@ export function buildSpanViews(spans: Span[] | undefined): SpanView[] {
 export function buildTimingSummary(
   spans: Span[] | undefined,
 ): TimingSummaryView | null {
-  if (!spans || spans.length === 0) return null;
-
-  const summary: TimingSummary = {
-    mcp_connect_ms: 0,
-    mcp_list_tools_ms: 0,
-    llm_total_ms: 0,
-    llm_first_token_ms: null,
-    tool_total_ms: 0,
-    turns_count: 0,
-  };
-
-  for (const span of spans) {
-    switch (span.kind) {
-      case "mcp_connect":
-        summary.mcp_connect_ms += span.duration_ms;
-        break;
-      case "mcp_list_tools":
-        summary.mcp_list_tools_ms += span.duration_ms;
-        break;
-      case "llm_turn":
-        summary.llm_total_ms += span.duration_ms;
-        summary.turns_count++;
-        if (
-          span.attributes?.first_token_ms !== undefined &&
-          summary.llm_first_token_ms === null
-        ) {
-          summary.llm_first_token_ms = span.attributes.first_token_ms;
-        }
-        break;
-      case "tool_call":
-        summary.tool_total_ms += span.duration_ms;
-        break;
-    }
-  }
-
-  return summary;
+  return computeTimingSummaryCore(spans);
 }

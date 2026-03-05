@@ -1,5 +1,7 @@
 node_modules/
 dist/
+*.tsbuildinfo
+
 coverage/
 .nyc_output/
 .eval-records/

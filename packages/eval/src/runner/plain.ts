@@ -261,6 +261,7 @@ export const runPlain = async (
   // 3. Agentic loop
   for (let turn = 0; turn < MAX_TURNS; turn++) {
     const turnSpanName = `turn_${turn}`;
+    const turnStartTime = Date.now();
     spans.start(turnSpanName, "llm_turn");
 
     const eventStream = streamEvents(model, context, { headers });
@@ -275,7 +276,7 @@ export const runPlain = async (
       switch (event.type) {
         case "text_delta":
           if (firstTokenMs === null) {
-            firstTokenMs = Date.now();
+            firstTokenMs = Date.now() - turnStartTime;
           }
           assistantContent += event.delta;
           opts.onDelta?.(event.delta);
