@@ -13,12 +13,13 @@
   },
   "type": "module",
   "bin": {
-    "agent-eval": "./dist/cli/index.js"
+    "agent-eval": "./bin/agent-eval.js"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "files": [
-    "dist",
+    "bin",
+    "src",
     "models.json",
     "models.schema.json",
     "README.md",
@@ -26,15 +27,12 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/copy-report-templates.mjs",
-    "dev": "tsc -p tsconfig.build.json --watch",
-    "prepublishOnly": "pnpm build",
-    "agent-eval": "node dist/cli/index.js",
+    "agent-eval": "tsx src/cli/index.ts",
     "test": "node --test src/tests/*.test.ts",
     "test:coverage": "c8 --check-coverage --lines 80 --branches 75 --functions 85 --statements 80 --reporter=text-summary --reporter=lcov node --test src/tests/*.test.ts",
     "typecheck": "tsc --noEmit",
     "lint": "pnpm dlx @biomejs/biome check src",
-    "generate-schema": "node scripts/generate-schema.ts"
+    "generate-schema": "tsx scripts/generate-schema.ts"
   },
   "dependencies": {
     "@mariozechner/pi-ai": "^0.55.4",
@@ -48,6 +46,7 @@
     "openai": "^6.17.0",
     "picocolors": "^1.1.1",
     "pino": "^9.5.0",
+    "tsx": "^4.19.0",
     "yaml": "^2.8.2",
     "zod": "^4.3.6",
     "zod3": "npm:zod@^3.25.76"

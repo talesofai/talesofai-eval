@@ -13,10 +13,12 @@ import type {
   MatrixReporter,
   MatrixSummary,
   Reporter,
+  TimingSummary,
   ToolCallRecord,
   ToolCallStartRecord,
   TraceMetrics,
 } from "../types.ts";
+import { computeTimingSummary } from "../utils/span-collector.ts";
 
 const METRICS_DEBUG_ARTIFACT_LIMIT = 10;
 const MAX_DEBUG_UUID_CHARS = 64;
@@ -106,6 +108,8 @@ export const createJsonReporter = (options?: {
         metrics: TraceMetrics;
         conversation?: typeof result.trace.conversation;
         tools_called?: typeof result.trace.tools_called;
+        spans?: typeof result.trace.spans;
+        timing_summary?: TimingSummary;
         error?: string;
       } = {
         type: "result",
@@ -119,6 +123,15 @@ export const createJsonReporter = (options?: {
           ? buildVerboseMetrics(result)
           : resolveStableMetrics(result),
       };
+
+      if (verbose && result.trace.spans) {
+        output.spans = result.trace.spans;
+      }
+
+      const timingSummary = computeTimingSummary(result.trace.spans);
+      if (timingSummary) {
+        output.timing_summary = timingSummary;
+      }
 
       if (verbose) {
         output.conversation = result.trace.conversation;

@@ -13,10 +13,14 @@ import {
   buildCaseMetricsView,
   buildCaseRowView,
   buildConversationView,
+  buildSpanViews,
+  buildTimingSummary,
   buildToolCallViews,
   type CaseMetricsView,
   type CaseRowView,
   type ConversationItemView,
+  type SpanView,
+  type TimingSummaryView,
   type ToolCallView,
 } from "./report-view.ts";
 
@@ -32,6 +36,8 @@ export type ReportCasePayload = {
   tool_calls: ToolCallView[];
   conversation: ConversationItemView[];
   result: EvalResult;
+  span_views: SpanView[];
+  timing_summary: TimingSummaryView | null;
 };
 
 export type ReportPayload = {
@@ -103,6 +109,8 @@ function buildReportCasePayload(result: EvalResult): ReportCasePayload {
     tool_calls: toolCalls,
     conversation: buildConversationView(result.trace, toolCalls),
     result,
+    span_views: buildSpanViews(result.trace.spans),
+    timing_summary: buildTimingSummary(result.trace.spans),
   };
 }
 

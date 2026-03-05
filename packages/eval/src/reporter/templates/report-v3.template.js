@@ -173,6 +173,81 @@ function renderToolMedia(media) {
   return `<div class="media-preview"><div class="media-grid">${items}</div></div>`;
 }
 
+// Render timing breakdown
+function renderTimingBreakdown(spanViews, timingSummary) {
+  if (!spanViews || spanViews.length === 0) return "";
+
+  const maxDuration = Math.max(...spanViews.map((s) => s.duration_ms));
+
+  const barsHtml = spanViews
+    .map((span) => {
+      const width = (span.duration_ms / maxDuration) * 100;
+      const indent = span.depth * 16;
+      const kindColors = {
+        mcp_connect: "var(--text-tertiary)",
+        mcp_list_tools: "var(--text-tertiary)",
+        llm_turn: "var(--accent-primary)",
+        tool_call: "var(--accent-secondary)",
+      };
+      const color = kindColors[span.kind] || "var(--text-tertiary)";
+
+      const kindLabels = {
+        mcp_connect: "MCP Connect",
+        mcp_list_tools: "MCP List Tools",
+        llm_turn: "LLM Turn",
+        tool_call: "Tool Call",
+      };
+      const label = kindLabels[span.kind] || span.kind;
+      const displayLabel =
+        span.kind === "llm_turn"
+          ? `${label} ${span.name.split("_")[1]}`
+          : span.kind === "tool_call"
+            ? span.name.replace(/^tool_/, "").split("_").slice(0, -1).join("_")
+            : label;
+
+      let attrsHtml = "";
+      if (span.attributes?.first_token_ms !== undefined) {
+        attrsHtml = `<span class="span-attr">first token: ${span.attributes.first_token_ms}ms</span>`;
+      }
+      if (span.attributes?.input_tokens !== undefined) {
+        attrsHtml += `<span class="span-attr">in: ${span.attributes.input_tokens}</span>`;
+        attrsHtml += `<span class="span-attr">out: ${span.attributes.output_tokens}</span>`;
+      }
+
+      return `
+        <div class="span-row" style="margin-left: ${indent}px">
+          <div class="span-label">${escapeHtml(displayLabel)}</div>
+          <div class="span-bar-container">
+            <div class="span-bar" style="width: ${width}%; background: ${color}"></div>
+          </div>
+          <div class="span-duration">${span.duration_text}</div>
+          ${attrsHtml}
+        </div>
+      `;
+    })
+    .join("");
+
+  const summaryHtml = timingSummary
+    ? `
+    <div class="timing-summary">
+      <div class="timing-stat"><span class="key">MCP</span><span class="val">${formatDuration(timingSummary.mcp_connect_ms + timingSummary.mcp_list_tools_ms)}</span></div>
+      <div class="timing-stat"><span class="key">LLM</span><span class="val">${formatDuration(timingSummary.llm_total_ms)}</span></div>
+      <div class="timing-stat"><span class="key">Tools</span><span class="val">${formatDuration(timingSummary.tool_total_ms)}</span></div>
+      <div class="timing-stat"><span class="key">Turns</span><span class="val">${timingSummary.turns_count}</span></div>
+      <div class="timing-stat"><span class="key">First Token</span><span class="val">${timingSummary.llm_first_token_ms ? `${timingSummary.llm_first_token_ms}ms` : "-"}</span></div>
+    </div>
+  `
+    : "";
+
+  return `
+    <div class="detail-section">
+      <h3>Timing Breakdown</h3>
+      ${summaryHtml}
+      <div class="spans-timeline">${barsHtml}</div>
+    </div>
+  `;
+}
+
 // Escape HTML
 function escapeHtml(text) {
   if (!text) return "";
@@ -307,6 +382,8 @@ function renderCase(caseData) {
               <h3>Tool Calls</h3>
               ${renderToolTimeline(caseData.tool_calls)}
             </div>
+
+            ${renderTimingBreakdown(caseData.span_views, caseData.timing_summary)}
 
             <div class="detail-section">
               <h3>Final Response</h3>

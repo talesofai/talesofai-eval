@@ -216,6 +216,91 @@ describe("renderRunHtmlReport", () => {
     assert.equal(payload.summary.failed, 1);
     assert.equal(payload.summary.errored, 1);
   });
+
+  it("includes span_views and timing_summary in payload", async () => {
+    const result = makeResult("case-timing", true);
+    result.trace.spans = [
+      {
+        name: "mcp_connect",
+        kind: "mcp_connect",
+        start_ms: 1000,
+        end_ms: 1050,
+        duration_ms: 50,
+      },
+      {
+        name: "turn_0",
+        kind: "llm_turn",
+        start_ms: 1100,
+        end_ms: 1500,
+        duration_ms: 400,
+        attributes: { first_token_ms: 1120, input_tokens: 100, output_tokens: 50 },
+      },
+      {
+        name: "tool_make_image_abc",
+        kind: "tool_call",
+        start_ms: 1510,
+        end_ms: 2000,
+        duration_ms: 490,
+        parent: "turn_0",
+        attributes: { tool_call_id: "abc" },
+      },
+    ];
+
+    const payload = await decodePayload(makeSummary([result]));
+    const caseData = payload.cases[0];
+
+    assert.ok(Array.isArray(caseData.span_views), "should have span_views");
+    assert.equal(caseData.span_views.length, 3);
+    assert.equal(caseData.span_views[0].kind, "mcp_connect");
+    assert.equal(caseData.span_views[1].kind, "llm_turn");
+    assert.equal(caseData.span_views[1].duration_text, "400ms");
+    assert.equal(caseData.span_views[2].depth, 1); // Child span
+
+    assert.ok(caseData.timing_summary, "should have timing_summary");
+    assert.equal(caseData.timing_summary.mcp_connect_ms, 50);
+    assert.equal(caseData.timing_summary.llm_total_ms, 400);
+    assert.equal(caseData.timing_summary.tool_total_ms, 490);
+    assert.equal(caseData.timing_summary.turns_count, 1);
+    assert.equal(caseData.timing_summary.llm_first_token_ms, 1120);
+  });
+
+  it("handles missing spans gracefully", async () => {
+    const result = makeResult("case-no-spans", true);
+    // No spans property
+
+    const payload = await decodePayload(makeSummary([result]));
+    const caseData = payload.cases[0];
+
+    assert.ok(Array.isArray(caseData.span_views), "should have empty span_views");
+    assert.equal(caseData.span_views.length, 0);
+    assert.equal(caseData.timing_summary, null, "timing_summary should be null");
+  });
+
+  it("formats duration correctly in span_views", async () => {
+    const result = makeResult("case-duration", true);
+    result.trace.spans = [
+      {
+        name: "short_span",
+        kind: "mcp_connect",
+        start_ms: 1000,
+        end_ms: 1050,
+        duration_ms: 50, // Under 1s
+      },
+      {
+        name: "long_span",
+        kind: "llm_turn",
+        start_ms: 1100,
+        end_ms: 3500,
+        duration_ms: 2400, // Over 1s
+      },
+    ];
+
+    const payload = await decodePayload(makeSummary([result]));
+    const caseData = payload.cases[0];
+
+    assert.equal(caseData.span_views[0].duration_text, "50ms");
+    assert.equal(caseData.span_views[1].duration_text, "2.40s");
+  });
 });
 
 describe("renderMatrixHtmlReport", () => {
