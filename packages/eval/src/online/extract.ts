@@ -46,7 +46,7 @@ const presetResponseSchema = z
 
 type FeedExtraction = {
   coreInput: string;
-  manuscriptUUID?: string;
+  manuscriptUUID?: string | undefined;
   verseUUID: string;
 };
 
@@ -68,7 +68,7 @@ export type ExtractOnlineCaseResult = {
   evalCase: AgentEvalCase;
   metadata: {
     collectionUUID: string;
-    manuscriptUUID?: string;
+    manuscriptUUID?: string | undefined;
     verseUUID: string;
   };
 };
@@ -161,7 +161,7 @@ function extractFromFeed(payload: unknown): FeedExtraction {
     const manuscriptUUID = ctaInfo.interactive_config?.manuscript_uuid;
     return {
       coreInput,
-      manuscriptUUID,
+      ...(manuscriptUUID !== undefined ? { manuscriptUUID } : {}),
       verseUUID,
     };
   }
@@ -207,10 +207,9 @@ function buildAgentCase(params: {
           content: params.coreInput,
         },
       ],
-      allowed_tool_names:
-        params.preset.toolset_keys && params.preset.toolset_keys.length > 0
-          ? [...params.preset.toolset_keys]
-          : undefined,
+      ...(params.preset.toolset_keys && params.preset.toolset_keys.length > 0
+        ? { allowed_tool_names: [...params.preset.toolset_keys] }
+        : {}),
       auto_followup: {
         mode: "adversarial_help_choose",
         max_turns: 1,
@@ -289,7 +288,9 @@ export async function extractAgentCaseFromCollection(
     }),
     metadata: {
       collectionUUID: options.collectionUUID,
-      manuscriptUUID: extracted.manuscriptUUID,
+      ...(extracted.manuscriptUUID !== undefined
+        ? { manuscriptUUID: extracted.manuscriptUUID }
+        : {}),
       verseUUID: extracted.verseUUID,
     },
   };

@@ -36,7 +36,7 @@ export async function matrixCommand(
   const concurrency = resolveConcurrency(options.concurrency, total);
   const explicitRecordDir = options.record;
   const recordDir = resolveMatrixRecordDir({
-    explicitRecordDir,
+    ...(explicitRecordDir !== undefined ? { explicitRecordDir } : {}),
     cellCount: total,
   });
 
@@ -44,7 +44,7 @@ export async function matrixCommand(
 
   const missing = getMissingRunConfig(cases, {
     replay: false,
-    tierMax,
+    ...(tierMax !== undefined ? { tierMax } : {}),
   });
   if (missing.length > 0) {
     throw missingConfig(missing, "matrix");
@@ -125,8 +125,8 @@ export async function matrixCommand(
       runCase: applyOverrides(pair.evalCase, pair.variant.overrides),
       scoreCase: pair.evalCase,
       runnerOpts,
-      recordDir: variantRecordDir,
-      tierMax,
+      ...(variantRecordDir !== undefined ? { recordDir: variantRecordDir } : {}),
+      ...(tierMax !== undefined ? { tierMax } : {}),
     });
 
     const cell: MatrixCell = {

@@ -71,8 +71,8 @@ export async function runAndScore(options: {
   runCase: EvalCase;
   scoreCase: EvalCase;
   runnerOpts: RunnerOptions;
-  recordDir?: string;
-  tierMax?: EvalTier;
+  recordDir?: string | undefined;
+  tierMax?: EvalTier | undefined;
 }): Promise<EvalResult> {
   try {
     const trace = await runCase(options.runCase, options.runnerOpts);
@@ -81,7 +81,9 @@ export async function runAndScore(options: {
     }
 
     const result = withStableMetrics(
-      await scoreTrace(options.scoreCase, trace, { tierMax: options.tierMax }),
+      await scoreTrace(options.scoreCase, trace, {
+        ...(options.tierMax !== undefined ? { tierMax: options.tierMax } : {}),
+      }),
     );
     if (options.recordDir) {
       await saveResult(result, options.recordDir).catch(() => {});
@@ -104,10 +106,10 @@ export async function runAndScore(options: {
       case_id: options.runCase.id,
       case_type: options.runCase.type,
       description: options.runCase.description,
-      preset_description:
-        options.runCase.type === "agent"
-          ? options.runCase.input.preset_description
-          : undefined,
+      ...(options.runCase.type === "agent" &&
+      options.runCase.input.preset_description !== undefined
+        ? { preset_description: options.runCase.input.preset_description }
+        : {}),
       passed: false,
       dimensions: [],
       trace: errorTrace,

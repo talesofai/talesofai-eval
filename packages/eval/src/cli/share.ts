@@ -77,7 +77,9 @@ export async function maybeShareHtmlReport(options: {
       html: options.html,
       filename: options.filename,
       baseUrl,
-      token: process.env["EVAL_SHARE_TOKEN"],
+      ...(process.env["EVAL_SHARE_TOKEN"] !== undefined
+        ? { token: process.env["EVAL_SHARE_TOKEN"] }
+        : {}),
     });
     return { status: "shared", shareUrl };
   } catch (error) {

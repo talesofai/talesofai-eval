@@ -8,7 +8,7 @@ import type {
 } from "../types.ts";
 import { injectAndReplaceCharacters } from "../utils/character-injector.ts";
 import { normalizeAgentInput } from "./normalize-agent-input.ts";
-import { runPlain } from "./plain/index.ts";
+import { runPlain } from "./plain.ts";
 
 const createDefaultCharacterProvider = (): CharacterProvider => ({
   getRandomCharacters: async (

@@ -21,8 +21,12 @@ export function normalizeAssertions(criteria: EvalCriteria): AssertionConfig[] {
   if (criteria.expected_tools || criteria.forbidden_tools) {
     base.push({
       type: "tool_usage",
-      expected_tools: criteria.expected_tools,
-      forbidden_tools: criteria.forbidden_tools,
+      ...(criteria.expected_tools !== undefined
+        ? { expected_tools: criteria.expected_tools }
+        : {}),
+      ...(criteria.forbidden_tools !== undefined
+        ? { forbidden_tools: criteria.forbidden_tools }
+        : {}),
     });
   }
 

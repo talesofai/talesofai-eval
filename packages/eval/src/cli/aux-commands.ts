@@ -237,7 +237,9 @@ export async function reportCommand(
     enabled: options.share,
     html,
     filename: basename(outPath),
-    baseUrlOption: options.shareBaseUrl,
+    ...(options.shareBaseUrl !== undefined
+      ? { baseUrlOption: options.shareBaseUrl }
+      : {}),
   });
 
   if (format === "terminal") {
@@ -370,7 +372,9 @@ export async function matrixReportCommand(
     enabled: options.share,
     html,
     filename: basename(outPath),
-    baseUrlOption: options.shareBaseUrl,
+    ...(options.shareBaseUrl !== undefined
+      ? { baseUrlOption: options.shareBaseUrl }
+      : {}),
   });
 
   if (format === "terminal") {

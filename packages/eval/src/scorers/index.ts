@@ -131,8 +131,10 @@ function makeResult(
     case_id: evalCase.id,
     case_type: evalCase.type,
     description: evalCase.description,
-    preset_description:
-      evalCase.type === "agent" ? evalCase.input.preset_description : undefined,
+    ...(evalCase.type === "agent" &&
+    evalCase.input.preset_description !== undefined
+      ? { preset_description: evalCase.input.preset_description }
+      : {}),
     passed,
     dimensions,
     trace,

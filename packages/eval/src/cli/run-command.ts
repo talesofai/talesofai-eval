@@ -97,16 +97,20 @@ function writeRunReport(options: {
 function makeErroredResultFromTrace(options: {
   caseId: string;
   caseType: CaseType;
-  description?: string;
-  preset_description?: string;
+  description?: string | undefined;
+  preset_description?: string | undefined;
   trace: EvalTrace;
   fallbackError: string;
 }): EvalResult {
   return {
     case_id: options.caseId,
     case_type: options.caseType,
-    description: options.description,
-    preset_description: options.preset_description,
+    ...(options.description !== undefined
+      ? { description: options.description }
+      : {}),
+    ...(options.preset_description !== undefined
+      ? { preset_description: options.preset_description }
+      : {}),
     passed: false,
     dimensions: [],
     trace: options.trace,
@@ -126,8 +130,12 @@ function normalizeCachedResult(result: EvalResult): EvalResult {
   return withStableMetrics({
     case_id: result.case_id,
     case_type: result.case_type,
-    description: result.description,
-    preset_description: result.preset_description,
+    ...(result.description !== undefined
+      ? { description: result.description }
+      : {}),
+    ...(result.preset_description !== undefined
+      ? { preset_description: result.preset_description }
+      : {}),
     passed: false,
     dimensions: [],
     trace: result.trace,
@@ -142,7 +150,7 @@ async function runReplayCase(options: {
   replayDir: string;
   replayWriteMetrics: boolean;
   replayMissingJudgeConfig: string[];
-  tierMax?: EvalTier;
+  tierMax?: EvalTier | undefined;
 }): Promise<EvalResult> {
   try {
     const cachedResult = await loadResult(
@@ -164,11 +172,13 @@ async function runReplayCase(options: {
         makeErroredResultFromTrace({
           caseId: options.evalCase.id,
           caseType: options.evalCase.type,
-          description: options.evalCase.description,
-          preset_description:
-            options.evalCase.type === "agent"
-              ? options.evalCase.input.preset_description
-              : undefined,
+          ...(options.evalCase.description !== undefined
+            ? { description: options.evalCase.description }
+            : {}),
+          ...(options.evalCase.type === "agent" &&
+          options.evalCase.input.preset_description !== undefined
+            ? { preset_description: options.evalCase.input.preset_description }
+            : {}),
           trace,
           fallbackError: "Runner error in replay trace",
         }),
@@ -176,7 +186,7 @@ async function runReplayCase(options: {
     }
 
     const needsJudge = caseNeedsJudge(options.evalCase, {
-      tierMax: options.tierMax,
+      ...(options.tierMax !== undefined ? { tierMax: options.tierMax } : {}),
     });
     if (needsJudge && options.replayMissingJudgeConfig.length > 0) {
       throw new Error(
@@ -185,18 +195,22 @@ async function runReplayCase(options: {
     }
 
     return withStableMetrics(
-      await scoreTrace(options.evalCase, trace, { tierMax: options.tierMax }),
+      await scoreTrace(options.evalCase, trace, {
+        ...(options.tierMax !== undefined ? { tierMax: options.tierMax } : {}),
+      }),
     );
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     return withStableMetrics({
       case_id: options.evalCase.id,
       case_type: options.evalCase.type,
-      description: options.evalCase.description,
-      preset_description:
-        options.evalCase.type === "agent"
-          ? options.evalCase.input.preset_description
-          : undefined,
+      ...(options.evalCase.description !== undefined
+        ? { description: options.evalCase.description }
+        : {}),
+      ...(options.evalCase.type === "agent" &&
+      options.evalCase.input.preset_description !== undefined
+        ? { preset_description: options.evalCase.input.preset_description }
+        : {}),
       passed: false,
       dimensions: [],
       trace: makeErrorTrace(
@@ -235,15 +249,17 @@ function buildEvalSummary(options: {
 
 async function handleReportSharing(options: {
   html: string;
-  htmlPath?: string;
+  htmlPath?: string | undefined;
   format: OutputFormat;
-  shareBaseUrl?: string;
+  shareBaseUrl?: string | undefined;
 }): Promise<void> {
   const share = await maybeShareHtmlReport({
     enabled: true,
     html: options.html,
     filename: options.htmlPath ? basename(options.htmlPath) : "run-report.html",
-    baseUrlOption: options.shareBaseUrl,
+    ...(options.shareBaseUrl !== undefined
+      ? { baseUrlOption: options.shareBaseUrl }
+      : {}),
   });
 
   if (options.format === "json") {
@@ -281,8 +297,10 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
   const tierMax = options.tierMax;
 
   const recordDir = resolveRunRecordDir({
-    explicitRecordDir,
-    replayDir,
+    ...(explicitRecordDir !== undefined
+      ? { explicitRecordDir }
+      : {}),
+    ...(replayDir !== undefined ? { replayDir } : {}),
     caseCount: cases.length,
   });
 
@@ -293,7 +311,7 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
   // 3. Validate configuration
   const missing = getMissingRunConfig(cases, {
     replay: Boolean(replayDir),
-    tierMax,
+    ...(tierMax !== undefined ? { tierMax } : {}),
   });
   if (missing.length > 0) {
     throw missingConfig(missing, "run");
@@ -302,8 +320,8 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
   // 4. Setup runner
   const replayMissingJudgeConfig = replayDir ? getMissingJudgeConfig() : [];
   const reportPath = resolveRunReportPath({
-    recordDir,
-    replayDir,
+    ...(recordDir !== undefined ? { recordDir } : {}),
+    ...(replayDir !== undefined ? { replayDir } : {}),
     now: new Date(),
   });
 
@@ -325,14 +343,14 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
             replayDir,
             replayWriteMetrics: options.replayWriteMetrics,
             replayMissingJudgeConfig,
-            tierMax,
+            ...(tierMax !== undefined ? { tierMax } : {}),
           })
         : await runAndScore({
             runCase: evalCase,
             scoreCase: evalCase,
             runnerOpts,
-            recordDir,
-            tierMax,
+            ...(recordDir !== undefined ? { recordDir } : {}),
+            ...(tierMax !== undefined ? { tierMax } : {}),
           });
       reporter.onCaseResult(result);
       return result;
@@ -357,9 +375,9 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
 
   const { htmlPath } = writeRunReport({
     summary,
-    reportPath,
+    ...(reportPath !== undefined ? { reportPath } : {}),
     format,
-    html,
+    ...(html !== undefined ? { html } : {}),
   });
 
   // 8. Handle sharing
@@ -372,9 +390,11 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
   if (html && shareEnabled) {
     await handleReportSharing({
       html,
-      htmlPath,
+      ...(htmlPath !== undefined ? { htmlPath } : {}),
       format,
-      shareBaseUrl: options.shareBaseUrl,
+      ...(options.shareBaseUrl !== undefined
+        ? { shareBaseUrl: options.shareBaseUrl }
+        : {}),
     });
   }
 

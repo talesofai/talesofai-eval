@@ -119,48 +119,48 @@ function parsePositiveConcurrency(raw: unknown): number | undefined {
 }
 
 export type CaseResolveOptions = {
-  case?: string;
-  file?: string[];
-  inline?: string;
-  type?: "plain" | "agent";
-  message?: string[];
-  systemPrompt?: string;
-  model?: string;
-  presetKey?: string;
-  expectedTools?: string[];
-  forbiddenTools?: string[];
-  expectedStatus?: string;
-  judgePrompt?: string;
-  judgeThreshold?: number;
-  allowedToolNames?: string[];
+  case?: string | undefined;
+  file?: string[] | undefined;
+  inline?: string | undefined;
+  type?: "plain" | "agent" | undefined;
+  message?: string[] | undefined;
+  systemPrompt?: string | undefined;
+  model?: string | undefined;
+  presetKey?: string | undefined;
+  expectedTools?: string[] | undefined;
+  forbiddenTools?: string[] | undefined;
+  expectedStatus?: string | undefined;
+  judgePrompt?: string | undefined;
+  judgeThreshold?: number | undefined;
+  allowedToolNames?: string[] | undefined;
 };
 
 export type RunCommandOptions = CaseResolveOptions & {
   format: OutputFormat;
   share: boolean;
-  shareBaseUrl?: string;
-  record?: string;
-  replay?: string;
+  shareBaseUrl?: string | undefined;
+  record?: string | undefined;
+  replay?: string | undefined;
   replayWriteMetrics: boolean;
   verbose: boolean;
-  tierMax?: EvalTier;
-  concurrency?: number;
+  tierMax?: EvalTier | undefined;
+  concurrency?: number | undefined;
 };
 
 export type DiffCommandOptions = {
-  case?: string;
-  file?: string[];
-  type?: "plain" | "agent";
+  case?: string | undefined;
+  file?: string[] | undefined;
+  type?: "plain" | "agent" | undefined;
   format: OutputFormat;
   verbose: boolean;
-  concurrency?: number;
+  concurrency?: number | undefined;
   baseOverrides: Record<string, unknown>;
   candidateOverrides: Record<string, unknown>;
 };
 
 export type InspectCommandOptions = {
-  case?: string;
-  file?: string[];
+  case?: string | undefined;
+  file?: string[] | undefined;
 };
 
 export type DoctorCommandOptions = {
@@ -170,41 +170,41 @@ export type DoctorCommandOptions = {
 
 export type PullOnlineCommandOptions = {
   collectionUuid: string;
-  baseUrl?: string;
-  xToken?: string;
+  baseUrl?: string | undefined;
+  xToken?: string | undefined;
   xPlatform: string;
   pageIndex: number;
   pageSize: number;
-  out?: string;
+  out?: string | undefined;
   format: OutputFormat;
 };
 
 export type ReportCommandOptions = {
   from: string;
-  out?: string;
+  out?: string | undefined;
   share: boolean;
-  shareBaseUrl?: string;
+  shareBaseUrl?: string | undefined;
   format: OutputFormat;
 };
 
 export type MatrixReportCommandOptions = {
   from: string;
-  out?: string;
+  out?: string | undefined;
   share: boolean;
-  shareBaseUrl?: string;
+  shareBaseUrl?: string | undefined;
   format: OutputFormat;
 };
 
 export type MatrixCommandOptions = {
-  case?: string;
-  file?: string[];
-  inline?: string;
-  type?: "plain" | "agent";
+  case?: string | undefined;
+  file?: string[] | undefined;
+  inline?: string | undefined;
+  type?: "plain" | "agent" | undefined;
   variants: MatrixVariant[];
-  concurrency?: number;
-  record?: string;
+  concurrency?: number | undefined;
+  record?: string | undefined;
   format: OutputFormat;
-  tierMax?: EvalTier;
+  tierMax?: EvalTier | undefined;
 };
 
 const baseCaseResolveSchema = z

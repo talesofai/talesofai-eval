@@ -145,7 +145,9 @@ export function normalizeAgentInput(
         system_prompt: renderTemplate(input.system_prompt, parameters),
         model: input.model,
         messages: renderedMessages,
-        allowed_tool_names: input.allowed_tool_names,
+        ...(input.allowed_tool_names !== undefined
+          ? { allowed_tool_names: input.allowed_tool_names }
+          : {}),
       },
       criteria: evalCase.criteria,
     };
@@ -170,7 +172,9 @@ export function normalizeAgentInput(
       ),
       model: input.model,
       messages: renderedMessages,
-      allowed_tool_names: input.allowed_tool_names,
+      ...(input.allowed_tool_names !== undefined
+        ? { allowed_tool_names: input.allowed_tool_names }
+        : {}),
     },
     criteria: evalCase.criteria,
   };

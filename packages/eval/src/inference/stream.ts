@@ -29,7 +29,7 @@ function toPiModel(model: ModelConfig): Model<Api> {
     },
     contextWindow: model.contextWindow ?? 8192,
     maxTokens: model.maxTokens ?? 4096,
-    headers: model.headers,
+    ...(model.headers !== undefined ? { headers: model.headers } : {}),
   };
 }
 
@@ -67,10 +67,18 @@ export function streamEvents(
   const mergedHeaders = { ...model.headers, ...options?.headers };
 
   return piStream(piModel, context, {
-    temperature: options?.temperature,
-    maxTokens: options?.maxTokens,
-    apiKey: options?.apiKey ?? model.apiKey,
-    headers: Object.keys(mergedHeaders).length > 0 ? mergedHeaders : undefined,
+    ...(options?.temperature !== undefined
+      ? { temperature: options.temperature }
+      : {}),
+    ...(options?.maxTokens !== undefined
+      ? { maxTokens: options.maxTokens }
+      : {}),
+    ...(options?.apiKey !== undefined || model.apiKey !== undefined
+      ? { apiKey: options?.apiKey ?? model.apiKey }
+      : {}),
+    ...(Object.keys(mergedHeaders).length > 0
+      ? { headers: mergedHeaders }
+      : {}),
   });
 }
 

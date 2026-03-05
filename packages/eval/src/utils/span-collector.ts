@@ -57,7 +57,7 @@ export class SpanCollector {
     this.activeSpans.set(name, {
       start: Date.now(),
       kind,
-      parent,
+      ...(parent !== undefined ? { parent } : {}),
     });
   }
 

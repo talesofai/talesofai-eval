@@ -44,14 +44,16 @@ export async function createMcpClient(
       : undefined,
   );
 
-  await client.connect(transport);
+  await client.connect(transport as any);
 
   return {
     async listTools(): Promise<McpTool[]> {
       const result = await client.listTools();
       return result.tools.map((tool) => ({
         name: tool.name,
-        description: tool.description,
+        ...(tool.description !== undefined
+          ? { description: tool.description }
+          : {}),
         inputSchema: tool.inputSchema as Record<string, unknown>,
       }));
     },

@@ -1,8 +1,24 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { parseToolOutput } from "../metrics/trace-metrics.ts";
-import { executeSingleToolCall } from "../runner/plain/tool-executor.ts";
+import { executeSingleToolCall } from "../runner/minimal-agent/tool-executor.ts";
 import { SpanCollector } from "../utils/span-collector.ts";
+
+const makeCtx = (mcpClient: {
+  listTools: () => Promise<unknown[]>;
+  callTool: (name: string, args: Record<string, unknown>) => Promise<unknown>;
+  close: () => Promise<void>;
+}) =>
+  ({
+    model: {} as any,
+    tools: [],
+    mcpClient,
+    context: { systemPrompt: "", messages: [] },
+    conversation: [],
+    spans: new SpanCollector(),
+    startTime: Date.now(),
+    toolsExplicitlyDisabled: false,
+  }) as any;
 
 describe("executeSingleToolCall isError propagation", () => {
   it("propagates MCP isError=true to ToolResultMessage and trace output", async () => {
@@ -12,14 +28,14 @@ describe("executeSingleToolCall isError propagation", () => {
         name: "make_image",
         arguments: { prompt: "cat" },
       } as any,
-      mcpClient: {
+      ctx: makeCtx({
         listTools: async () => [],
         callTool: async () => ({
           content: [{ type: "text", text: "rate limited" }],
           isError: true,
         }),
         close: async () => {},
-      },
+      }),
       spanCollector: new SpanCollector(),
       parentSpanName: "turn_0",
       opts: { mcpServerBaseURL: "http://fake-mcp" },
@@ -37,14 +53,14 @@ describe("executeSingleToolCall isError propagation", () => {
         name: "make_image",
         arguments: { prompt: "cat" },
       } as any,
-      mcpClient: {
+      ctx: makeCtx({
         listTools: async () => [],
         callTool: async () => ({
           content,
           isError: false,
         }),
         close: async () => {},
-      },
+      }),
       spanCollector: new SpanCollector(),
       parentSpanName: "turn_0",
       opts: { mcpServerBaseURL: "http://fake-mcp" },
@@ -62,13 +78,13 @@ describe("executeSingleToolCall isError propagation", () => {
         name: "make_image",
         arguments: { prompt: "cat" },
       } as any,
-      mcpClient: {
+      ctx: makeCtx({
         listTools: async () => [],
         callTool: async () => {
           throw new Error("timeout");
         },
         close: async () => {},
-      },
+      }),
       spanCollector: spans,
       parentSpanName: "turn_0",
       opts: { mcpServerBaseURL: "http://fake-mcp" },
@@ -87,13 +103,13 @@ describe("executeSingleToolCall isError propagation", () => {
         name: "make_image",
         arguments: { prompt: "cat" },
       } as any,
-      mcpClient: {
+      ctx: makeCtx({
         listTools: async () => [],
         callTool: async () => {
           throw new Error("connection reset");
         },
         close: async () => {},
-      },
+      }),
       spanCollector: spans,
       parentSpanName: "turn_0",
       opts: { mcpServerBaseURL: "http://fake-mcp" },

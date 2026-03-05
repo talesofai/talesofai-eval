@@ -1,8 +1,10 @@
 import type { ToolCall, ToolResultMessage } from "@mariozechner/pi-ai";
-import type { CommonLLMMessage, RunnerOptions, ToolCallRecord } from "../../types.ts";
-import type { McpClient } from "../mcp.ts";
-import type { RunContextWithTools } from "./types.ts";
-import { RUNNER_DEFAULTS } from "./types.ts";
+import type {
+  CommonLLMMessage,
+  RunnerOptions,
+  ToolCallRecord,
+} from "../../types.ts";
+import { RUNNER_DEFAULTS, type RunContext } from "./types.ts";
 
 function buildTraceToolOutput(result: unknown, isError: boolean): unknown {
   if (!isError) {
@@ -32,11 +34,11 @@ export interface SingleToolCallResult {
 }
 
 /**
- * Execute a single tool call via MCP.
+ * Execute a single tool call via builtin tool or MCP.
  */
 export async function executeSingleToolCall(params: {
   toolCall: ToolCall;
-  mcpClient: McpClient;
+  ctx: RunContext;
   spanCollector: import("../../utils/span-collector.ts").SpanCollector;
   parentSpanName: string;
   opts: RunnerOptions;
@@ -44,7 +46,7 @@ export async function executeSingleToolCall(params: {
 }): Promise<SingleToolCallResult> {
   const {
     toolCall: tc,
-    mcpClient,
+    ctx,
     spanCollector: spans,
     parentSpanName,
     opts,
@@ -65,12 +67,21 @@ export async function executeSingleToolCall(params: {
   let result: unknown;
   let isError = false;
   let spanError: "timeout" | "tool_error" | undefined;
+
   try {
-    const toolResult = await mcpClient.callTool(tc.name, toolArgs, timeoutMs);
-    result = toolResult.content;
-    isError = toolResult.isError;
-    if (isError) {
+    if ("builtinTools" in ctx && ctx.builtinTools.has(tc.name)) {
+      result = await ctx.builtinTools.get(tc.name)!.execute(toolArgs);
+    } else if (ctx.mcpClient) {
+      const toolResult = await ctx.mcpClient.callTool(tc.name, toolArgs, timeoutMs);
+      result = toolResult.content;
+      isError = toolResult.isError;
+      if (isError) {
+        spanError = "tool_error";
+      }
+    } else {
+      isError = true;
       spanError = "tool_error";
+      result = { error: `No executor for tool: ${tc.name}` };
     }
   } catch (error) {
     isError = true;
@@ -82,6 +93,7 @@ export async function executeSingleToolCall(params: {
       message,
     };
   }
+
   const callDuration = Date.now() - callStart;
 
   spans.end(toolSpanName, {
@@ -104,17 +116,14 @@ export async function executeSingleToolCall(params: {
 
   opts.onToolCall?.(record);
 
-  // Build tool result content
   const toolResultContent = [{ type: "text" as const, text: outputStr }];
 
-  // Build conversation message
   const conversationMessage: CommonLLMMessage = {
     role: "tool",
     content: outputStr,
     tool_call_id: tc.id,
   };
 
-  // Build tool result for context
   const toolResult: ToolResultMessage = {
     role: "toolResult",
     toolCallId: tc.id,
@@ -136,7 +145,7 @@ export async function executeSingleToolCall(params: {
  */
 export async function executeToolCalls(params: {
   toolCalls: readonly ToolCall[];
-  ctx: RunContextWithTools;
+  ctx: RunContext;
   opts: RunnerOptions;
   spanCollector: import("../../utils/span-collector.ts").SpanCollector;
   parentSpanName: string;
@@ -154,7 +163,7 @@ export async function executeToolCalls(params: {
   for (const tc of toolCalls) {
     const result = await executeSingleToolCall({
       toolCall: tc,
-      mcpClient: ctx.mcpClient,
+      ctx,
       spanCollector,
       parentSpanName,
       opts,

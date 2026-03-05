@@ -235,7 +235,11 @@ export function noCases(
   command: "run" | "diff" | "inspect" | "matrix",
   unmatchedFilePatterns?: string[],
 ): CliError {
-  return { kind: "NoCases", command, unmatchedFilePatterns };
+  return {
+    kind: "NoCases",
+    command,
+    ...(unmatchedFilePatterns !== undefined ? { unmatchedFilePatterns } : {}),
+  };
 }
 
 export function invalidFormat(format: string, valid: string[]): CliError {

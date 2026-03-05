@@ -82,7 +82,9 @@ export async function executeTurn(params: {
   const turnStartTime = Date.now();
   spans.start(turnSpanName, "llm_turn");
 
-  const eventStream = streamEvents(model, ctx.context, { headers });
+  const eventStream = streamEvents(model, ctx.context, {
+    ...(headers !== undefined ? { headers } : {}),
+  });
 
   const turnResult = await processEventStream({
     eventStream,
@@ -92,9 +94,15 @@ export async function executeTurn(params: {
 
   // End turn span with timing data
   spans.end(turnSpanName, {
-    first_token_ms: turnResult.firstTokenMs ?? undefined,
-    input_tokens: turnResult.assistantMessage?.usage.input,
-    output_tokens: turnResult.assistantMessage?.usage.output,
+    ...(turnResult.firstTokenMs !== null
+      ? { first_token_ms: turnResult.firstTokenMs }
+      : {}),
+    ...(turnResult.assistantMessage?.usage.input !== undefined
+      ? { input_tokens: turnResult.assistantMessage.usage.input }
+      : {}),
+    ...(turnResult.assistantMessage?.usage.output !== undefined
+      ? { output_tokens: turnResult.assistantMessage.usage.output }
+      : {}),
   });
 
   return {
@@ -199,9 +207,11 @@ export async function executeAgenticLoop(params: {
 
     // Execute tool calls if we have tools and tool calls
     if (turnResult.toolCalls.length > 0) {
-      // Check if we have MCP client available
-      if (ctx.toolsExplicitlyDisabled || !ctx.mcpClient) {
-        // No tools available, but model made tool calls - this is an error
+      const hasBuiltinTools =
+        "builtinTools" in ctx && ctx.builtinTools.size > 0;
+      const hasMcpTools = ctx.mcpClient !== null;
+
+      if (ctx.toolsExplicitlyDisabled || (!hasBuiltinTools && !hasMcpTools)) {
         status = "error";
         error = "Model attempted tool calls but tools are not available";
         break;
@@ -209,7 +219,7 @@ export async function executeAgenticLoop(params: {
 
       const toolResults = await executeToolCalls({
         toolCalls: turnResult.toolCalls,
-        ctx: ctx as import("./types.ts").RunContextWithTools,
+        ctx,
         opts,
         spanCollector: spans,
         parentSpanName: turnSpanName,
@@ -226,7 +236,7 @@ export async function executeAgenticLoop(params: {
     toolsCalled,
     finalResponse,
     status,
-    error,
+    ...(error !== undefined ? { error } : {}),
     totalInputTokens,
     totalOutputTokens,
   };

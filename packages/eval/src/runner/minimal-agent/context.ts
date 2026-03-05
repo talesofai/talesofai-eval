@@ -12,9 +12,11 @@ import { createMcpClient } from "../mcp.ts";
 import { extractMessageText } from "../message-utils.ts";
 import { SpanCollector } from "../../utils/span-collector.ts";
 import {
+  type BuiltinTool,
   type PlainRunnableCase,
   type RunContext,
   type RunContextWithoutTools,
+  type RunContextWithBuiltinTools,
   type RunContextWithTools,
   ZERO_USAGE,
 } from "./types.ts";
@@ -145,7 +147,7 @@ export function buildContext(
   return {
     systemPrompt,
     messages,
-    tools: tools && tools.length > 0 ? tools : undefined,
+    ...(tools && tools.length > 0 ? { tools } : {}),
   };
 }
 
@@ -191,6 +193,10 @@ export function resolveModelOrThrow(input: { model: string }): ModelConfig | { e
   }
 }
 
+export type InitializeContextOptions = {
+  builtinTools?: BuiltinTool[];
+};
+
 /**
  * Initialize run context, including MCP client and tools.
  * Returns either a context with tools or without tools.
@@ -198,6 +204,7 @@ export function resolveModelOrThrow(input: { model: string }): ModelConfig | { e
 export async function initializeRunContext(
   evalCase: PlainRunnableCase,
   opts: RunnerOptions,
+  contextOpts?: InitializeContextOptions,
 ): Promise<RunContext> {
   const startTime = Date.now();
   const spans = new SpanCollector();
@@ -209,6 +216,36 @@ export async function initializeRunContext(
     throw new Error(modelResult.error);
   }
   const model = modelResult;
+
+  if (contextOpts?.builtinTools && contextOpts.builtinTools.length > 0) {
+    const builtinTools = new Map(
+      contextOpts.builtinTools.map((tool) => [tool.name, tool]),
+    );
+    const tools = contextOpts.builtinTools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+    }));
+
+    const messages = convertMessages(input.messages);
+    const context = buildContext(input.system_prompt, messages, tools);
+    const conversation = initializeConversation(
+      input.system_prompt,
+      input.messages,
+    );
+
+    return {
+      model,
+      tools,
+      builtinTools,
+      mcpClient: null,
+      context,
+      conversation,
+      spans,
+      startTime,
+      toolsExplicitlyDisabled: false,
+    } as RunContextWithBuiltinTools;
+  }
 
   // Determine tool requirement before connecting to MCP.
   // allowed_tool_names: [] means "no tools" — skip MCP entirely.

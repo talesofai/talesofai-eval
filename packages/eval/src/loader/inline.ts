@@ -16,20 +16,20 @@ const requiredAgentParameterKeys = [
  * Build an EvalCase from CLI inline flags.
  */
 export const buildFromFlags = (flags: {
-  type?: string;
-  id?: string;
-  systemPrompt?: string;
-  model?: string;
-  openaiBaseUrl?: string;
-  presetKey?: string;
-  parameters?: Record<string, string | number | boolean>;
-  messages?: string[];
-  expectedTools?: string[];
-  forbiddenTools?: string[];
-  expectedStatus?: string;
-  judgePrompt?: string;
-  judgeThreshold?: number;
-  allowedToolNames?: string[];
+  type?: string | undefined;
+  id?: string | undefined;
+  systemPrompt?: string | undefined;
+  model?: string | undefined;
+  openaiBaseUrl?: string | undefined;
+  presetKey?: string | undefined;
+  parameters?: Record<string, string | number | boolean> | undefined;
+  messages?: string[] | undefined;
+  expectedTools?: string[] | undefined;
+  forbiddenTools?: string[] | undefined;
+  expectedStatus?: string | undefined;
+  judgePrompt?: string | undefined;
+  judgeThreshold?: number | undefined;
+  allowedToolNames?: string[] | undefined;
 }): EvalCase => {
   const id = flags.id ?? `tmp-${Date.now()}`;
   const messages = parseMessages(flags.messages ?? []);
@@ -42,8 +42,12 @@ export const buildFromFlags = (flags: {
   ) {
     assertions.push({
       type: "tool_usage",
-      expected_tools: flags.expectedTools,
-      forbidden_tools: flags.forbiddenTools,
+      ...(flags.expectedTools !== undefined
+        ? { expected_tools: flags.expectedTools }
+        : {}),
+      ...(flags.forbiddenTools !== undefined
+        ? { forbidden_tools: flags.forbiddenTools }
+        : {}),
     });
   }
 
@@ -87,7 +91,9 @@ export const buildFromFlags = (flags: {
           model: flags.model,
           parameters,
           messages,
-          allowed_tool_names: flags.allowedToolNames,
+          ...(flags.allowedToolNames !== undefined
+            ? { allowed_tool_names: flags.allowedToolNames }
+            : {}),
         },
         criteria,
       };
@@ -119,7 +125,9 @@ export const buildFromFlags = (flags: {
         preset_key: flags.presetKey ?? DEFAULT_AGENT_PRESET_KEY,
         parameters,
         messages,
-        allowed_tool_names: flags.allowedToolNames,
+        ...(flags.allowedToolNames !== undefined
+          ? { allowed_tool_names: flags.allowedToolNames }
+          : {}),
       },
       criteria,
     };
@@ -134,7 +142,9 @@ export const buildFromFlags = (flags: {
       system_prompt: flags.systemPrompt ?? "",
       model: flags.model ?? "qwen-plus",
       messages,
-      allowed_tool_names: flags.allowedToolNames,
+      ...(flags.allowedToolNames !== undefined
+        ? { allowed_tool_names: flags.allowedToolNames }
+        : {}),
     },
     criteria,
   };

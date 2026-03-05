@@ -1,4 +1,4 @@
-import type { Context, Tool, Usage } from "@mariozechner/pi-ai";
+import type { Context, Tool, Usage, TSchema } from "@mariozechner/pi-ai";
 import type { McpClient } from "../mcp.ts";
 import type {
   CaseType,
@@ -12,6 +12,13 @@ import type { SpanCollector } from "../../utils/span-collector.ts";
 export type PlainRunnableCase = Omit<PlainEvalCase, "type"> & {
   type: CaseType;
 };
+
+export interface BuiltinTool {
+  readonly name: string;
+  readonly description: string;
+  readonly parameters: TSchema;
+  readonly execute: (args: Record<string, unknown>) => Promise<unknown> | unknown;
+}
 
 /**
  * Configuration constants for the runner.
@@ -67,10 +74,25 @@ export interface RunContextWithTools {
   readonly toolsExplicitlyDisabled: false;
 }
 
+export interface RunContextWithBuiltinTools {
+  readonly model: ModelConfig;
+  readonly tools: readonly Tool[];
+  readonly builtinTools: Map<string, BuiltinTool>;
+  readonly mcpClient: null;
+  readonly context: Context;
+  readonly conversation: CommonLLMMessage[];
+  readonly spans: SpanCollector;
+  readonly startTime: number;
+  readonly toolsExplicitlyDisabled: false;
+}
+
 /**
  * Union type for run context.
  */
-export type RunContext = RunContextWithoutTools | RunContextWithTools;
+export type RunContext =
+  | RunContextWithoutTools
+  | RunContextWithTools
+  | RunContextWithBuiltinTools;
 
 /**
  * Type guard for checking if context has tools.

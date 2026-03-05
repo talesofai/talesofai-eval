@@ -155,11 +155,11 @@ describe("normalizeAgentInput", () => {
   });
 
   it("legacy validation: model absent throws", () => {
+    const { model: _model, ...inputWithoutModel } = baseLegacyCase().input;
     const evalCase: AgentEvalCase = {
       ...baseLegacyCase(),
       input: {
-        ...baseLegacyCase().input,
-        model: undefined,
+        ...inputWithoutModel,
       },
     };
 
@@ -183,12 +183,12 @@ describe("normalizeAgentInput", () => {
   });
 
   it("oss validation: model absent throws when system_prompt exists", () => {
+    const { model: _model, ...inputWithoutModel } = baseLegacyCase().input;
     const evalCase: AgentEvalCase = {
       ...baseLegacyCase(),
       input: {
-        ...baseLegacyCase().input,
+        ...inputWithoutModel,
         system_prompt: "hello {{name}}",
-        model: undefined,
         parameters: { name: "neo" },
       },
     };

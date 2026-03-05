@@ -1,28 +1,20 @@
-import { resolveUpstreamXToken } from "../../config.ts";
-import type { EvalTrace, RunnerOptions } from "../../types.ts";
-import { SpanCollector } from "../../utils/span-collector.ts";
-import { type PlainRunnableCase, type RunContext } from "./types.ts";
-import { initializeRunContext, resolveModelOrThrow } from "./context.ts";
-import { buildErrorTrace, buildSuccessTrace } from "./trace-builder.ts";
-import { executeAgenticLoop } from "./agentic-loop.ts";
+import { resolveUpstreamXToken } from "../config.ts";
+import type { EvalTrace, RunnerOptions } from "../types.ts";
+import { SpanCollector } from "../utils/span-collector.ts";
+import {
+  buildErrorTrace,
+  buildSuccessTrace,
+  executeAgenticLoop,
+  initializeRunContext,
+  resolveModelOrThrow,
+  type PlainRunnableCase,
+  type RunContext,
+} from "./minimal-agent/index.ts";
 
-/**
- * Run a plain eval case.
- *
- * This function orchestrates evaluation for both plain cases and
- * normalized agent cases that reuse the plain runner path.
- * It handles:
- * 1. Model resolution and validation
- * 2. MCP client connection and tool loading
- * 3. Context building with system prompt and messages
- * 4. Agentic loop execution with tool calls
- * 5. Trace building for success or error cases
- */
 export const runPlain = async (
   evalCase: PlainRunnableCase,
   opts: RunnerOptions,
 ): Promise<EvalTrace> => {
-  // Quick model resolution check before initializing context
   const modelResult = resolveModelOrThrow(evalCase.input);
   if ("error" in modelResult) {
     const spans = new SpanCollector();
@@ -38,7 +30,6 @@ export const runPlain = async (
     });
   }
 
-  // Initialize context (includes MCP connection and tool loading)
   let ctx: RunContext;
   try {
     ctx = await initializeRunContext(evalCase, opts);
@@ -59,11 +50,9 @@ export const runPlain = async (
 
   const { model, spans, startTime, mcpClient } = ctx;
 
-  // Resolve x-token header
   const xToken = resolveUpstreamXToken();
   const headers = xToken ? { "x-token": xToken } : undefined;
 
-  // Execute the agentic loop
   let loopResult: Awaited<ReturnType<typeof executeAgenticLoop>>;
   try {
     loopResult = await executeAgenticLoop({
@@ -73,11 +62,9 @@ export const runPlain = async (
       model,
     });
   } finally {
-    // Close MCP client if connected
     await mcpClient?.close();
   }
 
-  // Build and return trace
   if (loopResult.status === "error") {
     return buildErrorTrace({
       evalCase,
@@ -102,6 +89,3 @@ export const runPlain = async (
     totalOutputTokens: loopResult.totalOutputTokens,
   });
 };
-
-// Re-export types for external use
-export type { PlainRunnableCase, RunContext } from "./types.ts";

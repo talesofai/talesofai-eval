@@ -22,7 +22,9 @@ function makeAgentCase(overrides?: {
         reference_content_schema: "",
       },
       messages: [{ role: "user", content: "开始" }],
-      auto_followup: overrides?.auto_followup,
+      ...(overrides?.auto_followup !== undefined
+        ? { auto_followup: overrides.auto_followup }
+        : {}),
     },
     criteria: {},
   };
