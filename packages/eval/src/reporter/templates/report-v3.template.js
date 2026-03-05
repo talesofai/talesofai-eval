@@ -234,7 +234,7 @@ function renderTimingBreakdown(spanViews, timingSummary) {
       <div class="timing-stat"><span class="key">LLM</span><span class="val">${formatDuration(timingSummary.llm_total_ms)}</span></div>
       <div class="timing-stat"><span class="key">Tools</span><span class="val">${formatDuration(timingSummary.tool_total_ms)}</span></div>
       <div class="timing-stat"><span class="key">Turns</span><span class="val">${timingSummary.turns_count}</span></div>
-      <div class="timing-stat"><span class="key">First Token</span><span class="val">${timingSummary.llm_first_token_ms ? `${timingSummary.llm_first_token_ms}ms` : "-"}</span></div>
+      <div class="timing-stat"><span class="key">First Token</span><span class="val">${timingSummary.llm_first_token_ms !== null ? `${timingSummary.llm_first_token_ms}ms` : "-"}</span></div>
     </div>
   `
     : "";
