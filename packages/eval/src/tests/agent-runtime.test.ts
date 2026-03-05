@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { loadModels, resetRegistry } from "../models/index.ts";
 import { runAgent } from "../runner/agent.ts";
-import { runPlain } from "../runner/plain.ts";
+import { runPlain } from "../runner/plain/index.ts";
 import type { AgentEvalCase } from "../types.ts";
 
 type ChatRequestBody = {

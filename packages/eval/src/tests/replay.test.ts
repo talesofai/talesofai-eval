@@ -425,6 +425,56 @@ describe("agent-eval replay mode", () => {
     }
   });
 
+  it("run --format json --share emits a share event", async () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), "agent-eval-json-share-"));
+    const fake = await startFakeOpenAiServer();
+
+    try {
+      const modelsPath = writeModelsFile(tempRoot, fake.baseURL);
+      const inlineCase = JSON.stringify({
+        type: "plain",
+        id: "json-share-case",
+        description: "json share event",
+        input: {
+          system_prompt: "sys",
+          model: "test-model",
+          messages: [{ role: "user", content: "hello" }],
+          allowed_tool_names: [],
+        },
+        criteria: {},
+      });
+
+      const result = await runCliAsync(
+        ["run", "--inline", inlineCase, "--format", "json", "--share"],
+        {
+          EVAL_MODELS_PATH: modelsPath,
+          EVAL_MCP_SERVER_BASE_URL: "",
+          EVAL_UPSTREAM_API_BASE_URL: "",
+        },
+      );
+
+      assert.equal(result.status, 0);
+      const lines = result.stdout
+        .trim()
+        .split("\n")
+        .filter((line) => line.length > 0)
+        .map((line) => JSON.parse(line) as Record<string, unknown>);
+
+      assert.ok(lines.some((line) => line["type"] === "result"));
+      assert.ok(lines.some((line) => line["type"] === "summary"));
+
+      const shareLine = lines.find((line) => line["type"] === "share");
+      assert.ok(shareLine, "expected share event line");
+      assert.ok(
+        typeof shareLine?.["share_url"] === "string" ||
+          typeof shareLine?.["error"] === "string",
+      );
+    } finally {
+      await fake.close();
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
   it("replays from trace files without requiring runner config for judge-free cases", () => {
     const tempRoot = mkdtempSync(join(tmpdir(), "agent-eval-replay-"));
 
