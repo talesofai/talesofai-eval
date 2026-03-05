@@ -304,6 +304,8 @@ describe("buildFromFlags", () => {
     const c = buildFromFlags({
       messages: ["just text without role prefix"],
     });
-    assert.equal(c.input.messages[0]?.role, "user");
+    if (c.type !== "skill") {
+      assert.equal(c.input.messages[0]?.role, "user");
+    }
   });
 });

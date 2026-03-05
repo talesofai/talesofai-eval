@@ -8,6 +8,7 @@ import { renderRunMarkdownReport } from "../reporter/terminal.ts";
 import { scoreTrace } from "../scorers/index.ts";
 import { loadResult, loadTrace, saveResult } from "../traces.ts";
 import type {
+  CaseType,
   EvalCase,
   EvalResult,
   EvalSummary,
@@ -95,7 +96,7 @@ function writeRunReport(options: {
 
 function makeErroredResultFromTrace(options: {
   caseId: string;
-  caseType: "plain" | "agent";
+  caseType: CaseType;
   description?: string;
   preset_description?: string;
   trace: EvalTrace;

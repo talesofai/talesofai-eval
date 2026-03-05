@@ -8,6 +8,7 @@ import { runCase } from "../runner/index.ts";
 import { scoreTrace } from "../scorers/index.ts";
 import { saveResult, saveTrace } from "../traces.ts";
 import type {
+  CaseType,
   EvalCase,
   EvalResult,
   EvalTier,
@@ -40,7 +41,7 @@ export function withStableMetrics(result: EvalResult): EvalResult {
 
 export function makeErrorTrace(
   caseId: string,
-  caseType: "plain" | "agent",
+  caseType: CaseType,
   errorMsg?: string,
 ): EvalTrace {
   return {

@@ -26,6 +26,10 @@ function resolveUserGoal(
     }
   }
 
+  if (evalCase.type === "skill") {
+    return evalCase.input.task;
+  }
+
   for (const msg of evalCase.input.messages) {
     if (msg.role === "user") {
       const content = msg.content;
