@@ -80,16 +80,55 @@ agent-eval diff --case my-case --base '{"model":"gpt-4o"}' --candidate '{"model"
 
 ## Install
 
-```bash
-# From npm (global CLI)
-npm i -g agent-eval
+### Step 1: Configure npm for GitHub Packages
 
-# From source (monorepo)
-pnpm install && pnpm build
-# then use: pnpm agent-eval <command>
+This package is published to GitHub Packages. Add this to your `~/.npmrc`:
+
+```bash
+echo "@talesofai:registry=https://npm.pkg.github.com" >> ~/.npmrc
 ```
 
-> ⚠️ The CLI is `agent-eval`, NOT `eval`. `eval` is a shell built-in and will silently do nothing.
+If you're installing in a CI environment or want project-level config, create `.npmrc` in your project root:
+
+```
+@talesofai:registry=https://npm.pkg.github.com
+```
+
+### Step 2: Install the package
+
+```bash
+# Global install (recommended for CLI usage)
+npm install -g @talesofai/agent-eval
+
+# Or as a project dependency
+npm install @talesofai/agent-eval
+```
+
+### Step 3: Verify installation
+
+```bash
+agent-eval --version
+```
+
+### From source
+
+If you want to contribute or need the latest unreleased changes:
+
+```bash
+git clone https://github.com/talesofai/talesofai-eval.git
+cd talesofai-eval
+pnpm install
+pnpm build
+pnpm agent-eval --version
+```
+
+### Next steps
+
+1. Create a `models.json` file in your project (see [Model registry](#model-registry))
+2. Set up your `.env` with API keys (see [Configure](#configure))
+3. Run `agent-eval doctor` to verify everything works
+
+> ⚠️ The CLI command is `agent-eval`, not `eval`. The latter is a shell built-in that silently does nothing.
 
 ---
 
