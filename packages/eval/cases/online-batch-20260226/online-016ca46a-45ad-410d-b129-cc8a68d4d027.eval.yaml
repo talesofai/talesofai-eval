@@ -3,6 +3,7 @@ id: online-016ca46a-45ad-410d-b129-cc8a68d4d027
 description: online extract from collection 016ca46a-45ad-410d-b129-cc8a68d4d027 (伪物图鉴)
 input:
   preset_key: latitude://8|live|running_agent_new
+  model: qwen3.5-flash
   parameters:
     preset_description: 奇奇怪怪的伪物图鉴制作
     reference_planning: 1. 在指定格子添加物品图标、名称及评级，只添加一个物品
