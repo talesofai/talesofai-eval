@@ -3,14 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm -C packages/eval build",
-    "cli": "pnpm -C packages/eval agent-eval",
-    "dev": "pnpm -C packages/eval dev",
-    "test": "pnpm -C packages/eval test",
-    "test:coverage": "pnpm -C packages/eval test:coverage",
+    "build": "pnpm --dir packages/eval run typecheck",
+    "cli": "pnpm --dir packages/eval run agent-eval",
+    "dev": "pnpm --dir packages/eval run agent-eval",
+    "test": "pnpm --dir packages/eval run test",
+    "test:coverage": "pnpm --dir packages/eval run test:coverage",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
-    "agent-eval": "pnpm -C packages/eval agent-eval"
+    "agent-eval": "pnpm --dir packages/eval run agent-eval"
   },
   "devDependencies": {
     "tsx": "^4.21.0",
