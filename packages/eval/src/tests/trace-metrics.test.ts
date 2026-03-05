@@ -120,6 +120,30 @@ describe("trace metrics", () => {
     });
     assert.equal(fromObject.explicitError, true);
 
+    const fromWrappedError = parseToolOutput({
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            structuredContent: {
+              task_status: "SUCCESS",
+              artifacts: [
+                {
+                  uuid: "w",
+                  url: "https://wrapped",
+                  modality: "PICTURE",
+                },
+              ],
+            },
+          }),
+        },
+      ],
+    });
+    assert.equal(fromWrappedError.explicitError, true);
+    assert.equal(fromWrappedError.taskStatus, "SUCCESS");
+    assert.equal(fromWrappedError.artifacts[0]?.url, "https://wrapped");
+
     const fromContentText = parseToolOutput({
       content: [
         {

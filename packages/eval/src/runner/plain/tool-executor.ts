@@ -4,6 +4,24 @@ import type { McpClient } from "../mcp.ts";
 import type { RunContextWithTools } from "./types.ts";
 import { RUNNER_DEFAULTS } from "./types.ts";
 
+function buildTraceToolOutput(result: unknown, isError: boolean): unknown {
+  if (!isError) {
+    return result;
+  }
+
+  if (result && typeof result === "object" && !Array.isArray(result)) {
+    return {
+      ...(result as Record<string, unknown>),
+      isError: true,
+    };
+  }
+
+  return {
+    isError: true,
+    content: result,
+  };
+}
+
 /**
  * Result of a single tool call execution.
  */
@@ -46,20 +64,29 @@ export async function executeSingleToolCall(params: {
 
   let result: unknown;
   let isError = false;
+  let spanError: "timeout" | "tool_error" | undefined;
   try {
-    result = await mcpClient.callTool(tc.name, toolArgs, timeoutMs);
-  } catch (_error) {
+    const toolResult = await mcpClient.callTool(tc.name, toolArgs, timeoutMs);
+    result = toolResult.content;
+    isError = toolResult.isError;
+    if (isError) {
+      spanError = "tool_error";
+    }
+  } catch (error) {
     isError = true;
+    const message = error instanceof Error ? error.message : String(error);
+    const isTimeout = /\btimeout\b|timed out/i.test(message);
+    spanError = isTimeout ? "timeout" : "tool_error";
     result = {
-      error: "timeout",
-      message: "Tool call exceeded timeout",
+      error: isTimeout ? "timeout" : "tool_call_failed",
+      message,
     };
   }
   const callDuration = Date.now() - callStart;
 
   spans.end(toolSpanName, {
     tool_call_id: tc.id,
-    ...(isError ? { error: "timeout" } : {}),
+    ...(spanError ? { error: spanError } : {}),
   });
 
   const outputStr =
@@ -71,7 +98,7 @@ export async function executeSingleToolCall(params: {
     tool_call_id: tc.id,
     name: tc.name,
     arguments: toolArgs,
-    output: result,
+    output: buildTraceToolOutput(result, isError),
     duration_ms: callDuration,
   };
 

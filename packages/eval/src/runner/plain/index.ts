@@ -8,8 +8,9 @@ import { executeAgenticLoop } from "./agentic-loop.ts";
 
 /**
  * Run a plain eval case.
- * 
- * This function orchestrates the evaluation of a plain (non-agentic) test case.
+ *
+ * This function orchestrates evaluation for both plain cases and
+ * normalized agent cases that reuse the plain runner path.
  * It handles:
  * 1. Model resolution and validation
  * 2. MCP client connection and tool loading
@@ -63,15 +64,18 @@ export const runPlain = async (
   const headers = xToken ? { "x-token": xToken } : undefined;
 
   // Execute the agentic loop
-  const loopResult = await executeAgenticLoop({
-    ctx,
-    opts,
-    headers,
-    model,
-  });
-
-  // Close MCP client if connected
-  await mcpClient?.close();
+  let loopResult: Awaited<ReturnType<typeof executeAgenticLoop>>;
+  try {
+    loopResult = await executeAgenticLoop({
+      ctx,
+      opts,
+      headers,
+      model,
+    });
+  } finally {
+    // Close MCP client if connected
+    await mcpClient?.close();
+  }
 
   // Build and return trace
   if (loopResult.status === "error") {
