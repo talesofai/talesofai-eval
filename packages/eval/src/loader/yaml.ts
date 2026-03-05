@@ -231,11 +231,31 @@ const agentCaseSchema = agentCaseSchemaRaw.extend({
   criteria: evalCriteriaSchema,
 });
 
+const skillCaseSchemaRaw = z.object({
+  type: z.literal("skill"),
+  id: z.string(),
+  description: z.string(),
+  input: z.object({
+    skill: z.string(),
+    model: z.string(),
+    task: z.string(),
+    fixtures: z.record(z.string(), z.unknown()).optional(),
+    system_prompt_prefix: z.string().optional(),
+    evaluation_mode: z.enum(["inject", "discover"]).optional(),
+  }),
+  criteria: evalCriteriaSchemaRaw,
+});
+
+const skillCaseSchema = skillCaseSchemaRaw.extend({
+  criteria: evalCriteriaSchema,
+});
+
 export const evalCaseSchemaRaw = z.union([
   plainCaseSchemaRaw,
   agentCaseSchemaRaw,
+  skillCaseSchemaRaw,
 ]);
-export const evalCaseSchema = z.union([plainCaseSchema, agentCaseSchema]);
+export const evalCaseSchema = z.union([plainCaseSchema, agentCaseSchema, skillCaseSchema]);
 
 /**
  * Parse a .eval.yaml file into an EvalCase, with full zod validation.

@@ -11,5 +11,7 @@ export const runCase = async (
       return runPlain(evalCase, options);
     case "agent":
       return runAgent(evalCase, options);
+    case "skill":
+      throw new Error("Skill case type not yet implemented");
   }
 };

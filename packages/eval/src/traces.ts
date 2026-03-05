@@ -4,7 +4,7 @@ import type { EvalResult, EvalTrace } from "./types.ts";
 import { isRecord } from "./utils/type-guards.ts";
 
 function isCaseType(value: unknown): value is EvalTrace["case_type"] {
-  return value === "plain" || value === "agent";
+  return value === "plain" || value === "agent" || value === "skill";
 }
 
 function isTraceStatus(value: unknown): value is EvalTrace["status"] {

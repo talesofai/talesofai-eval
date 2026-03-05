@@ -1,15 +1,16 @@
 import type { Context, Tool, Usage } from "@mariozechner/pi-ai";
 import type { McpClient } from "../mcp.ts";
 import type {
+  CaseType,
   CommonLLMMessage,
+  PlainEvalCase,
   ToolCallRecord,
 } from "../../types.ts";
 import type { ModelConfig } from "../../models/index.ts";
 import type { SpanCollector } from "../../utils/span-collector.ts";
-import type { PlainEvalCase } from "../../types.ts";
 
 export type PlainRunnableCase = Omit<PlainEvalCase, "type"> & {
-  type: "plain" | "agent";
+  type: CaseType;
 };
 
 /**

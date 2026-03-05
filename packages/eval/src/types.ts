@@ -2,6 +2,8 @@ import type { Logger } from "pino";
 
 export type EvalTier = 1 | 2 | 3;
 
+export type CaseType = "plain" | "agent" | "skill";
+
 export type AnyAssistantMessage = {
   role: "assistant";
   reasoning_content?: string;
@@ -190,7 +192,33 @@ export type AgentEvalCase = {
   criteria: EvalCriteria;
 };
 
-export type EvalCase = PlainEvalCase | AgentEvalCase;
+export type SkillEvalCase = {
+  type: "skill";
+  id: string;
+  description: string;
+  input: {
+    /** Skill name, corresponds to subdirectory name in skills/ */
+    skill: string;
+    /** Model ID to execute the skill */
+    model: string;
+    /** Task description */
+    task: string;
+    /** Test data (optional), serialized as JSON and injected into prompt */
+    fixtures?: Record<string, unknown>;
+    /** Additional system prompt prefix (optional) */
+    system_prompt_prefix?: string;
+    /**
+     * Evaluation mode:
+     * - "inject": Directly inject skill content (test skill doc quality)
+     * - "discover": Only provide skill list, agent loads on demand (test real usage)
+     * @default "inject"
+     */
+    evaluation_mode?: "inject" | "discover";
+  };
+  criteria: EvalCriteria;
+};
+
+export type EvalCase = PlainEvalCase | AgentEvalCase | SkillEvalCase;
 
 // ─── Trace ───────────────────────────────────────────────────────────────────
 
@@ -268,7 +296,7 @@ export type TimingSummary = {
 
 export type EvalTrace = {
   case_id: string;
-  case_type: "plain" | "agent";
+  case_type: CaseType;
   conversation: CommonLLMMessage[];
   tools_called: ToolCallRecord[];
   final_response: string | null;
@@ -366,7 +394,7 @@ export type DimensionResult = {
 
 export type EvalResult = {
   case_id: string;
-  case_type: "plain" | "agent";
+  case_type: CaseType;
   /** Human-readable case description */
   description?: string;
   /** Preset description for agent cases */
