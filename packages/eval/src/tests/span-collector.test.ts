@@ -1,7 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import { SpanCollector } from "../utils/span-collector.ts";
-import type { SpanKind } from "../types.ts";
 
 describe("SpanCollector", () => {
   it("starts and ends spans correctly", () => {
