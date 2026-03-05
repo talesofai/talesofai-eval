@@ -67,6 +67,22 @@ describe("traces", () => {
     }
   });
 
+  it("loadTrace accepts skill case_type", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "agent-eval-traces-skill-"));
+
+    try {
+      const trace: EvalTrace = {
+        ...makeTrace("skill-case"),
+        case_type: "skill",
+      };
+      await saveTrace(trace, tempDir);
+      const loaded = await loadTrace("skill-case", tempDir);
+      assert.equal(loaded.case_type, "skill");
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("loadTrace throws when file missing", async () => {
     const tempDir = mkdtempSync(join(tmpdir(), "agent-eval-traces-missing-"));
 

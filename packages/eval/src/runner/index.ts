@@ -1,6 +1,7 @@
 import type { EvalCase, EvalTrace, RunnerOptions } from "../types.ts";
 import { runAgent } from "./agent.ts";
 import { runPlain } from "./plain.ts";
+import { runSkill } from "./skill.ts";
 
 export const runCase = async (
   evalCase: EvalCase,
@@ -12,6 +13,6 @@ export const runCase = async (
     case "agent":
       return runAgent(evalCase, options);
     case "skill":
-      throw new Error("Skill case type not yet implemented");
+      return runSkill(evalCase, options);
   }
 };

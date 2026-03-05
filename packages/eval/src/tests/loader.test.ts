@@ -58,6 +58,47 @@ describe("parseYamlFile", () => {
       parseInlineJson('{"type":"invalid"}');
     });
   });
+
+  it("parses valid skill case yaml", () => {
+    const c = parseInlineJson(
+      JSON.stringify({
+        type: "skill",
+        id: "skill-inline",
+        description: "skill test",
+        input: {
+          skill: "write-judge-prompt",
+          model: "qwen-plus",
+          task: "do task",
+          evaluation_mode: "discover",
+        },
+        criteria: {},
+      }),
+    );
+
+    assert.equal(c.type, "skill");
+    if (c.type === "skill") {
+      assert.equal(c.input.skill, "write-judge-prompt");
+      assert.equal(c.input.task, "do task");
+      assert.equal(c.input.evaluation_mode, "discover");
+    }
+  });
+
+  it("rejects invalid skill case yaml missing required fields", () => {
+    assert.throws(() => {
+      parseInlineJson(
+        JSON.stringify({
+          type: "skill",
+          id: "skill-invalid",
+          description: "bad",
+          input: {
+            model: "qwen-plus",
+            task: "missing skill field",
+          },
+          criteria: {},
+        }),
+      );
+    });
+  });
 });
 
 describe("parseInlineJson", () => {
