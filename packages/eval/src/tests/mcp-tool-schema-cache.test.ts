@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { loadModels, resetRegistry } from "../models/index.ts";
-import { runPlain } from "../runner/plain.ts";
+import { runPlain } from "../runner/plain/index.ts";
 import type { PlainEvalCase } from "../types.ts";
 
 type ChatRequestBody = {

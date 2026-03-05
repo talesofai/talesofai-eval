@@ -35,6 +35,8 @@ import type { RunCommandOptions } from "./options.ts";
 import { maybeShareHtmlReport } from "./share.ts";
 import { computeRunExitCode } from "./shared.ts";
 
+// ─── Path Resolution ─────────────────────────────────────────────────────────
+
 function resolveRunReportPath(options: {
   recordDir?: string;
   replayDir?: string;
@@ -51,6 +53,8 @@ function resolveRunReportPath(options: {
 
   return undefined;
 }
+
+// ─── Report Writing ──────────────────────────────────────────────────────────
 
 function writeRunReport(options: {
   summary: EvalSummary;
@@ -86,6 +90,8 @@ function writeRunReport(options: {
 
   return { htmlPath };
 }
+
+// ─── Result Normalization ────────────────────────────────────────────────────
 
 function makeErroredResultFromTrace(options: {
   caseId: string;
@@ -127,6 +133,8 @@ function normalizeCachedResult(result: EvalResult): EvalResult {
     error: result.trace.error ?? "Runner error in replay trace",
   });
 }
+
+// ─── Replay Case Execution ───────────────────────────────────────────────────
 
 async function runReplayCase(options: {
   evalCase: EvalCase;
@@ -200,20 +208,77 @@ async function runReplayCase(options: {
   }
 }
 
+// ─── Summary Building ────────────────────────────────────────────────────────
+
+function buildEvalSummary(options: {
+  results: EvalResult[];
+  startTime: number;
+  isReplay: boolean;
+}): EvalSummary {
+  const replayDurationMs = options.results.reduce(
+    (totalMs, result) => totalMs + result.trace.duration_ms,
+    0,
+  );
+
+  return {
+    total: options.results.length,
+    passed: options.results.filter((result) => result.passed).length,
+    failed: options.results.filter((result) => !result.passed && !result.error).length,
+    errored: options.results.filter((result) => Boolean(result.error)).length,
+    duration_ms: options.isReplay ? replayDurationMs : Date.now() - options.startTime,
+    results: options.results,
+  };
+}
+
+// ─── Report Sharing ──────────────────────────────────────────────────────────
+
+async function handleReportSharing(options: {
+  html: string;
+  htmlPath?: string;
+  format: OutputFormat;
+  shareBaseUrl?: string;
+}): Promise<void> {
+  const share = await maybeShareHtmlReport({
+    enabled: true,
+    html: options.html,
+    filename: options.htmlPath ? basename(options.htmlPath) : "run-report.html",
+    baseUrlOption: options.shareBaseUrl,
+  });
+
+  if (options.format === "json") {
+    if (share.status === "shared") {
+      process.stdout.write(
+        `${JSON.stringify({ type: "share", share_url: share.shareUrl })}\n`,
+      );
+    } else if (share.status === "failed") {
+      process.stdout.write(
+        `${JSON.stringify({ type: "share", error: share.reason })}\n`,
+      );
+    }
+  } else if (share.status === "shared") {
+    process.stderr.write(pc.green(`share: ${share.shareUrl}\n`));
+  } else if (share.status === "failed") {
+    process.stderr.write(pc.yellow(`share: ${share.reason}\n`));
+  }
+}
+
+// ─── Main Command ────────────────────────────────────────────────────────────
+
 export async function runCommand(options: RunCommandOptions): Promise<number> {
+  // 1. Resolve cases
   const { cases, unmatchedFilePatterns } = resolveCasesFromArgs(options);
   if (cases.length === 0) {
     throw noCases("run", unmatchedFilePatterns);
   }
 
+  // 2. Resolve configuration
   const explicitRecordDir = options.record;
   const replayDir = options.replay;
-  const replayWriteMetrics = options.replayWriteMetrics;
-
   const format = options.format;
   const verbose = options.verbose;
   const concurrency = resolveConcurrency(options.concurrency, cases.length);
   const tierMax = options.tierMax;
+
   const recordDir = resolveRunRecordDir({
     explicitRecordDir,
     replayDir,
@@ -224,6 +289,7 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
     process.stderr.write(pc.dim(`auto-record: ${recordDir}\n`));
   }
 
+  // 3. Validate configuration
   const missing = getMissingRunConfig(cases, {
     replay: Boolean(replayDir),
     tierMax,
@@ -232,6 +298,7 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
     throw missingConfig(missing, "run");
   }
 
+  // 4. Setup runner
   const replayMissingJudgeConfig = replayDir ? getMissingJudgeConfig() : [];
   const reportPath = resolveRunReportPath({
     recordDir,
@@ -247,6 +314,7 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
     mcpServerBaseURL: resolveMcpServerBaseURL(),
   });
 
+  // 5. Run cases
   const tasks = cases.map(
     (evalCase, index) => async (): Promise<EvalResult> => {
       reporter.onCaseStart(evalCase, index, cases.length);
@@ -254,7 +322,7 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
         ? await runReplayCase({
             evalCase,
             replayDir,
-            replayWriteMetrics,
+            replayWriteMetrics: options.replayWriteMetrics,
             replayMissingJudgeConfig,
             tierMax,
           })
@@ -272,25 +340,18 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
 
   const results = await runConcurrently(tasks, concurrency);
 
-  const replayDurationMs = results.reduce(
-    (totalMs, result) => totalMs + result.trace.duration_ms,
-    0,
-  );
-
-  const summary: EvalSummary = {
-    total: results.length,
-    passed: results.filter((result) => result.passed).length,
-    failed: results.filter((result) => !result.passed && !result.error).length,
-    errored: results.filter((result) => Boolean(result.error)).length,
-    duration_ms: replayDir ? replayDurationMs : Date.now() - startTime,
+  // 6. Build and report summary
+  const summary = buildEvalSummary({
     results,
-  };
+    startTime,
+    isReplay: Boolean(replayDir),
+  });
   reporter.onSummary(summary);
 
+  // 7. Generate HTML report
   const shareEnabled = options.share;
   const hasPassedCase = summary.passed > 0;
-  const shouldBuildHtml =
-    hasPassedCase && (Boolean(reportPath) || shareEnabled);
+  const shouldBuildHtml = hasPassedCase && (Boolean(reportPath) || shareEnabled);
   const html = shouldBuildHtml ? await renderRunHtmlReport(summary) : undefined;
 
   const { htmlPath } = writeRunReport({
@@ -300,6 +361,7 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
     html,
   });
 
+  // 8. Handle sharing
   if (!hasPassedCase && shareEnabled && format === "terminal") {
     process.stderr.write(
       pc.dim("share: skipped (no passed cases, html report not generated)\n"),
@@ -307,28 +369,12 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
   }
 
   if (html && shareEnabled) {
-    const share = await maybeShareHtmlReport({
-      enabled: true,
+    await handleReportSharing({
       html,
-      filename: htmlPath ? basename(htmlPath) : "run-report.html",
-      baseUrlOption: options.shareBaseUrl,
+      htmlPath,
+      format,
+      shareBaseUrl: options.shareBaseUrl,
     });
-
-    if (format === "json") {
-      if (share.status === "shared") {
-        process.stdout.write(
-          `${JSON.stringify({ type: "share", share_url: share.shareUrl })}\n`,
-        );
-      } else if (share.status === "failed") {
-        process.stdout.write(
-          `${JSON.stringify({ type: "share", error: share.reason })}\n`,
-        );
-      }
-    } else if (share.status === "shared") {
-      process.stderr.write(pc.green(`share: ${share.shareUrl}\n`));
-    } else if (share.status === "failed") {
-      process.stderr.write(pc.yellow(`share: ${share.reason}\n`));
-    }
   }
 
   return computeRunExitCode(results);

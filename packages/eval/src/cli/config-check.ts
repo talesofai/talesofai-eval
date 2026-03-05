@@ -1,5 +1,6 @@
 import { ENV_KEYS, resolveJudgeModels } from "../config.ts";
 import type { AssertionConfig, EvalCase, EvalTier } from "../types.ts";
+import { normalizeAssertions } from "../utils/normalize-assertions.ts";
 
 const JUDGE_ASSERTION_TYPES = new Set<AssertionConfig["type"]>([
   "llm_judge",
@@ -37,16 +38,13 @@ export function caseNeedsJudge(
 ): boolean {
   const tierMax = options?.tierMax ?? 2;
 
-  if (evalCase.criteria.llm_judge && tierMax >= 2) {
-    return true;
-  }
+  // Use normalizeAssertions to ensure assertions-first strategy
+  const assertions = normalizeAssertions(evalCase.criteria);
 
-  return (
-    evalCase.criteria.assertions?.some(
-      (assertion) =>
-        resolveAssertionTier(assertion) <= tierMax &&
-        JUDGE_ASSERTION_TYPES.has(assertion.type),
-    ) ?? false
+  return assertions.some(
+    (assertion) =>
+      resolveAssertionTier(assertion) <= tierMax &&
+      JUDGE_ASSERTION_TYPES.has(assertion.type),
   );
 }
 
