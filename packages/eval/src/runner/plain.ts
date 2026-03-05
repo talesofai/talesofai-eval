@@ -21,6 +21,7 @@ import type {
   RunnerOptions,
   ToolCallRecord,
 } from "../types.ts";
+import { SpanCollector } from "../utils/span-collector.ts";
 import { createMcpClient, type McpClient, type McpTool } from "./mcp.ts";
 import { extractMessageText } from "./message-utils.ts";
 
@@ -155,6 +156,7 @@ export const runPlain = async (
   opts: RunnerOptions,
 ): Promise<EvalTrace> => {
   const startTime = Date.now();
+  const spans = new SpanCollector();
   const { input } = evalCase;
 
   // Resolve model from registry
@@ -173,6 +175,7 @@ export const runPlain = async (
       error: message,
       usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 },
       duration_ms: Date.now() - startTime,
+      spans: spans.getSpans(),
     };
   }
 
@@ -187,13 +190,16 @@ export const runPlain = async (
   let mcpClient: McpClient | null = null;
 
   if (!toolsExplicitlyDisabled) {
+    spans.start("mcp_connect", "mcp_connect");
     mcpClient = await createMcpClient(
       opts.mcpServerBaseURL,
       resolveMcpXToken(),
     );
+    spans.end("mcp_connect");
     const connectedMcpClient = mcpClient;
 
     const cacheKey = `${opts.mcpServerBaseURL}::${makeMcpToolFilterKey(input.allowed_tool_names)}`;
+    spans.start("mcp_list_tools", "mcp_list_tools");
     const filteredTools = await loadRunCachedMcpTools({
       runnerOptions: opts,
       cacheKey,
@@ -207,6 +213,7 @@ export const runPlain = async (
         return allTools.filter((tool) => allowedNames.has(tool.name));
       },
     });
+    spans.end("mcp_list_tools");
 
     tools = filteredTools.map(mcpToolToPiAiTool);
   }
@@ -253,16 +260,23 @@ export const runPlain = async (
 
   // 3. Agentic loop
   for (let turn = 0; turn < MAX_TURNS; turn++) {
+    const turnSpanName = `turn_${turn}`;
+    spans.start(turnSpanName, "llm_turn");
+
     const eventStream = streamEvents(model, context, { headers });
 
     let assistantContent = "";
     let assistantMessage: AssistantMessage | null = null;
     const toolCalls: ToolCall[] = [];
+    let firstTokenMs: number | null = null;
 
     // Process event stream
     for await (const event of eventStream) {
       switch (event.type) {
         case "text_delta":
+          if (firstTokenMs === null) {
+            firstTokenMs = Date.now();
+          }
           assistantContent += event.delta;
           opts.onDelta?.(event.delta);
           break;
@@ -276,6 +290,10 @@ export const runPlain = async (
           break;
 
         case "error":
+          spans.end(turnSpanName, {
+            input_tokens: assistantMessage?.usage.input,
+            output_tokens: assistantMessage?.usage.output,
+          });
           await mcpClient?.close();
           return {
             case_id: evalCase.id,
@@ -291,6 +309,7 @@ export const runPlain = async (
               total_tokens: totalInputTokens + totalOutputTokens,
             },
             duration_ms: Date.now() - startTime,
+            spans: spans.getSpans(),
           };
       }
     }
@@ -300,6 +319,13 @@ export const runPlain = async (
       totalInputTokens += assistantMessage.usage.input;
       totalOutputTokens += assistantMessage.usage.output;
     }
+
+    // End turn span with timing data
+    spans.end(turnSpanName, {
+      first_token_ms: firstTokenMs ?? undefined,
+      input_tokens: assistantMessage?.usage.input,
+      output_tokens: assistantMessage?.usage.output,
+    });
 
     // Record assistant message in conversation
     const assistantMsg: CommonLLMMessage = {
@@ -345,6 +371,9 @@ export const runPlain = async (
 
     // Execute tool calls
     for (const tc of toolCalls) {
+      const toolSpanName = `tool_${tc.name}_${tc.id}`;
+      spans.start(toolSpanName, "tool_call", turnSpanName);
+
       const toolArgs = tc.arguments;
       opts.onToolStart?.({
         name: tc.name,
@@ -377,6 +406,11 @@ export const runPlain = async (
         };
       }
       const callDuration = Date.now() - callStart;
+
+      spans.end(toolSpanName, {
+        tool_call_id: tc.id,
+        ...(isError ? { error: "timeout" } : {}),
+      });
 
       const outputStr =
         typeof result === "string"
@@ -431,5 +465,6 @@ export const runPlain = async (
       total_tokens: totalInputTokens + totalOutputTokens,
     },
     duration_ms: Date.now() - startTime,
+    spans: spans.getSpans(),
   };
 };

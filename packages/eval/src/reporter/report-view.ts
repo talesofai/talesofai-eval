@@ -1,5 +1,5 @@
 import { parseToolOutput } from "../metrics/trace-metrics.ts";
-import type { EvalResult, EvalTrace, ToolCallRecord } from "../types.ts";
+import type { EvalResult, EvalTrace, Span, TimingSummary, ToolCallRecord } from "../types.ts";
 import { isRecord } from "../utils/type-guards.ts";
 import {
   resolveMetrics,
@@ -295,4 +295,75 @@ export function buildCaseMetricsView(result: EvalResult): CaseMetricsView {
     video_count: videoCount,
     artifact_count: metrics.artifacts_total,
   };
+}
+
+export type SpanView = {
+  name: string;
+  kind: string;
+  duration_ms: number;
+  duration_text: string;
+  depth: number;
+  attributes?: Span["attributes"];
+};
+
+export type TimingSummaryView = TimingSummary;
+
+export function buildSpanViews(spans: Span[] | undefined): SpanView[] {
+  if (!spans) return [];
+
+  return spans.map((span) => {
+    const depth = span.parent ? 1 : 0;
+    return {
+      name: span.name,
+      kind: span.kind,
+      duration_ms: span.duration_ms,
+      duration_text:
+        span.duration_ms < 1000
+          ? `${span.duration_ms}ms`
+          : `${(span.duration_ms / 1000).toFixed(2)}s`,
+      depth,
+      attributes: span.attributes,
+    };
+  });
+}
+
+export function buildTimingSummary(
+  spans: Span[] | undefined,
+): TimingSummaryView | null {
+  if (!spans || spans.length === 0) return null;
+
+  const summary: TimingSummary = {
+    mcp_connect_ms: 0,
+    mcp_list_tools_ms: 0,
+    llm_total_ms: 0,
+    llm_first_token_ms: null,
+    tool_total_ms: 0,
+    turns_count: 0,
+  };
+
+  for (const span of spans) {
+    switch (span.kind) {
+      case "mcp_connect":
+        summary.mcp_connect_ms += span.duration_ms;
+        break;
+      case "mcp_list_tools":
+        summary.mcp_list_tools_ms += span.duration_ms;
+        break;
+      case "llm_turn":
+        summary.llm_total_ms += span.duration_ms;
+        summary.turns_count++;
+        if (
+          span.attributes?.first_token_ms !== undefined &&
+          summary.llm_first_token_ms === null
+        ) {
+          summary.llm_first_token_ms = span.attributes.first_token_ms;
+        }
+        break;
+      case "tool_call":
+        summary.tool_total_ms += span.duration_ms;
+        break;
+    }
+  }
+
+  return summary;
 }

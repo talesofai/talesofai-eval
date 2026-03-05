@@ -945,3 +945,105 @@
     ::-webkit-scrollbar-thumb:hover {
       background: var(--text-tertiary);
     }
+
+    /* Timing Breakdown */
+    .timing-section {
+      margin-top: 16px;
+    }
+
+    .timing-summary {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+    }
+
+    .timing-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .timing-stat .key {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .timing-stat .val {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .spans-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .span-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 80px auto;
+      gap: 12px;
+      align-items: center;
+      padding: 6px 0;
+    }
+
+    .span-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .span-bar-container {
+      height: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .span-bar {
+      height: 100%;
+      border-radius: 4px;
+      min-width: 2px;
+      transition: width 0.2s ease;
+    }
+
+    .span-duration {
+      font-size: 12px;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      text-align: right;
+    }
+
+    .span-attr {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      background: var(--bg-tertiary);
+      padding: 2px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .timing-summary {
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+
+      .span-row {
+        grid-template-columns: 100px 1fr 60px;
+      }
+
+      .span-attr {
+        display: none;
+      }
+    }
