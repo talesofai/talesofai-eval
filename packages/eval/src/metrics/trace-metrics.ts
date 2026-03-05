@@ -46,13 +46,16 @@ function parseJsonString(raw: string): unknown {
   }
 }
 
-function hasStructuredFields(value: Record<string, unknown>): boolean {
+function hasStructuredPayloadFields(value: Record<string, unknown>): boolean {
   return (
     "task_status" in value ||
     "artifacts" in value ||
-    "err_msg" in value ||
-    "isError" in value
+    "err_msg" in value
   );
+}
+
+function hasStructuredFields(value: Record<string, unknown>): boolean {
+  return hasStructuredPayloadFields(value) || "isError" in value;
 }
 
 function extractStructuredContent(
@@ -77,7 +80,7 @@ function extractStructuredContent(
     return direct;
   }
 
-  if (hasStructuredFields(value)) {
+  if (hasStructuredPayloadFields(value)) {
     return value;
   }
 
@@ -110,6 +113,10 @@ function extractStructuredContent(
     if (nested) {
       return nested;
     }
+  }
+
+  if (hasStructuredFields(value)) {
+    return value;
   }
 
   return null;

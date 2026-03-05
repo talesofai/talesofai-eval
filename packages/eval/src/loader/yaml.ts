@@ -1,7 +1,13 @@
 import { readFileSync } from "node:fs";
 import YAML from "yaml";
 import { z } from "zod3";
-import { DEFAULT_AGENT_PRESET_KEY, type EvalCase } from "../types.ts";
+import {
+  DEFAULT_AGENT_PRESET_KEY,
+  type AssertionConfig,
+  type EvalCase,
+  type EvalCriteria,
+} from "../types.ts";
+import { normalizeAssertions } from "../utils/normalize-assertions.ts";
 
 // ─── Zod schemas ─────────────────────────────────────────────────────────────
 
@@ -121,37 +127,14 @@ const evalCriteriaSchemaRaw = z.object({
 
 /**
  * Runtime criteria schema: normalize legacy fields into `assertions`.
+ * Uses shared normalizeAssertions for consistent behavior.
  * The parsed output only contains `{ assertions }`.
  */
 const evalCriteriaSchema = evalCriteriaSchemaRaw.transform((data) => {
-  const assertions = data.assertions ? [...data.assertions] : [];
-
-  if (data.expected_tools || data.forbidden_tools) {
-    assertions.push({
-      type: "tool_usage",
-      expected_tools: data.expected_tools,
-      forbidden_tools: data.forbidden_tools,
-    });
-  }
-
-  if (data.expected_status) {
-    assertions.push({
-      type: "final_status",
-      expected_status: data.expected_status,
-    });
-  }
-
-  if (data.llm_judge) {
-    assertions.push({
-      type: "llm_judge",
-      prompt: data.llm_judge.prompt,
-      pass_threshold: data.llm_judge.pass_threshold,
-    });
-  }
-
-  return {
-    assertions,
-  };
+  const assertions = normalizeAssertions(
+    data as EvalCriteria,
+  ) as AssertionConfig[];
+  return { assertions };
 });
 
 const plainCaseSchemaRaw = z.object({

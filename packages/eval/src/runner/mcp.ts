@@ -7,7 +7,7 @@ export interface McpClient {
     name: string,
     args: Record<string, unknown>,
     timeout?: number,
-  ): Promise<unknown>;
+  ): Promise<McpToolResult>;
   close(): Promise<void>;
 }
 
@@ -15,6 +15,11 @@ export interface McpTool {
   name: string;
   description?: string;
   inputSchema: Record<string, unknown>;
+}
+
+export interface McpToolResult {
+  content: unknown;
+  isError: boolean;
 }
 
 export async function createMcpClient(
@@ -54,13 +59,16 @@ export async function createMcpClient(
       name: string,
       args: Record<string, unknown>,
       timeout?: number,
-    ): Promise<unknown> {
+    ): Promise<McpToolResult> {
       const result = await client.callTool(
         { name, arguments: args },
         undefined,
         timeout ? { timeout } : undefined,
       );
-      return result.content;
+      return {
+        content: result.content,
+        isError: result.isError === true,
+      };
     },
     async close(): Promise<void> {
       await client.close();
