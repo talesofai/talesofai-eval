@@ -1,5 +1,6 @@
 import { parseToolOutput } from "../metrics/trace-metrics.ts";
-import type { EvalResult, EvalTrace, ToolCallRecord } from "../types.ts";
+import type { EvalResult, EvalTrace, Span, TimingSummary, ToolCallRecord } from "../types.ts";
+import { computeTimingSummary as computeTimingSummaryCore } from "../utils/span-collector.ts";
 import { isRecord } from "../utils/type-guards.ts";
 import {
   resolveMetrics,
@@ -295,4 +296,40 @@ export function buildCaseMetricsView(result: EvalResult): CaseMetricsView {
     video_count: videoCount,
     artifact_count: metrics.artifacts_total,
   };
+}
+
+export type SpanView = {
+  name: string;
+  kind: string;
+  duration_ms: number;
+  duration_text: string;
+  depth: number;
+  attributes?: Span["attributes"];
+};
+
+export type TimingSummaryView = TimingSummary;
+
+export function buildSpanViews(spans: Span[] | undefined): SpanView[] {
+  if (!spans) return [];
+
+  return spans.map((span) => {
+    const depth = span.parent ? 1 : 0;
+    return {
+      name: span.name,
+      kind: span.kind,
+      duration_ms: span.duration_ms,
+      duration_text:
+        span.duration_ms < 1000
+          ? `${span.duration_ms}ms`
+          : `${(span.duration_ms / 1000).toFixed(2)}s`,
+      depth,
+      attributes: span.attributes,
+    };
+  });
+}
+
+export function buildTimingSummary(
+  spans: Span[] | undefined,
+): TimingSummaryView | null {
+  return computeTimingSummaryCore(spans);
 }

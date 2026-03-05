@@ -4,7 +4,7 @@ import {
   createJsonMatrixReporter,
   createJsonReporter,
 } from "../reporter/json.ts";
-import type { EvalSummary, MatrixCell, MatrixSummary } from "../types.ts";
+import type { EvalSummary, MatrixCell, MatrixSummary, Span } from "../types.ts";
 
 describe("createJsonReporter", () => {
   it("onCaseResult emits stable metrics", () => {
@@ -71,6 +71,95 @@ describe("createJsonReporter", () => {
     const parsed = JSON.parse(output.trim());
     assert.equal(parsed.type, "summary");
     assert.equal(typeof parsed.metrics_summary.avg_tool_calls_total, "number");
+  });
+
+  it("onCaseResult includes timing_summary when spans present", () => {
+    const reporter = createJsonReporter();
+    const result = makeCell("case-a", "v1", true).result;
+    const spans: Span[] = [
+      {
+        name: "mcp_connect",
+        kind: "mcp_connect",
+        start_ms: 1000,
+        end_ms: 1050,
+        duration_ms: 50,
+      },
+      {
+        name: "turn_0",
+        kind: "llm_turn",
+        start_ms: 1100,
+        end_ms: 1500,
+        duration_ms: 400,
+        attributes: { first_token_ms: 1120, input_tokens: 100, output_tokens: 50 },
+      },
+      {
+        name: "tool_make_image_v1_abc",
+        kind: "tool_call",
+        start_ms: 1510,
+        end_ms: 2000,
+        duration_ms: 490,
+        parent: "turn_0",
+        attributes: { tool_call_id: "abc" },
+      },
+    ];
+    result.trace.spans = spans;
+
+    const output = captureStdout(() => {
+      reporter.onCaseResult(result);
+    });
+
+    const parsed = JSON.parse(output.trim());
+    assert.equal(parsed.timing_summary.mcp_connect_ms, 50);
+    assert.equal(parsed.timing_summary.llm_total_ms, 400);
+    assert.equal(parsed.timing_summary.tool_total_ms, 490);
+    assert.equal(parsed.timing_summary.turns_count, 1);
+    assert.equal(parsed.timing_summary.llm_first_token_ms, 1120);
+  });
+
+  it("verbose mode includes spans array", () => {
+    const reporter = createJsonReporter({ verbose: true });
+    const result = makeCell("case-a", "v1", true).result;
+    const spans: Span[] = [
+      {
+        name: "turn_0",
+        kind: "llm_turn",
+        start_ms: 1000,
+        end_ms: 1500,
+        duration_ms: 500,
+      },
+    ];
+    result.trace.spans = spans;
+
+    const output = captureStdout(() => {
+      reporter.onCaseResult(result);
+    });
+
+    const parsed = JSON.parse(output.trim());
+    assert.ok(Array.isArray(parsed.spans));
+    assert.equal(parsed.spans.length, 1);
+    assert.equal(parsed.spans[0].name, "turn_0");
+  });
+
+  it("non-verbose mode does not include spans array", () => {
+    const reporter = createJsonReporter({ verbose: false });
+    const result = makeCell("case-a", "v1", true).result;
+    result.trace.spans = [
+      {
+        name: "turn_0",
+        kind: "llm_turn",
+        start_ms: 1000,
+        end_ms: 1500,
+        duration_ms: 500,
+      },
+    ];
+
+    const output = captureStdout(() => {
+      reporter.onCaseResult(result);
+    });
+
+    const parsed = JSON.parse(output.trim());
+    assert.equal(parsed.spans, undefined);
+    assert.ok(parsed.timing_summary); // Still has timing summary
   });
 });
 

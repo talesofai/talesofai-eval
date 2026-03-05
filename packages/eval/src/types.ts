@@ -233,6 +233,39 @@ export type CommonLLMMessage =
 
 export type EvalTraceStatus = "success" | "failure" | "cancelled" | "error";
 
+// ─── Span Timing ──────────────────────────────────────────────────────────────
+
+export type SpanKind =
+  | "mcp_connect"
+  | "mcp_list_tools"
+  | "llm_turn"
+  | "tool_call";
+
+export type Span = {
+  name: string;
+  kind: SpanKind;
+  start_ms: number;
+  end_ms: number;
+  duration_ms: number;
+  parent?: string;
+  attributes?: {
+    first_token_ms?: number;
+    input_tokens?: number;
+    output_tokens?: number;
+    tool_call_id?: string;
+    error?: string;
+  };
+};
+
+export type TimingSummary = {
+  mcp_connect_ms: number;
+  mcp_list_tools_ms: number;
+  llm_total_ms: number;
+  llm_first_token_ms: number | null;
+  tool_total_ms: number;
+  turns_count: number;
+};
+
 export type EvalTrace = {
   case_id: string;
   case_type: "plain" | "agent";
@@ -244,6 +277,8 @@ export type EvalTrace = {
   duration_ms: number;
   /** Runner-level error message; only present when status === "error" */
   error?: string;
+  /** Span timing data, optional for backward compatibility */
+  spans?: Span[];
 };
 
 export type ArtifactRef = {

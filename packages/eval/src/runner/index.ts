@@ -1,6 +1,6 @@
 import type { EvalCase, EvalTrace, RunnerOptions } from "../types.ts";
 import { runAgent } from "./agent.ts";
-import { runPlain } from "./plain.ts";
+import { runPlain } from "./plain/index.ts";
 
 export const runCase = async (
   evalCase: EvalCase,
