@@ -5,3 +5,4 @@ coverage/
 .eval-records/
 .env*
 !**/.env.example
+models.json
