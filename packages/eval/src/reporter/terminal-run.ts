@@ -7,6 +7,8 @@ import type {
   EvalResult,
   EvalSummary,
   Reporter,
+  Span,
+  TimingSummary,
   ToolCallRecord,
   ToolCallStartRecord,
 } from "../types.ts";
@@ -26,6 +28,109 @@ import {
   resolveMetrics,
   truncateText,
 } from "./render.ts";
+
+function computeTimingSummary(spans: Span[] | undefined): TimingSummary | null {
+  if (!spans || spans.length === 0) return null;
+
+  const summary: TimingSummary = {
+    mcp_connect_ms: 0,
+    mcp_list_tools_ms: 0,
+    llm_total_ms: 0,
+    llm_first_token_ms: null,
+    tool_total_ms: 0,
+    turns_count: 0,
+  };
+
+  for (const span of spans) {
+    switch (span.kind) {
+      case "mcp_connect":
+        summary.mcp_connect_ms += span.duration_ms;
+        break;
+      case "mcp_list_tools":
+        summary.mcp_list_tools_ms += span.duration_ms;
+        break;
+      case "llm_turn":
+        summary.llm_total_ms += span.duration_ms;
+        summary.turns_count++;
+        if (
+          span.attributes?.first_token_ms !== undefined &&
+          summary.llm_first_token_ms === null
+        ) {
+          summary.llm_first_token_ms = span.attributes.first_token_ms;
+        }
+        break;
+      case "tool_call":
+        summary.tool_total_ms += span.duration_ms;
+        break;
+    }
+  }
+
+  return summary;
+}
+
+const renderTimingGantt = (spans: Span[], summary: TimingSummary): string => {
+  if (spans.length === 0) return "";
+
+  const lines: string[] = [];
+  lines.push(pc.dim("\n       Timeline:"));
+
+  const maxDuration = Math.max(...spans.map((s) => s.duration_ms));
+  const totalWidth = 20; // bar width
+
+  const kindLabels: Record<string, string> = {
+    mcp_connect: "MCP Connect",
+    mcp_list_tools: "MCP List",
+    llm_turn: "LLM Turn",
+    tool_call: "Tool Call",
+  };
+
+  for (const span of spans) {
+    const width = Math.max(
+      1,
+      Math.round((span.duration_ms / maxDuration) * totalWidth),
+    );
+    const bar = "█".repeat(width) + "░".repeat(totalWidth - width);
+    const label = kindLabels[span.kind] ?? span.kind;
+    const duration =
+      span.duration_ms < 1000
+        ? `${span.duration_ms}ms`
+        : `${(span.duration_ms / 1000).toFixed(1)}s`;
+
+    // Indent child spans
+    const indent = span.parent ? "  " : "";
+    const displayName =
+      span.kind === "llm_turn"
+        ? `${label} ${span.name.split("_")[1]}`
+        : span.kind === "tool_call"
+          ? `${indent}${label}`
+          : label;
+
+    // Attribute info
+    let attrs = "";
+    if (span.attributes?.first_token_ms !== undefined) {
+      attrs = pc.dim(` first token: ${span.attributes.first_token_ms}ms`);
+    } else if (span.attributes?.input_tokens !== undefined) {
+      attrs = pc.dim(
+        ` in: ${span.attributes.input_tokens} out: ${span.attributes.output_tokens}`,
+      );
+    }
+
+    lines.push(
+      `       ${displayName.padEnd(12)} ${pc.dim(bar)} ${duration.padStart(7)}${attrs}`,
+    );
+  }
+
+  // Summary row
+  lines.push(pc.dim("\n       Summary:"));
+  lines.push(
+    `       MCP ${(summary.mcp_connect_ms + summary.mcp_list_tools_ms).toString().padStart(4)}ms | LLM ${(summary.llm_total_ms / 1000).toFixed(1)}s (${summary.turns_count} turns) | Tools ${(summary.tool_total_ms / 1000).toFixed(1)}s`,
+  );
+  if (summary.llm_first_token_ms !== null) {
+    lines.push(`       First token: ${summary.llm_first_token_ms}ms`);
+  }
+
+  return lines.join("\n");
+};
 
 function writeRunSummary(summary: EvalSummary): void {
   process.stderr.write("\n");
@@ -188,9 +293,24 @@ export function createCompactTerminalReporter(options: {
         ? pc.dim(`[${meta.index + 1}/${meta.total}]`)
         : pc.dim("[?/?]");
       const typeTag = meta ? pc.dim(`(${meta.caseType})`) : "";
+
+      // Simplified timing summary
+      let timingSuffix = "";
+      if (result.trace.spans && result.trace.spans.length > 0) {
+        let llmTotal = 0;
+        let toolTotal = 0;
+        for (const span of result.trace.spans) {
+          if (span.kind === "llm_turn") llmTotal += span.duration_ms;
+          if (span.kind === "tool_call") toolTotal += span.duration_ms;
+        }
+        timingSuffix = pc.dim(
+          ` | LLM ${(llmTotal / 1000).toFixed(1)}s | Tools ${(toolTotal / 1000).toFixed(1)}s`,
+        );
+      }
+
       progressBoard.finishRow(
         result.case_id,
-        `  ${result.passed ? pc.green("✓") : pc.red("✗")} ${progress} ${result.case_id}${typeTag ? ` ${typeTag}` : ""}  ${statusLabel}  ${duration}  ${tokens}${errorSuffix}`,
+        `  ${result.passed ? pc.green("✓") : pc.red("✗")} ${progress} ${result.case_id}${typeTag ? ` ${typeTag}` : ""}  ${statusLabel}  ${duration}  ${tokens}${timingSuffix}${errorSuffix}`,
       );
       ticker.maybeStop(compactStartedAtByCaseId.size);
       progressBoard.setFooter(renderCompactDashboard());
@@ -403,6 +523,14 @@ export function createVerboseTerminalReporter(options: {
       process.stderr.write(
         `  ${pc.dim(renderCaseMetricsBrief(resolveMetrics(result)))}\n`,
       );
+
+      // Render timing Gantt chart
+      if (result.trace.spans && result.trace.spans.length > 0) {
+        const timingSummary = computeTimingSummary(result.trace.spans);
+        if (timingSummary) {
+          process.stderr.write(renderTimingGantt(result.trace.spans, timingSummary));
+        }
+      }
 
       if (options.verbose) {
         const artifactLines = renderVerboseArtifactLines(result);

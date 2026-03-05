@@ -13,6 +13,8 @@ import type {
   MatrixReporter,
   MatrixSummary,
   Reporter,
+  Span,
+  TimingSummary,
   ToolCallRecord,
   ToolCallStartRecord,
   TraceMetrics,
@@ -67,6 +69,45 @@ function buildVerboseMetrics(result: EvalResult): TraceMetrics {
   };
 }
 
+function computeTimingSummary(spans: Span[] | undefined): TimingSummary | null {
+  if (!spans || spans.length === 0) return null;
+
+  const summary: TimingSummary = {
+    mcp_connect_ms: 0,
+    mcp_list_tools_ms: 0,
+    llm_total_ms: 0,
+    llm_first_token_ms: null,
+    tool_total_ms: 0,
+    turns_count: 0,
+  };
+
+  for (const span of spans) {
+    switch (span.kind) {
+      case "mcp_connect":
+        summary.mcp_connect_ms += span.duration_ms;
+        break;
+      case "mcp_list_tools":
+        summary.mcp_list_tools_ms += span.duration_ms;
+        break;
+      case "llm_turn":
+        summary.llm_total_ms += span.duration_ms;
+        summary.turns_count++;
+        if (
+          span.attributes?.first_token_ms !== undefined &&
+          summary.llm_first_token_ms === null
+        ) {
+          summary.llm_first_token_ms = span.attributes.first_token_ms;
+        }
+        break;
+      case "tool_call":
+        summary.tool_total_ms += span.duration_ms;
+        break;
+    }
+  }
+
+  return summary;
+}
+
 /**
  * JSON (NDJSON) reporter — each result/summary is one JSON line to stdout.
  */
@@ -106,6 +147,8 @@ export const createJsonReporter = (options?: {
         metrics: TraceMetrics;
         conversation?: typeof result.trace.conversation;
         tools_called?: typeof result.trace.tools_called;
+        spans?: typeof result.trace.spans;
+        timing_summary?: TimingSummary;
         error?: string;
       } = {
         type: "result",
@@ -119,6 +162,15 @@ export const createJsonReporter = (options?: {
           ? buildVerboseMetrics(result)
           : resolveStableMetrics(result),
       };
+
+      if (verbose && result.trace.spans) {
+        output.spans = result.trace.spans;
+      }
+
+      const timingSummary = computeTimingSummary(result.trace.spans);
+      if (timingSummary) {
+        output.timing_summary = timingSummary;
+      }
 
       if (verbose) {
         output.conversation = result.trace.conversation;
