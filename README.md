@@ -7,6 +7,7 @@ agent-eval run --file my-case.eval.yaml
 agent-eval run --case all
 agent-eval matrix --case my-case --variant "gpt4o=gpt-4o" --variant "mini=gpt-4o-mini"
 agent-eval diff --case my-case --base '{"model":"gpt-4o"}' --candidate '{"model":"gpt-4o-mini"}'
+agent-eval draft-skill-case --skill write-judge-prompt
 ```
 
 ---
@@ -26,6 +27,7 @@ agent-eval diff --case my-case --base '{"model":"gpt-4o"}' --candidate '{"model"
   - [Agent case](#agent-case)
 - [Assertions reference](#assertions-reference)
 - [Commands](#commands)
+  - [Draft skill case](#draft-skill-case--generate-a-skill-case-scaffold)
 - [Advanced](#advanced)
   - [Record & replay](#record--replay)
   - [Matrix evaluation](#matrix-evaluation)
@@ -673,6 +675,30 @@ agent-eval doctor --format json # machine-readable output
 ```
 
 ---
+
+### `draft-skill-case` — generate a skill case scaffold
+
+Generate a deterministic `type: skill` eval case scaffold from a target `SKILL.md`.
+
+```bash
+# Print YAML to stdout
+agent-eval draft-skill-case --skill write-judge-prompt
+
+# Write YAML to a file
+agent-eval draft-skill-case \
+  --skill write-judge-prompt \
+  --mode discover \
+  --out cases/skills/write-judge-prompt/discover-auto.eval.yaml
+
+# Machine-readable metadata + generated case object
+agent-eval draft-skill-case --skill write-judge-prompt --format json
+```
+
+Notes:
+- v1 is deterministic and generates a scaffold, not a complete benchmark.
+- Generated tasks describe the user goal, not the mechanism.
+- `input.skills_dir` is only included when you explicitly pass `--skills-dir`.
+- Review the generated task and assertions before committing the case.
 
 ### `report` — generate HTML from saved results
 

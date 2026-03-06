@@ -9,6 +9,7 @@ import {
   parseReportCommandOptions,
   parseRunCommandOptions,
 } from "../cli/options.ts";
+import * as cliOptions from "../cli/options.ts";
 import type { CliError } from "../errors.ts";
 
 function assertCliError(error: unknown): asserts error is CliError {
@@ -17,6 +18,127 @@ function assertCliError(error: unknown): asserts error is CliError {
 }
 
 describe("cli option parsers", () => {
+  it("parseDraftSkillCaseCommandOptions parses required and optional fields", () => {
+    const parseDraftSkillCaseCommandOptions = Reflect.get(
+      cliOptions,
+      "parseDraftSkillCaseCommandOptions",
+    ) as ((raw: unknown) => Record<string, unknown>) | undefined;
+
+    assert.equal(typeof parseDraftSkillCaseCommandOptions, "function");
+
+    const parsed = parseDraftSkillCaseCommandOptions?.({
+      skill: "write-judge-prompt",
+      mode: "discover",
+      skillsDir: "~/.agents/skills",
+      out: "cases/skills/write-judge-prompt/discover-auto.eval.yaml",
+      format: "terminal",
+    });
+
+    assert.deepEqual(parsed, {
+      skill: "write-judge-prompt",
+      mode: "discover",
+      skillsDir: "~/.agents/skills",
+      out: "cases/skills/write-judge-prompt/discover-auto.eval.yaml",
+      format: "terminal",
+    });
+  });
+
+  it("parseDraftSkillCaseCommandOptions defaults mode and format", () => {
+    const parseDraftSkillCaseCommandOptions = Reflect.get(
+      cliOptions,
+      "parseDraftSkillCaseCommandOptions",
+    ) as ((raw: unknown) => Record<string, unknown>) | undefined;
+
+    assert.equal(typeof parseDraftSkillCaseCommandOptions, "function");
+
+    const parsed = parseDraftSkillCaseCommandOptions?.({
+      skill: "write-judge-prompt",
+    });
+
+    assert.deepEqual(parsed, {
+      skill: "write-judge-prompt",
+      mode: "discover",
+      format: "terminal",
+    });
+  });
+
+  it("parseDraftSkillCaseCommandOptions preserves model when provided", () => {
+    const parseDraftSkillCaseCommandOptions = Reflect.get(
+      cliOptions,
+      "parseDraftSkillCaseCommandOptions",
+    ) as ((raw: unknown) => Record<string, unknown>) | undefined;
+
+    assert.equal(typeof parseDraftSkillCaseCommandOptions, "function");
+
+    const parsed = parseDraftSkillCaseCommandOptions?.({
+      skill: "write-judge-prompt",
+      model: "deepseek/deepseek-chat",
+    });
+
+    assert.deepEqual(parsed, {
+      skill: "write-judge-prompt",
+      mode: "discover",
+      model: "deepseek/deepseek-chat",
+      format: "terminal",
+    });
+  });
+
+  it("parseDraftSkillCaseCommandOptions rejects invalid mode", () => {
+    const parseDraftSkillCaseCommandOptions = Reflect.get(
+      cliOptions,
+      "parseDraftSkillCaseCommandOptions",
+    ) as ((raw: unknown) => Record<string, unknown>) | undefined;
+
+    assert.equal(typeof parseDraftSkillCaseCommandOptions, "function");
+
+    assert.throws(
+      () => parseDraftSkillCaseCommandOptions?.({ skill: "valid-skill", mode: "bad" }),
+      (error) => {
+        assertCliError(error);
+        assert.equal(error.kind, "Validation");
+        return true;
+      },
+    );
+  });
+
+  it("parseDraftSkillCaseCommandOptions rejects missing skill", () => {
+    const parseDraftSkillCaseCommandOptions = Reflect.get(
+      cliOptions,
+      "parseDraftSkillCaseCommandOptions",
+    ) as ((raw: unknown) => Record<string, unknown>) | undefined;
+
+    assert.equal(typeof parseDraftSkillCaseCommandOptions, "function");
+
+    assert.throws(
+      () => parseDraftSkillCaseCommandOptions?.({ mode: "discover" }),
+      (error) => {
+        assertCliError(error);
+        assert.equal(error.kind, "InvalidArgs");
+        assert.match(error.message, /--skill/);
+        return true;
+      },
+    );
+  });
+
+  it("parseDraftSkillCaseCommandOptions rejects invalid skill names", () => {
+    const parseDraftSkillCaseCommandOptions = Reflect.get(
+      cliOptions,
+      "parseDraftSkillCaseCommandOptions",
+    ) as ((raw: unknown) => Record<string, unknown>) | undefined;
+
+    assert.equal(typeof parseDraftSkillCaseCommandOptions, "function");
+
+    assert.throws(
+      () => parseDraftSkillCaseCommandOptions?.({ skill: "Bad--Skill" }),
+      (error) => {
+        assertCliError(error);
+        assert.equal(error.kind, "InvalidArgs");
+        assert.match(error.message, /skill/i);
+        return true;
+      },
+    );
+  });
+
   it("parseRunCommandOptions normalizes list/csv/number fields", () => {
     const parsed = parseRunCommandOptions({
       case: "all",

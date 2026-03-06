@@ -6,6 +6,7 @@ import { didYouMean, printCliError, unknownCommand } from "../errors.ts";
 import { loadModels } from "../models/index.ts";
 import {
   doctorCommand,
+  draftSkillCaseCommand,
   inspectCommand,
   listCommand,
   matrixReportCommand,
@@ -25,6 +26,7 @@ import { matrixCommand } from "./matrix-command.ts";
 import {
   parseDiffCommandOptions,
   parseDoctorCommandOptions,
+  parseDraftSkillCaseCommandOptions,
   parseInspectCommandOptions,
   parseMatrixCommandOptions,
   parseMatrixReportCommandOptions,
@@ -250,6 +252,22 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
     })
     .action((options: Record<string, unknown>) => {
       setPending(matrixReportCommand(parseMatrixReportCommandOptions(options)));
+    });
+
+  cli
+    .command("draft-skill-case", "Generate a skill eval case scaffold")
+    .option("--skill <name>", "Skill name")
+    .option("--mode <mode>", "inject or discover", { default: "discover" })
+    .option("--skills-dir <path>", "Override skills root")
+    .option("--model <model>", "Model id for generated case")
+    .option("--out <path>", "Output yaml path")
+    .option("--format <fmt>", "Output format: terminal or json", {
+      default: "terminal",
+    })
+    .action((options: Record<string, unknown>) => {
+      setPending(
+        draftSkillCaseCommand(parseDraftSkillCaseCommandOptions(options)),
+      );
     });
 
   cli.help();

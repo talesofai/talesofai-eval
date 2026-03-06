@@ -132,6 +132,51 @@ describe("parseYamlFile", () => {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it("parses generated discover scaffold shape with tool_usage and skill_usage", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "skill-loader-"));
+    const filePath = join(tempDir, "generated-discover.eval.yaml");
+
+    try {
+      writeFileSync(
+        filePath,
+        [
+          "type: skill",
+          "id: skill-write-judge-prompt-discover-auto",
+          "description: Auto-generated discover skill case for write-judge-prompt",
+          "input:",
+          "  skill: write-judge-prompt",
+          '  model: "deepseek/deepseek-chat"',
+          "  evaluation_mode: discover",
+          '  task: "Write a concise judge prompt for scoring a short customer support reply with a structured rubric."',
+          "criteria:",
+          "  assertions:",
+          "    - type: tool_usage",
+          "      tier: 1",
+          "      expected_tools:",
+          "        - ls",
+          "        - read",
+          "    - type: skill_usage",
+          "      tier: 2",
+          "      checks:",
+          "        - skill_loaded",
+          "        - workflow_followed",
+          "        - skill_influenced_output",
+          "      pass_threshold: 0.7",
+        ].join("\n"),
+        "utf8",
+      );
+
+      const c = parseYamlFile(filePath);
+      assert.equal(c.type, "skill");
+      assert.deepEqual(
+        c.criteria.assertions?.map((assertion) => assertion.type),
+        ["tool_usage", "skill_usage"],
+      );
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("parseInlineJson", () => {

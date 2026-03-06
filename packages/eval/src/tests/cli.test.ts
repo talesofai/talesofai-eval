@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -55,6 +55,18 @@ function createResultDir(): string {
     "utf8",
   );
   return dir;
+}
+
+function createSkillsRootWithSkill(skillName = "write-judge-prompt"): string {
+  const root = mkdtempSync(join(tmpdir(), "agent-eval-skills-"));
+  const skillDir = join(root, skillName);
+  mkdirSync(skillDir, { recursive: true });
+  writeFileSync(
+    join(skillDir, "SKILL.md"),
+    `---\nname: ${skillName}\ndescription: Write concise judge prompts for structured eval rubrics.\n---\n\n# Examples\nUser request: Draft a concise judge prompt for scoring customer support replies.`,
+    "utf8",
+  );
+  return root;
 }
 
 describe("agent-eval CLI UX", () => {
@@ -304,6 +316,177 @@ describe("agent-eval CLI UX", () => {
     assert.equal(result.status, 2);
     assert.match(result.stderr, /E_INVALID_ARGS/);
     assert.match(result.stderr, /replay-write-metrics/);
+  });
+
+  it("draft-skill-case appears in help", () => {
+    const result = runCli(["--help"]);
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /draft-skill-case/);
+  });
+
+  it("draft-skill-case --format json returns scaffold metadata", () => {
+    const skillsRoot = createSkillsRootWithSkill();
+
+    try {
+      const result = runCli([
+        "draft-skill-case",
+        "--skill",
+        "write-judge-prompt",
+        "--skills-dir",
+        skillsRoot,
+        "--format",
+        "json",
+      ]);
+
+      assert.equal(result.status, 0);
+      const payload = JSON.parse(result.stdout.trim());
+      assert.equal(payload.type, "draft-skill-case");
+      assert.equal(payload.skill, "write-judge-prompt");
+      assert.equal(payload.mode, "discover");
+      assert.equal(payload.written, false);
+      assert.equal(
+        payload.suggested_output,
+        "cases/skills/write-judge-prompt/discover-auto.eval.yaml",
+      );
+      assert.equal(payload.skills_source, "cli");
+      assert.equal(payload.skills_root, skillsRoot);
+      assert.equal(payload.case.type, "skill");
+      assert.equal(payload.case.input.skills_dir, skillsRoot);
+    } finally {
+      rmSync(skillsRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("draft-skill-case --out --format json writes file and reports output", () => {
+    const skillsRoot = createSkillsRootWithSkill();
+    const tempDir = mkdtempSync(join(tmpdir(), "agent-eval-draft-skill-case-"));
+    const outPath = join(tempDir, "nested", "case.eval.yaml");
+
+    try {
+      const result = runCli([
+        "draft-skill-case",
+        "--skill",
+        "write-judge-prompt",
+        "--skills-dir",
+        skillsRoot,
+        "--out",
+        outPath,
+        "--format",
+        "json",
+      ]);
+
+      assert.equal(result.status, 0);
+      const payload = JSON.parse(result.stdout.trim());
+      assert.equal(payload.type, "draft-skill-case");
+      assert.equal(payload.written, true);
+      assert.equal(payload.output, outPath);
+      assert.equal(existsSync(outPath), true);
+    } finally {
+      rmSync(skillsRoot, { recursive: true, force: true });
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("draft-skill-case terminal mode without --out prints yaml to stdout and status to stderr", () => {
+    const skillsRoot = createSkillsRootWithSkill();
+
+    try {
+      const result = runCli([
+        "draft-skill-case",
+        "--skill",
+        "write-judge-prompt",
+        "--skills-dir",
+        skillsRoot,
+      ]);
+
+      assert.equal(result.status, 0);
+      assert.match(result.stdout, /^type: skill/m);
+      assert.match(result.stdout, /evaluation_mode: discover/);
+      assert.match(result.stderr, /skills root/i);
+      assert.match(result.stderr, /cli/i);
+    } finally {
+      rmSync(skillsRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("draft-skill-case terminal mode with --out writes file and does not print yaml", () => {
+    const skillsRoot = createSkillsRootWithSkill();
+    const tempDir = mkdtempSync(join(tmpdir(), "agent-eval-draft-skill-case-"));
+    const outPath = join(tempDir, "cases", "skill.eval.yaml");
+
+    try {
+      const result = runCli([
+        "draft-skill-case",
+        "--skill",
+        "write-judge-prompt",
+        "--skills-dir",
+        skillsRoot,
+        "--out",
+        outPath,
+      ]);
+
+      assert.equal(result.status, 0);
+      assert.equal(result.stdout, "");
+      assert.equal(existsSync(outPath), true);
+      assert.match(result.stderr, /saved/i);
+    } finally {
+      rmSync(skillsRoot, { recursive: true, force: true });
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("draft-skill-case reports useful error for missing skill", () => {
+    const skillsRoot = createSkillsRootWithSkill();
+
+    try {
+      const result = runCli([
+        "draft-skill-case",
+        "--skill",
+        "missing-skill",
+        "--skills-dir",
+        skillsRoot,
+      ]);
+
+      assert.equal(result.status, 2);
+      assert.match(result.stderr, /E_INVALID_ARGS/);
+      assert.match(result.stderr, /Skill not found/i);
+    } finally {
+      rmSync(skillsRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("draft-skill-case reports invalid skill name before root fallback", () => {
+    const result = runCli([
+      "draft-skill-case",
+      "--skill",
+      "Bad--Skill",
+      "--format",
+      "json",
+    ]);
+
+    assert.equal(result.status, 2);
+    const payload = JSON.parse(result.stdout.trim());
+    assert.equal(payload.type, "error");
+    assert.equal(payload.code, "E_INVALID_ARGS");
+    assert.match(String(payload.message), /Invalid skill name/i);
+  });
+
+  it("draft-skill-case rejects invalid explicit skills dir without fallback", () => {
+    const result = runCli([
+      "draft-skill-case",
+      "--skill",
+      "write-judge-prompt",
+      "--skills-dir",
+      "/definitely/missing/path",
+      "--format",
+      "json",
+    ]);
+
+    assert.equal(result.status, 2);
+    const payload = JSON.parse(result.stdout.trim());
+    assert.equal(payload.type, "error");
+    assert.equal(payload.code, "E_INVALID_ARGS");
+    assert.match(String(payload.message), /does not exist|not a directory/i);
   });
 
   it("pull-online appears in help", () => {

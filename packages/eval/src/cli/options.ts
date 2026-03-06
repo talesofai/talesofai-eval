@@ -1,5 +1,6 @@
 import { type ZodError, z } from "zod3";
 import { invalidArgs, invalidJson, validationError } from "../errors.ts";
+import { isValidSkillName } from "../skills/index.ts";
 import type { EvalTier, MatrixVariant } from "../types.ts";
 import { formatZodIssues, type OutputFormat } from "./helpers.ts";
 
@@ -207,6 +208,15 @@ export type MatrixCommandOptions = {
   record?: string | undefined;
   format: OutputFormat;
   tierMax?: EvalTier | undefined;
+};
+
+export type DraftSkillCaseCommandOptions = {
+  skill: string;
+  mode: "inject" | "discover";
+  skillsDir?: string | undefined;
+  out?: string | undefined;
+  model?: string | undefined;
+  format: OutputFormat;
 };
 
 const baseCaseResolveSchema = z
@@ -642,5 +652,47 @@ export function parseMatrixCommandOptions(raw: unknown): MatrixCommandOptions {
     record: parsed.record,
     format: parsed.format ?? "terminal",
     tierMax: parseTierMaxOrThrow(parsed.tierMax, "matrix"),
+  };
+}
+
+export function parseDraftSkillCaseCommandOptions(
+  raw: unknown,
+): DraftSkillCaseCommandOptions {
+  const parsed = parseWithSchema(
+    z
+      .object({
+        skill: z.string().optional(),
+        mode: z.enum(["inject", "discover"]).default("discover"),
+        skillsDir: z.string().optional(),
+        out: z.string().optional(),
+        model: z.string().optional(),
+        format: outputFormatSchema.default("terminal"),
+      })
+      .passthrough(),
+    raw,
+  );
+
+  const skill = parsed.skill?.trim();
+  if (!skill) {
+    throw invalidArgs(
+      "--skill is required",
+      "Example: agent-eval draft-skill-case --skill write-judge-prompt",
+    );
+  }
+
+  if (!isValidSkillName(skill)) {
+    throw invalidArgs(
+      `Invalid skill name: \"${skill}\"`,
+      "Skill names must use lowercase letters, numbers, and single hyphens only.",
+    );
+  }
+
+  return {
+    skill,
+    mode: parsed.mode ?? "discover",
+    ...(parsed.skillsDir !== undefined ? { skillsDir: parsed.skillsDir } : {}),
+    ...(parsed.out !== undefined ? { out: parsed.out } : {}),
+    ...(parsed.model !== undefined ? { model: parsed.model } : {}),
+    format: parsed.format ?? "terminal",
   };
 }

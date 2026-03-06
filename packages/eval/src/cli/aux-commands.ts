@@ -1,10 +1,23 @@
-import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { homedir } from "node:os";
+import { basename, dirname, join, resolve } from "node:path";
 import pc from "picocolors";
 import YAML from "yaml";
 import { resolveUpstreamBaseURL, resolveUpstreamXToken } from "../config.ts";
 import { invalidArgs, noCases } from "../errors.ts";
 import { extractAgentCaseFromCollection } from "../online/extract.ts";
+import {
+  isValidSkillName,
+  loadSkillContentFromRoot,
+  resolveSkillsRoot,
+} from "../skills/index.ts";
+import { buildSkillCaseScaffold } from "../skill-case-scaffold.ts";
 import {
   renderMatrixHtmlReport,
   renderRunHtmlReport,
@@ -20,6 +33,7 @@ import type {
 import { resolveCasesFromArgs } from "./case-resolution.ts";
 import type {
   DoctorCommandOptions,
+  DraftSkillCaseCommandOptions,
   InspectCommandOptions,
   MatrixReportCommandOptions,
   PullOnlineCommandOptions,
@@ -155,6 +169,140 @@ export async function pullOnlineCommand(
     );
   }
 
+  return 0;
+}
+
+function expandHomeDir(pathValue: string): string {
+  if (pathValue === "~") {
+    return homedir();
+  }
+
+  if (pathValue.startsWith("~/")) {
+    return join(homedir(), pathValue.slice(2));
+  }
+
+  return pathValue;
+}
+
+function validateExplicitSkillsDir(skillsDir: string): string {
+  const resolvedPath = resolve(expandHomeDir(skillsDir));
+
+  if (!existsSync(resolvedPath)) {
+    throw invalidArgs(
+      `Skills root does not exist: ${resolvedPath}`,
+      "Pass an existing directory with --skills-dir.",
+    );
+  }
+
+  if (!statSync(resolvedPath).isDirectory()) {
+    throw invalidArgs(
+      `Skills root is not a directory: ${resolvedPath}`,
+      "Pass a directory path with --skills-dir.",
+    );
+  }
+
+  return resolvedPath;
+}
+
+export async function draftSkillCaseCommand(
+  options: DraftSkillCaseCommandOptions,
+): Promise<number> {
+  if (!isValidSkillName(options.skill)) {
+    throw invalidArgs(
+      `Invalid skill name: "${options.skill}"`,
+      "Skill names must use lowercase letters, numbers, and single hyphens only.",
+    );
+  }
+
+  if (options.skillsDir !== undefined) {
+    validateExplicitSkillsDir(options.skillsDir);
+  }
+
+  let resolvedRoot;
+  try {
+    resolvedRoot = resolveSkillsRoot({
+      ...(options.skillsDir !== undefined
+        ? { cliSkillsDir: options.skillsDir }
+        : {}),
+    });
+  } catch (error) {
+    throw invalidArgs(
+      error instanceof Error ? error.message : String(error),
+      "Check the configured skills root and try again.",
+    );
+  }
+
+  let skillContent: string;
+  try {
+    skillContent = loadSkillContentFromRoot(resolvedRoot.rootDir, options.skill);
+  } catch (error) {
+    throw invalidArgs(
+      error instanceof Error ? error.message : String(error),
+      "Check the skill name and skills root, then try again.",
+    );
+  }
+
+  const generatedCase = buildSkillCaseScaffold({
+    skillName: options.skill,
+    mode: options.mode,
+    skillContent,
+    ...(options.model !== undefined ? { model: options.model } : {}),
+    ...(options.skillsDir !== undefined
+      ? { explicitSkillsDir: options.skillsDir }
+      : {}),
+  });
+
+  const yaml = YAML.stringify(generatedCase);
+  const suggestedOutput = `cases/skills/${options.skill}/${options.mode}-auto.eval.yaml`;
+
+  if (options.format === "json") {
+    if (options.out) {
+      mkdirSync(dirname(options.out), { recursive: true });
+      writeFileSync(options.out, yaml, "utf8");
+      process.stdout.write(
+        `${JSON.stringify({
+          type: "draft-skill-case",
+          skill: options.skill,
+          mode: options.mode,
+          written: true,
+          output: options.out,
+          skills_source: resolvedRoot.source,
+          skills_root: resolvedRoot.rootDir,
+          case: generatedCase,
+        })}\n`,
+      );
+      return 0;
+    }
+
+    process.stdout.write(
+      `${JSON.stringify({
+        type: "draft-skill-case",
+        skill: options.skill,
+        mode: options.mode,
+        written: false,
+        suggested_output: suggestedOutput,
+        skills_source: resolvedRoot.source,
+        skills_root: resolvedRoot.rootDir,
+        case: generatedCase,
+      })}\n`,
+    );
+    return 0;
+  }
+
+  process.stderr.write(
+    pc.dim(
+      `skills root: ${resolvedRoot.rootDir} (${resolvedRoot.source})\n`,
+    ),
+  );
+
+  if (options.out) {
+    mkdirSync(dirname(options.out), { recursive: true });
+    writeFileSync(options.out, yaml, "utf8");
+    process.stderr.write(`saved case yaml: ${options.out}\n`);
+    return 0;
+  }
+
+  process.stdout.write(yaml);
   return 0;
 }
 

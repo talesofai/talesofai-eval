@@ -109,7 +109,8 @@ export function shouldUseJsonErrors(argv: string[]): boolean {
     command !== "run" &&
     command !== "diff" &&
     command !== "pull-online" &&
-    command !== "matrix"
+    command !== "matrix" &&
+    command !== "draft-skill-case"
   ) {
     return false;
   }

@@ -113,3 +113,102 @@ Scoring rules:
 - filesystem fallback is only for backward compatibility with older traces that do not have `skill_content`
 
 This keeps replay stable even if the external skills directory changes after the original run.
+
+## `draft-skill-case`
+
+Use `agent-eval draft-skill-case` to generate a deterministic `type: skill` eval case scaffold from one target `SKILL.md`.
+
+Examples:
+
+```bash
+# YAML to stdout
+agent-eval draft-skill-case --skill write-judge-prompt
+
+# Write YAML to a file
+agent-eval draft-skill-case \
+  --skill write-judge-prompt \
+  --mode inject \
+  --out /tmp/write-judge-prompt.inject.eval.yaml
+
+# JSON metadata + generated case object
+agent-eval draft-skill-case --skill write-judge-prompt --format json
+```
+
+### Skills root resolution
+
+The command resolves one skills root with the same precedence as skill execution:
+
+1. explicit `--skills-dir`
+2. `EVAL_SKILLS_DIR`
+3. `~/.agents/skills`
+4. bundled fixtures
+
+If `--skills-dir` is passed, it is validated first. Invalid explicit paths fail immediately. The command does not silently fall back to env, home, or bundled roots when that override is invalid.
+
+### Generated `input.skills_dir`
+
+The generated case only includes `input.skills_dir` when the user explicitly passed `--skills-dir`.
+
+This keeps generated files portable by default while still preserving an intentional explicit override.
+
+### Task derivation
+
+Task generation is deterministic and goal-oriented:
+
+1. prefer the first stable example-like request found in the skill markdown
+2. otherwise derive from frontmatter `description`
+3. otherwise derive from the first strong heading
+4. otherwise fall back to a generic text-output request
+
+The generated task:
+- does not mention the skill name
+- does not tell the agent to load or use a skill
+- describes the end-user goal only
+
+### Default assertions
+
+`discover` mode generates:
+
+```yaml
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools: [ls, read]
+    - type: skill_usage
+      tier: 2
+      checks: [skill_loaded, workflow_followed, skill_influenced_output]
+      pass_threshold: 0.7
+```
+
+`inject` mode generates:
+
+```yaml
+criteria:
+  assertions:
+    - type: skill_usage
+      tier: 2
+      checks: [workflow_followed, skill_influenced_output]
+      pass_threshold: 0.7
+```
+
+### Output behavior
+
+Terminal mode:
+- without `--out`: print YAML to `stdout`, status and resolved-root metadata to `stderr`
+- with `--out`: write the file, print status to `stderr`, and do not also print YAML to `stdout`
+
+JSON mode:
+- without `--out`: print the generated case object plus `suggested_output`, `skills_source`, and `skills_root`
+- with `--out`: print the generated case object plus actual `output`, `skills_source`, and `skills_root`
+- validation failures use the normal structured CLI error format
+
+### Limitations
+
+V1 intentionally does not:
+- generate negative or adversarial cases
+- write custom `llm_judge` prompts
+- use LLM-based generation
+- add loader special-casing for generated files
+
+It generates a starting scaffold. Review the task and assertions before treating the case as benchmark-ready.

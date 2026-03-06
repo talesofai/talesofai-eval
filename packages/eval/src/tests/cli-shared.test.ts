@@ -177,6 +177,17 @@ describe("shouldUseJsonErrors", () => {
     assert.equal(value, true);
   });
 
+  it("returns true when draft-skill-case format is json", () => {
+    const value = shouldUseJsonErrors([
+      "node",
+      "src/cli/index.ts",
+      "draft-skill-case",
+      "--format",
+      "json",
+    ]);
+    assert.equal(value, true);
+  });
+
   it("returns false for unrelated command", () => {
     const value = shouldUseJsonErrors([
       "node",
