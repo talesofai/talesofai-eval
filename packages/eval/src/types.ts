@@ -203,6 +203,8 @@ export type SkillEvalCase = {
     model: string;
     /** Task description */
     task: string;
+    /** Optional per-case override for the skills root directory */
+    skills_dir?: string;
     /** Test data (optional), serialized as JSON and injected into prompt */
     fixtures?: Record<string, unknown>;
     /** Additional system prompt prefix (optional) */
@@ -453,6 +455,7 @@ export type DiffResult = {
 
 export type RunnerOptions = {
   mcpServerBaseURL: string;
+  skillsDir?: string;
   /** LLM streaming token (each turn fires) */
   onDelta?: (delta: string) => void;
   /** Tool call started */

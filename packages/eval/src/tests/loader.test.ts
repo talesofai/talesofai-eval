@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { buildFromFlags } from "../loader/inline.ts";
@@ -98,6 +100,37 @@ describe("parseYamlFile", () => {
         }),
       );
     });
+  });
+
+  it("parses skill yaml with skills_dir override", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "skill-loader-"));
+    const filePath = join(tempDir, "case.eval.yaml");
+
+    try {
+      writeFileSync(
+        filePath,
+        [
+          "type: skill",
+          "id: skill-yaml-with-skills-dir",
+          "description: skill yaml test",
+          "input:",
+          "  skill: write-judge-prompt",
+          "  model: gpt-4o-mini",
+          "  task: hello",
+          "  skills_dir: ~/.agents/skills",
+          "criteria: {}",
+        ].join("\n"),
+        "utf8",
+      );
+
+      const c = parseYamlFile(filePath);
+      assert.equal(c.type, "skill");
+      if (c.type === "skill") {
+        assert.equal(c.input.skills_dir, "~/.agents/skills");
+      }
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });
 

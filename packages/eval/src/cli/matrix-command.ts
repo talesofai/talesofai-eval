@@ -16,6 +16,7 @@ import { resolveMatrixRecordDir } from "../utils/recording.ts";
 import { resolveCasesFromArgs } from "./case-resolution.ts";
 import {
   applyOverrides,
+  createRunnerOptions,
   resolveConcurrency,
   runAndScore,
 } from "./command-utils.ts";
@@ -71,9 +72,20 @@ export async function matrixCommand(
     variants.map((variant) => ({ evalCase, variant })),
   );
 
-  const runnerOpts: RunnerOptions = {
+  const runnerOpts: RunnerOptions = createRunnerOptions({
+    reporter: {
+      onCaseStart: () => {},
+      onDelta: () => {},
+      onToolStart: () => {},
+      onToolCall: () => {},
+      onCaseResult: () => {},
+      onDiffResult: () => {},
+      onSummary: () => {},
+      onDiffSummary: () => {},
+    },
     mcpServerBaseURL: resolveMcpServerBaseURL(),
-  };
+    ...(options.skillsDir !== undefined ? { skillsDir: options.skillsDir } : {}),
+  });
 
   // Check for existing results (resume capability)
   const loadExistingResult = async (

@@ -239,6 +239,7 @@ const skillCaseSchemaRaw = z.object({
     skill: z.string(),
     model: z.string(),
     task: z.string(),
+    skills_dir: z.string().optional(),
     fixtures: z.record(z.string(), z.unknown()).optional(),
     system_prompt_prefix: z.string().optional(),
     evaluation_mode: z.enum(["inject", "discover"]).optional(),

@@ -4,7 +4,7 @@ import type { EvalTier, MatrixVariant } from "../types.ts";
 import { formatZodIssues, type OutputFormat } from "./helpers.ts";
 
 const outputFormatSchema = z.enum(["terminal", "json"]);
-const caseTypeSchema = z.enum(["plain", "agent"]);
+const caseTypeSchema = z.enum(["plain", "agent", "skill"]);
 
 const stringListSchema = z.union([z.string(), z.array(z.string())]);
 
@@ -122,7 +122,7 @@ export type CaseResolveOptions = {
   case?: string | undefined;
   file?: string[] | undefined;
   inline?: string | undefined;
-  type?: "plain" | "agent" | undefined;
+  type?: "plain" | "agent" | "skill" | undefined;
   message?: string[] | undefined;
   systemPrompt?: string | undefined;
   model?: string | undefined;
@@ -136,6 +136,7 @@ export type CaseResolveOptions = {
 };
 
 export type RunCommandOptions = CaseResolveOptions & {
+  skillsDir?: string | undefined;
   format: OutputFormat;
   share: boolean;
   shareBaseUrl?: string | undefined;
@@ -150,7 +151,7 @@ export type RunCommandOptions = CaseResolveOptions & {
 export type DiffCommandOptions = {
   case?: string | undefined;
   file?: string[] | undefined;
-  type?: "plain" | "agent" | undefined;
+  type?: "plain" | "agent" | "skill" | undefined;
   format: OutputFormat;
   verbose: boolean;
   concurrency?: number | undefined;
@@ -199,7 +200,8 @@ export type MatrixCommandOptions = {
   case?: string | undefined;
   file?: string[] | undefined;
   inline?: string | undefined;
-  type?: "plain" | "agent" | undefined;
+  type?: "plain" | "agent" | "skill" | undefined;
+  skillsDir?: string | undefined;
   variants: MatrixVariant[];
   concurrency?: number | undefined;
   record?: string | undefined;
@@ -229,6 +231,7 @@ const baseCaseResolveSchema = z
 export function parseRunCommandOptions(raw: unknown): RunCommandOptions {
   const parsed = parseWithSchema(
     baseCaseResolveSchema.extend({
+      skillsDir: z.string().optional(),
       format: outputFormatSchema.default("terminal"),
       share: z.boolean().default(false),
       shareBaseUrl: z.string().optional(),
@@ -271,6 +274,7 @@ export function parseRunCommandOptions(raw: unknown): RunCommandOptions {
     judgePrompt: parsed.judgePrompt,
     judgeThreshold: parsed.judgeThreshold,
     allowedToolNames: splitCsv(parsed.allowedToolNames),
+    skillsDir: parsed.skillsDir,
     format: parsed.format ?? "terminal",
     share: parsed.share ?? false,
     shareBaseUrl: parsed.shareBaseUrl,
@@ -617,6 +621,7 @@ export function parseMatrixCommandOptions(raw: unknown): MatrixCommandOptions {
         inline: z.string().optional(),
         type: caseTypeSchema.optional(),
         variant: stringListSchema.optional(),
+        skillsDir: z.string().optional(),
         concurrency: z.unknown().optional(),
         record: z.string().optional(),
         format: outputFormatSchema.default("terminal"),
@@ -631,6 +636,7 @@ export function parseMatrixCommandOptions(raw: unknown): MatrixCommandOptions {
     file: normalizeStringList(parsed.file),
     inline: parsed.inline,
     type: parsed.type,
+    skillsDir: parsed.skillsDir,
     variants: parseVariants(normalizeStringList(parsed.variant) ?? []),
     concurrency: parsePositiveConcurrency(parsed.concurrency),
     record: parsed.record,

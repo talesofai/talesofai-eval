@@ -46,6 +46,14 @@ describe("cli option parsers", () => {
     assert.equal(parsed.replayWriteMetrics, false);
   });
 
+  it("parseRunCommandOptions preserves skillsDir", () => {
+    const parsed = parseRunCommandOptions({
+      skillsDir: "~/.agents/skills",
+    });
+
+    assert.equal(parsed.skillsDir, "~/.agents/skills");
+  });
+
   it("parseRunCommandOptions rejects invalid tierMax", () => {
     assert.throws(
       () => parseRunCommandOptions({ tierMax: "4" }),
@@ -144,6 +152,15 @@ describe("cli option parsers", () => {
     assert.equal(parsed.variants[0]?.overrides["model"], "qwen-plus");
     assert.equal(parsed.tierMax, 1);
     assert.equal(parsed.concurrency, 4);
+  });
+
+  it("parseMatrixCommandOptions preserves skillsDir", () => {
+    const parsed = parseMatrixCommandOptions({
+      skillsDir: "/tmp/skills",
+      variant: '{"label":"v1","model":"qwen-plus"}',
+    });
+
+    assert.equal(parsed.skillsDir, "/tmp/skills");
   });
 
   it("parseMatrixCommandOptions parses shorthand variants as label=model", () => {

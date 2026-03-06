@@ -60,6 +60,10 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
       "--allowed-tool-names <tools>",
       "Allowed tool names (comma-separated)",
     )
+    .option(
+      "--skills-dir <path>",
+      "Override skills root directory for skill cases",
+    )
     .option("--format <fmt>", "Output format: terminal or json", {
       default: "terminal",
     })
@@ -184,6 +188,10 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
     .option(
       "--record <dir>",
       "Save traces to <dir>/<variantLabel>/<caseId>.trace.json (auto-enabled for matrix batch when omitted)",
+    )
+    .option(
+      "--skills-dir <path>",
+      "Override skills root directory for skill cases",
     )
     .option("--format <fmt>", "Output format: terminal or json", {
       default: "terminal",

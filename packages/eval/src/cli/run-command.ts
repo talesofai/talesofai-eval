@@ -331,6 +331,7 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
   const runnerOpts = createRunnerOptions({
     reporter,
     mcpServerBaseURL: resolveMcpServerBaseURL(),
+    ...(options.skillsDir !== undefined ? { skillsDir: options.skillsDir } : {}),
   });
 
   // 5. Run cases
