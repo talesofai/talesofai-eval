@@ -3,14 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --dir packages/eval run typecheck",
-    "cli": "pnpm --dir packages/eval run agent-eval",
-    "dev": "pnpm --dir packages/eval run agent-eval",
-    "test": "pnpm --dir packages/eval run test",
-    "test:coverage": "pnpm --dir packages/eval run test:coverage",
+    "build": "pnpm -F @talesofai/agent-eval run typecheck",
+    "cli": "tsx packages/eval/src/cli/index.ts",
+    "dev": "tsx packages/eval/src/cli/index.ts",
+    "test": "pnpm -F @talesofai/agent-eval run test",
+    "test:coverage": "pnpm -F @talesofai/agent-eval run test:coverage",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
-    "agent-eval": "pnpm --dir packages/eval run agent-eval"
+    "agent-eval": "tsx packages/eval/src/cli/index.ts"
   },
   "devDependencies": {
     "tsx": "^4.21.0",
