@@ -129,8 +129,8 @@ describe("agent-eval CLI UX", () => {
   });
 
   it("error trace maps to FAILURE status", () => {
-    // When model is not found, runner returns error trace (status: "error")
-    // which maps to FAILURE for final_status assertions
+    // When model is not found, validation fails before run
+    // Exit code is 2 (config error), not 0 (test passed)
     const inlineCase = JSON.stringify({
       type: "plain",
       id: "model-not-found-test",
@@ -155,9 +155,9 @@ describe("agent-eval CLI UX", () => {
       EVAL_MCP_SERVER_BASE_URL: "",
       EVAL_UPSTREAM_API_BASE_URL: "",
     });
-    // Test passes because error → FAILURE
-    assert.equal(result.status, 0);
-    assert.match(result.stderr, /status matched: FAILURE/);
+    // Model not in registry → validation error → exit code 2
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /Model validation failed|Model not found in registry/);
   });
 
   it("fails fast when judge model is missing for llm_judge case", () => {
@@ -234,8 +234,9 @@ describe("agent-eval CLI UX", () => {
       EVAL_JUDGE_MODEL: "judge-model",
     });
 
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /judge model resolution failed/);
+    // Model validation fails before run, so exit code is 2
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /Model validation failed|Model not found in registry/);
   });
 
   // P2: glob pattern that matches no files reports the pattern name
@@ -268,15 +269,15 @@ describe("agent-eval CLI UX", () => {
       },
     );
 
+    // Model validation fails before run, so exit code is 2
     assert.equal(result.status, 2);
+    // In json mode, errors are output to stdout
     const lines = result.stdout
       .trim()
       .split("\n")
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
-    assert.ok(lines.some((line) => line.includes('"type":"diff"')));
-    assert.ok(lines.some((line) => line.includes('"verdict":"error"')));
-    assert.doesNotMatch(result.stderr, /^\s*error:/m);
+    assert.ok(lines.some((line) => line.includes('"type":"error"')));
   });
 
   it("rejects --record with --replay together", () => {

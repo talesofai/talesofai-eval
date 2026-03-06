@@ -39,7 +39,8 @@ export function resetRegistry(): void {
 }
 
 export async function loadModels(path?: string): Promise<ModelRegistry> {
-  const content = await readFile(resolveModelsPath(path), "utf-8");
+  const modelsPath = resolveModelsPath(path);
+  const content = await readFile(modelsPath, "utf-8");
   const raw: ModelRegistry = JSON.parse(content);
 
   // Resolve ${VAR} in baseUrl, apiKey, and headers

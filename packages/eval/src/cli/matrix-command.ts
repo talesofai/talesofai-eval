@@ -19,7 +19,7 @@ import {
   resolveConcurrency,
   runAndScore,
 } from "./command-utils.ts";
-import { getMissingRunConfig } from "./config-check.ts";
+import { getMissingRunConfig, validateModels } from "./config-check.ts";
 import type { MatrixCommandOptions } from "./options.ts";
 
 export async function matrixCommand(
@@ -48,6 +48,20 @@ export async function matrixCommand(
   });
   if (missing.length > 0) {
     throw missingConfig(missing, "matrix");
+  }
+
+  // Validate model connectivity
+  const validationErrors = await validateModels(cases, {
+    tierMax,
+    variantOverrides: variants.map((v) => v.overrides),
+  });
+  if (validationErrors.length > 0) {
+    const errorMessages = validationErrors.map(
+      (e) => `Model "${e.modelId}": ${e.error}`,
+    );
+    throw new Error(
+      `Model validation failed:\n${errorMessages.map((m) => `  - ${m}`).join("\n")}`,
+    );
   }
 
   const reporter: MatrixReporter =

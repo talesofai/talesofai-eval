@@ -11,7 +11,7 @@ import {
   makeErrorTrace,
   resolveConcurrency,
 } from "./command-utils.ts";
-import { getMissingDiffConfig } from "./config-check.ts";
+import { getMissingDiffConfig, validateModels } from "./config-check.ts";
 import type { DiffCommandOptions } from "./options.ts";
 
 export async function diffCommand(
@@ -31,6 +31,19 @@ export async function diffCommand(
   const missing = getMissingDiffConfig(cases);
   if (missing.length > 0) {
     throw missingConfig(missing, "diff");
+  }
+
+  // Validate model connectivity
+  const validationErrors = await validateModels(cases, {
+    variantOverrides: [baseOverrides, candidateOverrides],
+  });
+  if (validationErrors.length > 0) {
+    const errorMessages = validationErrors.map(
+      (e) => `Model "${e.modelId}": ${e.error}`,
+    );
+    throw new Error(
+      `Model validation failed:\n${errorMessages.map((m) => `  - ${m}`).join("\n")}`,
+    );
   }
 
   const baseLabel =
