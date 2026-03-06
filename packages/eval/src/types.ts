@@ -57,6 +57,11 @@ export type EvalMessage = AnyUserMessage | AnyAssistantMessage;
 
 // ─── Case ────────────────────────────────────────────────────────────────────
 
+export type SkillUsageCheck =
+  | "skill_loaded"
+  | "workflow_followed"
+  | "skill_influenced_output";
+
 export type AssertionConfig =
   | {
       type: "tool_usage";
@@ -92,6 +97,12 @@ export type AssertionConfig =
       type: "error_recovery";
       tier?: EvalTier;
       tool_name?: string;
+      pass_threshold?: number;
+    }
+  | {
+      type: "skill_usage";
+      tier?: EvalTier;
+      checks?: SkillUsageCheck[];
       pass_threshold?: number;
     }
   | { type: "human_review"; tier?: EvalTier; reason?: string };
@@ -388,6 +399,7 @@ export type DimensionKind =
   | "task_success"
   | "tool_parameter_accuracy"
   | "error_recovery"
+  | "skill_usage"
   | "human_review";
 
 export type DimensionResult = {

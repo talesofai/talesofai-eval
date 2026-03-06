@@ -59,6 +59,19 @@ const evalMessageSchema = z.union([
   }),
 ]);
 
+const skillUsageChecksSchema = z
+  .array(
+    z.enum([
+      "skill_loaded",
+      "workflow_followed",
+      "skill_influenced_output",
+    ]),
+  )
+  .nonempty()
+  .refine((checks) => new Set(checks).size === checks.length, {
+    message: "skill_usage checks must not contain duplicates",
+  });
+
 const assertionConfigSchema = z.union([
   z.object({
     type: z.literal("tool_usage"),
@@ -94,6 +107,12 @@ const assertionConfigSchema = z.union([
     type: z.literal("error_recovery"),
     tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
     tool_name: z.string().optional(),
+    pass_threshold: z.number().min(0).max(1).optional(),
+  }),
+  z.object({
+    type: z.literal("skill_usage"),
+    tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+    checks: skillUsageChecksSchema.optional(),
     pass_threshold: z.number().min(0).max(1).optional(),
   }),
   z.object({

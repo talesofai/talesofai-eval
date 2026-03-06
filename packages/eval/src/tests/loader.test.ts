@@ -277,6 +277,117 @@ describe("parseInlineJson", () => {
       );
     });
   });
+
+  it("parses valid skill_usage assertion", () => {
+    const c = parseInlineJson(
+      JSON.stringify({
+        type: "skill",
+        id: "skill-usage-valid",
+        description: "test",
+        input: {
+          skill: "write-judge-prompt",
+          model: "qwen-plus",
+          task: "use the skill",
+          evaluation_mode: "discover",
+        },
+        criteria: {
+          assertions: [
+            {
+              type: "skill_usage",
+              checks: ["skill_loaded", "workflow_followed"],
+              pass_threshold: 0.7,
+            },
+          ],
+        },
+      }),
+    );
+
+    const assertion = c.criteria.assertions?.[0];
+    assert.ok(assertion);
+    assert.equal(assertion.type, "skill_usage");
+    if (assertion.type === "skill_usage") {
+      assert.deepEqual(assertion.checks, [
+        "skill_loaded",
+        "workflow_followed",
+      ]);
+      assert.equal(assertion.pass_threshold, 0.7);
+    }
+  });
+
+  it("rejects invalid skill_usage check names", () => {
+    assert.throws(() => {
+      parseInlineJson(
+        JSON.stringify({
+          type: "skill",
+          id: "skill-usage-invalid-check",
+          description: "test",
+          input: {
+            skill: "write-judge-prompt",
+            model: "qwen-plus",
+            task: "use the skill",
+          },
+          criteria: {
+            assertions: [
+              {
+                type: "skill_usage",
+                checks: ["not_a_real_check"],
+              },
+            ],
+          },
+        }),
+      );
+    });
+  });
+
+  it("rejects duplicate skill_usage checks", () => {
+    assert.throws(() => {
+      parseInlineJson(
+        JSON.stringify({
+          type: "skill",
+          id: "skill-usage-duplicate-check",
+          description: "test",
+          input: {
+            skill: "write-judge-prompt",
+            model: "qwen-plus",
+            task: "use the skill",
+          },
+          criteria: {
+            assertions: [
+              {
+                type: "skill_usage",
+                checks: ["skill_loaded", "skill_loaded"],
+              },
+            ],
+          },
+        }),
+      );
+    });
+  });
+
+  it("rejects empty skill_usage checks", () => {
+    assert.throws(() => {
+      parseInlineJson(
+        JSON.stringify({
+          type: "skill",
+          id: "skill-usage-empty-checks",
+          description: "test",
+          input: {
+            skill: "write-judge-prompt",
+            model: "qwen-plus",
+            task: "use the skill",
+          },
+          criteria: {
+            assertions: [
+              {
+                type: "skill_usage",
+                checks: [],
+              },
+            ],
+          },
+        }),
+      );
+    });
+  });
 });
 
 describe("buildFromFlags", () => {
