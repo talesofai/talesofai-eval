@@ -29,6 +29,7 @@ import {
   caseNeedsJudge,
   getMissingJudgeConfig,
   getMissingRunConfig,
+  validateModels,
 } from "./config-check.ts";
 import type { OutputFormat } from "./helpers.ts";
 import type { RunCommandOptions } from "./options.ts";
@@ -296,6 +297,19 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
   });
   if (missing.length > 0) {
     throw missingConfig(missing, "run");
+  }
+
+  // 3.5. Validate model connectivity (skip for replay mode)
+  if (!replayDir) {
+    const validationErrors = await validateModels(cases, { tierMax });
+    if (validationErrors.length > 0) {
+      const errorMessages = validationErrors.map(
+        (e) => `Model "${e.modelId}": ${e.error}`,
+      );
+      throw new Error(
+        `Model validation failed:\n${errorMessages.map((m) => `  - ${m}`).join("\n")}`,
+      );
+    }
   }
 
   // 4. Setup runner
