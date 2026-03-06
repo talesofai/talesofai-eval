@@ -8,7 +8,7 @@
 
 - [x] Task 1: Add configurable skill source resolution ✅
 - [x] Task 2: Add case-level and CLI-level skill root overrides ✅
-- [ ] Task 3: Bind builtin `read` and `ls` to the resolved skills root
+- [x] Task 3: Bind builtin `read` and `ls` to the resolved skills root ✅
 - [ ] Task 4: Record resolved skill provenance in traces
 - [ ] Task 5: Update doctor output, docs, and end-to-end cases
 - [ ] Task 6: Full verification

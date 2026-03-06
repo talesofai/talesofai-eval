@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { parseToolOutput } from "../metrics/trace-metrics.ts";
-import { readSkillTool } from "../runner/builtin-tools/read-skill.ts";
+import { createReadFileTool } from "../runner/builtin-tools/read-file.ts";
 import { executeSingleToolCall } from "../runner/minimal-agent/tool-executor.ts";
-import { SKILLS_DIR, clearSkillCache } from "../skills/index.ts";
 import { SpanCollector } from "../utils/span-collector.ts";
 
 const makeCtx = (mcpClient: {
@@ -24,24 +24,26 @@ const makeCtx = (mcpClient: {
     toolsExplicitlyDisabled: false,
   }) as any;
 
-const makeBuiltinCtx = () =>
-  ({
+const makeBuiltinCtx = (skillsRoot: string) => {
+  const readFileTool = createReadFileTool(skillsRoot);
+
+  return {
     model: {} as any,
     tools: [],
-    builtinTools: new Map([[readSkillTool.name, readSkillTool]]),
+    builtinTools: new Map([[readFileTool.name, readFileTool]]),
     mcpClient: null,
     context: { systemPrompt: "", messages: [] },
     conversation: [],
     spans: new SpanCollector(),
     startTime: Date.now(),
     toolsExplicitlyDisabled: false,
-  }) as any;
+  } as any;
+};
 
-function cleanupSkillDir(name: string): void {
-  const dir = join(SKILLS_DIR, name);
-  if (existsSync(dir)) {
-    rmSync(dir, { recursive: true, force: true });
-  }
+function createSkillsRoot(prefix: string): string {
+  const root = mkdtempSync(join(tmpdir(), prefix));
+  mkdirSync(root, { recursive: true });
+  return root;
 }
 
 describe("executeSingleToolCall isError propagation", () => {
@@ -145,9 +147,10 @@ describe("executeSingleToolCall isError propagation", () => {
     assert.equal(output.error, "tool_call_failed");
   });
 
-  it("executes builtin read_skill tool and records call", async () => {
+  it("executes builtin read tool from explicit skills root and records call", async () => {
+    const skillsRoot = createSkillsRoot("tool-executor-builtin-");
     const skillName = `test-builtin-${Date.now()}`;
-    const skillDir = join(SKILLS_DIR, skillName);
+    const skillDir = join(skillsRoot, skillName);
     mkdirSync(skillDir, { recursive: true });
 
     try {
@@ -159,17 +162,17 @@ describe("executeSingleToolCall isError propagation", () => {
 
       const result = await executeSingleToolCall({
         toolCall: {
-          id: "call-read-skill",
-          name: "read_skill",
-          arguments: { skill_name: skillName },
+          id: "call-read-file",
+          name: "read",
+          arguments: { path: `${skillName}/SKILL.md` },
         } as any,
-        ctx: makeBuiltinCtx(),
+        ctx: makeBuiltinCtx(skillsRoot),
         spanCollector: new SpanCollector(),
         parentSpanName: "turn_0",
         opts: { mcpServerBaseURL: "http://fake-mcp" },
       });
 
-      assert.equal(result.record.name, "read_skill");
+      assert.equal(result.record.name, "read");
       assert.equal(result.toolResult.isError, false);
       assert.equal(
         typeof result.conversationMessage.content === "string" &&
@@ -177,8 +180,30 @@ describe("executeSingleToolCall isError propagation", () => {
         true,
       );
     } finally {
-      cleanupSkillDir(skillName);
-      clearSkillCache();
+      rmSync(skillsRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("marks builtin tool error results as isError", async () => {
+    const skillsRoot = createSkillsRoot("tool-executor-builtin-missing-");
+
+    try {
+      const result = await executeSingleToolCall({
+        toolCall: {
+          id: "call-read-file-missing",
+          name: "read",
+          arguments: { path: `missing-${Date.now()}.md` },
+        } as any,
+        ctx: makeBuiltinCtx(skillsRoot),
+        spanCollector: new SpanCollector(),
+        parentSpanName: "turn_0",
+        opts: { mcpServerBaseURL: "http://fake-mcp" },
+      });
+
+      assert.equal(result.toolResult.isError, true);
+      assert.equal(parseToolOutput(result.record.output).explicitError, true);
+    } finally {
+      rmSync(skillsRoot, { recursive: true, force: true });
     }
   });
 });

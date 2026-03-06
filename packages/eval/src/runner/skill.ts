@@ -1,13 +1,19 @@
 import { resolveUpstreamXToken } from "../config.ts";
 import {
   formatSkillsForPrompt,
-  listSkills,
-  loadSkillContent,
+  isValidSkillName,
+  listSkillsFromRoot,
+  loadSkillContentFromRoot,
+  resolveSkillsRoot,
+  type ResolvedSkillsRoot,
   type SkillMeta,
 } from "../skills/index.ts";
 import type { EvalTrace, RunnerOptions, SkillEvalCase } from "../types.ts";
 import { SpanCollector } from "../utils/span-collector.ts";
-import { readSkillTool } from "./builtin-tools/index.ts";
+import {
+  createListDirTool,
+  createReadFileTool,
+} from "./builtin-tools/index.ts";
 import {
   buildErrorTrace,
   buildSuccessTrace,
@@ -35,7 +41,8 @@ export function buildDiscoverSystemPrompt(
 
   const instruction = [
     "You have access to optional skills listed below.",
-    "Load skill content only when needed by calling read_skill with {\"skill_name\": \"<skill-name>\"}.",
+    "Use ls to explore the skills directory and read to load files by relative path from that root.",
+    'For example, first ls a skill directory, then read files like "write-judge-prompt/SKILL.md".',
     "Do not assume skill details before loading them.",
   ].join("\n");
 
@@ -53,24 +60,11 @@ export function buildUserPrompt(
   return `${task}\n\nFixtures:\n${JSON.stringify(fixtures, null, 2)}`;
 }
 
-export const runSkill = async (
+function buildRunnableCase(
   evalCase: SkillEvalCase,
-  opts: RunnerOptions,
-): Promise<EvalTrace> => {
-  const mode = evalCase.input.evaluation_mode ?? "inject";
-
-  const systemPrompt =
-    mode === "inject"
-      ? buildInjectSystemPrompt(
-          loadSkillContent(evalCase.input.skill),
-          evalCase.input.system_prompt_prefix,
-        )
-      : buildDiscoverSystemPrompt(
-          listSkills(),
-          evalCase.input.system_prompt_prefix,
-        );
-
-  const runnableCase: PlainRunnableCase = {
+  systemPrompt: string,
+): PlainRunnableCase {
+  return {
     type: "skill",
     id: evalCase.id,
     description: evalCase.description,
@@ -87,40 +81,116 @@ export const runSkill = async (
     },
     criteria: evalCase.criteria,
   };
+}
+
+function buildSkillErrorTrace(options: {
+  evalCase: SkillEvalCase;
+  error: string;
+  runnableCase?: PlainRunnableCase;
+}): EvalTrace {
+  const spans = new SpanCollector();
+  const runnableCase =
+    options.runnableCase ?? buildRunnableCase(options.evalCase, "");
+
+  return buildErrorTrace({
+    evalCase: runnableCase,
+    spans,
+    startTime: Date.now(),
+    conversation: runnableCase.input.system_prompt
+      ? [{ role: "system", content: runnableCase.input.system_prompt }]
+      : [],
+    toolsCalled: [],
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    error: options.error,
+  });
+}
+
+function resolveRoot(evalCase: SkillEvalCase, opts: RunnerOptions): ResolvedSkillsRoot {
+  return resolveSkillsRoot({
+    ...(opts.skillsDir !== undefined ? { cliSkillsDir: opts.skillsDir } : {}),
+    ...(evalCase.input.skills_dir !== undefined
+      ? { caseSkillsDir: evalCase.input.skills_dir }
+      : {}),
+  });
+}
+
+export const runSkill = async (
+  evalCase: SkillEvalCase,
+  opts: RunnerOptions,
+): Promise<EvalTrace> => {
+  const mode = evalCase.input.evaluation_mode ?? "inject";
+  const skillName = evalCase.input.skill;
+
+  if (!isValidSkillName(skillName)) {
+    return buildSkillErrorTrace({
+      evalCase,
+      error: `Invalid skill name: "${skillName}"`,
+    });
+  }
+
+  let resolvedRoot: ResolvedSkillsRoot;
+  try {
+    resolvedRoot = resolveRoot(evalCase, opts);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return buildSkillErrorTrace({ evalCase, error: message });
+  }
+
+  if (mode === "discover") {
+    const skills = listSkillsFromRoot(resolvedRoot.rootDir);
+    const targetSkill = skills.find((skill) => skill.name === skillName);
+    if (!targetSkill) {
+      return buildSkillErrorTrace({
+        evalCase,
+        error: `Target skill not found: "${skillName}"`,
+      });
+    }
+  }
+
+  let systemPrompt: string;
+  if (mode === "inject") {
+    try {
+      const skillContent = loadSkillContentFromRoot(resolvedRoot.rootDir, skillName);
+      systemPrompt = buildInjectSystemPrompt(
+        skillContent,
+        evalCase.input.system_prompt_prefix,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return buildSkillErrorTrace({ evalCase, error: message });
+    }
+  } else {
+    systemPrompt = buildDiscoverSystemPrompt(
+      listSkillsFromRoot(resolvedRoot.rootDir),
+      evalCase.input.system_prompt_prefix,
+    );
+  }
+
+  const runnableCase = buildRunnableCase(evalCase, systemPrompt);
 
   const modelResult = resolveModelOrThrow(runnableCase.input);
   if ("error" in modelResult) {
-    const spans = new SpanCollector();
-    return buildErrorTrace({
-      evalCase: runnableCase,
-      spans,
-      startTime: Date.now(),
-      conversation: [{ role: "system", content: runnableCase.input.system_prompt }],
-      toolsCalled: [],
-      totalInputTokens: 0,
-      totalOutputTokens: 0,
+    return buildSkillErrorTrace({
+      evalCase,
+      runnableCase,
       error: modelResult.error,
     });
   }
 
   let ctx: RunContext;
   try {
-    ctx = await initializeRunContext(
-      runnableCase,
-      opts,
-      mode === "discover" ? { builtinTools: [readSkillTool] } : undefined,
-    );
+    ctx = await initializeRunContext(runnableCase, opts, {
+      builtinTools: [
+        createReadFileTool(resolvedRoot.rootDir),
+        createListDirTool(resolvedRoot.rootDir),
+      ],
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const spans = new SpanCollector();
-    return buildErrorTrace({
-      evalCase: runnableCase,
-      spans,
-      startTime: Date.now(),
-      conversation: [{ role: "system", content: runnableCase.input.system_prompt }],
-      toolsCalled: [],
-      totalInputTokens: 0,
-      totalOutputTokens: 0,
+    return buildSkillErrorTrace({
+      evalCase,
+      runnableCase,
       error: message,
     });
   }
