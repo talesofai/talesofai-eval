@@ -6,6 +6,7 @@ import {
   resolveLegacyAgentPromptFile,
   resolveMcpServerBaseURL,
   resolveMcpXToken,
+  resolveSkillsDir,
   resolveUpstreamBaseURL,
   resolveUpstreamXToken,
 } from "../config.ts";
@@ -50,6 +51,17 @@ describe("config resolvers", () => {
       resolveLegacyAgentPromptFile({ EVAL_LEGACY_AGENT_PROMPT_FILE: "   " }),
       undefined,
     );
+  });
+
+  it("resolveSkillsDir: returns env value when set", () => {
+    assert.equal(
+      resolveSkillsDir({ EVAL_SKILLS_DIR: "/tmp/custom-skills" }),
+      "/tmp/custom-skills",
+    );
+  });
+
+  it("resolveSkillsDir: trims and returns undefined when empty", () => {
+    assert.equal(resolveSkillsDir({ EVAL_SKILLS_DIR: "   " }), undefined);
   });
 
   it("resolveMcpServerBaseURL: returns env value when set", () => {

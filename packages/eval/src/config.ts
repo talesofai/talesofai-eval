@@ -22,6 +22,9 @@ export const ENV_KEYS = {
 
   // Agent legacy prompt template override
   LEGACY_AGENT_PROMPT_FILE: "EVAL_LEGACY_AGENT_PROMPT_FILE",
+
+  // Skills
+  SKILLS_DIR: "EVAL_SKILLS_DIR",
 } as const;
 
 function readTrimmedValue(value: string | undefined): string | undefined {
@@ -76,6 +79,12 @@ export function resolveLegacyAgentPromptFile(
   env: NodeJS.ProcessEnv = process.env,
 ): string | undefined {
   return readEnvValue(env, ENV_KEYS.LEGACY_AGENT_PROMPT_FILE);
+}
+
+export function resolveSkillsDir(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  return readEnvValue(env, ENV_KEYS.SKILLS_DIR);
 }
 
 export function resolveUpstreamBaseURL(
