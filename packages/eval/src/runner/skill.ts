@@ -8,7 +8,13 @@ import {
   type ResolvedSkillsRoot,
   type SkillMeta,
 } from "../skills/index.ts";
-import type { EvalTrace, RunnerOptions, SkillEvalCase } from "../types.ts";
+import type {
+  EvalTrace,
+  RunnerOptions,
+  SkillEvalCase,
+  SkillResolutionTrace,
+} from "../types.ts";
+import { join } from "node:path";
 import { SpanCollector } from "../utils/span-collector.ts";
 import {
   createListDirTool,
@@ -83,16 +89,29 @@ function buildRunnableCase(
   };
 }
 
+function buildSkillResolution(
+  resolvedRoot: ResolvedSkillsRoot,
+  skillName: string,
+): SkillResolutionTrace {
+  return {
+    source: resolvedRoot.source,
+    root_dir: resolvedRoot.rootDir,
+    skill_name: skillName,
+    skill_path: join(resolvedRoot.rootDir, skillName, "SKILL.md"),
+  };
+}
+
 function buildSkillErrorTrace(options: {
   evalCase: SkillEvalCase;
   error: string;
   runnableCase?: PlainRunnableCase;
+  skillResolution?: SkillResolutionTrace;
 }): EvalTrace {
   const spans = new SpanCollector();
   const runnableCase =
     options.runnableCase ?? buildRunnableCase(options.evalCase, "");
 
-  return buildErrorTrace({
+  const trace = buildErrorTrace({
     evalCase: runnableCase,
     spans,
     startTime: Date.now(),
@@ -104,6 +123,10 @@ function buildSkillErrorTrace(options: {
     totalOutputTokens: 0,
     error: options.error,
   });
+
+  return options.skillResolution
+    ? { ...trace, skill_resolution: options.skillResolution }
+    : trace;
 }
 
 function resolveRoot(evalCase: SkillEvalCase, opts: RunnerOptions): ResolvedSkillsRoot {
@@ -137,6 +160,8 @@ export const runSkill = async (
     return buildSkillErrorTrace({ evalCase, error: message });
   }
 
+  const skillResolution = buildSkillResolution(resolvedRoot, skillName);
+
   if (mode === "discover") {
     const skills = listSkillsFromRoot(resolvedRoot.rootDir);
     const targetSkill = skills.find((skill) => skill.name === skillName);
@@ -144,6 +169,7 @@ export const runSkill = async (
       return buildSkillErrorTrace({
         evalCase,
         error: `Target skill not found: "${skillName}"`,
+        skillResolution,
       });
     }
   }
@@ -158,7 +184,11 @@ export const runSkill = async (
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      return buildSkillErrorTrace({ evalCase, error: message });
+      return buildSkillErrorTrace({
+        evalCase,
+        error: message,
+        skillResolution,
+      });
     }
   } else {
     systemPrompt = buildDiscoverSystemPrompt(
@@ -175,6 +205,7 @@ export const runSkill = async (
       evalCase,
       runnableCase,
       error: modelResult.error,
+      skillResolution,
     });
   }
 
@@ -192,6 +223,7 @@ export const runSkill = async (
       evalCase,
       runnableCase,
       error: message,
+      skillResolution,
     });
   }
 
@@ -213,26 +245,32 @@ export const runSkill = async (
   }
 
   if (loopResult.status === "error") {
-    return buildErrorTrace({
+    return {
+      ...buildErrorTrace({
+        evalCase: runnableCase,
+        spans,
+        startTime,
+        conversation: loopResult.conversation,
+        toolsCalled: loopResult.toolsCalled,
+        totalInputTokens: loopResult.totalInputTokens,
+        totalOutputTokens: loopResult.totalOutputTokens,
+        error: loopResult.error!,
+      }),
+      skill_resolution: skillResolution,
+    };
+  }
+
+  return {
+    ...buildSuccessTrace({
       evalCase: runnableCase,
       spans,
       startTime,
       conversation: loopResult.conversation,
       toolsCalled: loopResult.toolsCalled,
+      finalResponse: loopResult.finalResponse,
       totalInputTokens: loopResult.totalInputTokens,
       totalOutputTokens: loopResult.totalOutputTokens,
-      error: loopResult.error!,
-    });
-  }
-
-  return buildSuccessTrace({
-    evalCase: runnableCase,
-    spans,
-    startTime,
-    conversation: loopResult.conversation,
-    toolsCalled: loopResult.toolsCalled,
-    finalResponse: loopResult.finalResponse,
-    totalInputTokens: loopResult.totalInputTokens,
-    totalOutputTokens: loopResult.totalOutputTokens,
-  });
+    }),
+    skill_resolution: skillResolution,
+  };
 };

@@ -148,6 +148,23 @@ function isDimensionResult(value: unknown): boolean {
   return true;
 }
 
+function isSkillResolutionTrace(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    (value["source"] === "cli" ||
+      value["source"] === "case" ||
+      value["source"] === "env" ||
+      value["source"] === "home" ||
+      value["source"] === "bundled") &&
+    typeof value["root_dir"] === "string" &&
+    typeof value["skill_name"] === "string" &&
+    typeof value["skill_path"] === "string"
+  );
+}
+
 function isEvalTrace(value: unknown): value is EvalTrace {
   if (!isRecord(value)) {
     return false;
@@ -173,6 +190,14 @@ function isEvalTrace(value: unknown): value is EvalTrace {
 
   // error is optional; if present it must be a string
   if ("error" in value && typeof value["error"] !== "string") {
+    return false;
+  }
+
+  if (
+    "skill_resolution" in value &&
+    value["skill_resolution"] !== undefined &&
+    !isSkillResolutionTrace(value["skill_resolution"])
+  ) {
     return false;
   }
 

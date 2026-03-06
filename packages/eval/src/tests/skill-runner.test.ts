@@ -91,6 +91,13 @@ describe("runSkill", () => {
         (trace.conversation[0]?.content as string).includes("SKILL BODY"),
         true,
       );
+      assert.equal(trace.skill_resolution?.source, "cli");
+      assert.equal(trace.skill_resolution?.root_dir, skillsRoot);
+      assert.equal(trace.skill_resolution?.skill_name, skillName);
+      assert.equal(
+        trace.skill_resolution?.skill_path,
+        join(skillsRoot, skillName, "SKILL.md"),
+      );
     } finally {
       rmSync(skillsRoot, { recursive: true, force: true });
     }
@@ -202,6 +209,8 @@ describe("runSkill", () => {
         (trace.conversation[0]?.content as string).includes("CASE ROOT BODY"),
         true,
       );
+      assert.equal(trace.skill_resolution?.source, "case");
+      assert.equal(trace.skill_resolution?.root_dir, skillsRoot);
     } finally {
       rmSync(skillsRoot, { recursive: true, force: true });
     }
@@ -232,6 +241,8 @@ describe("runSkill", () => {
       assert.equal(trace.case_type, "skill");
       assert.equal(trace.status, "error");
       assert.equal(trace.error?.includes("Skill not found"), true);
+      assert.equal(trace.skill_resolution?.source, "cli");
+      assert.equal(trace.skill_resolution?.root_dir, skillsRoot);
     } finally {
       rmSync(skillsRoot, { recursive: true, force: true });
     }

@@ -296,6 +296,13 @@ export type TimingSummary = {
   turns_count: number;
 };
 
+export type SkillResolutionTrace = {
+  source: "cli" | "case" | "env" | "home" | "bundled";
+  root_dir: string;
+  skill_name: string;
+  skill_path: string;
+};
+
 export type EvalTrace = {
   case_id: string;
   case_type: CaseType;
@@ -307,6 +314,7 @@ export type EvalTrace = {
   duration_ms: number;
   /** Runner-level error message; only present when status === "error" */
   error?: string;
+  skill_resolution?: SkillResolutionTrace;
   /** Span timing data, optional for backward compatibility */
   spans?: Span[];
 };

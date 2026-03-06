@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -83,6 +83,32 @@ describe("traces", () => {
     }
   });
 
+  it("loadTrace accepts skill_resolution provenance", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "agent-eval-traces-skill-resolution-"));
+
+    try {
+      const trace: EvalTrace = {
+        ...makeTrace("skill-resolution-case"),
+        case_type: "skill",
+        skill_resolution: {
+          source: "home",
+          root_dir: "/home/test/.agents/skills",
+          skill_name: "write-judge-prompt",
+          skill_path: "/home/test/.agents/skills/write-judge-prompt/SKILL.md",
+        },
+      };
+      await saveTrace(trace, tempDir);
+      const loaded = await loadTrace("skill-resolution-case", tempDir);
+      assert.equal(loaded.skill_resolution?.source, "home");
+      assert.equal(
+        loaded.skill_resolution?.skill_path,
+        "/home/test/.agents/skills/write-judge-prompt/SKILL.md",
+      );
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("loadTrace throws when file missing", async () => {
     const tempDir = mkdtempSync(join(tmpdir(), "agent-eval-traces-missing-"));
 
@@ -115,6 +141,34 @@ describe("traces", () => {
       const loaded = await loadTrace("err-case", tempDir);
       assert.equal(loaded.error, "something went wrong");
       assert.equal(loaded.status, "error");
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("loadTrace rejects malformed skill_resolution", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "agent-eval-traces-bad-skill-resolution-"));
+
+    try {
+      writeFileSync(
+        join(tempDir, "bad-skill-resolution.trace.json"),
+        JSON.stringify({
+          ...makeTrace("bad-skill-resolution"),
+          case_type: "skill",
+          skill_resolution: {
+            source: "wrong",
+            root_dir: "/home/test/.agents/skills",
+            skill_name: "write-judge-prompt",
+            skill_path: 123,
+          },
+        }),
+        "utf8",
+      );
+
+      await assert.rejects(
+        () => loadTrace("bad-skill-resolution", tempDir),
+        /Trace has invalid shape/,
+      );
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
