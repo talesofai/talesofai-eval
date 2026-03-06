@@ -40,7 +40,7 @@ Current skill evaluation has gaps:
 - [x] Task 1: Define `skill_usage` assertion types and loader schema ✅
 - [x] Task 2: Implement `skill_usage` scorer and registry integration ✅
 - [x] Task 3: Snapshot resolved skill content in traces for hermetic scoring ✅
-- [ ] Task 4: Add focused tests for loader, scorer, trace, and replay behavior
+- [x] Task 4: Add focused tests for loader, scorer, trace, and replay behavior ✅
 - [ ] Task 5: Update and add skill cases that actually exercise skill usage
 - [ ] Task 6: Documentation and verification
 

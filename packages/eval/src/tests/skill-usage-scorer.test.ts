@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { AssertionConfig, EvalTrace, PlainEvalCase, SkillEvalCase } from "../types.ts";
 import { describe, it } from "node:test";
+import { runSkill } from "../runner/skill.ts";
 import { scoreSkillUsageAssertion } from "../scorers/skill-usage.ts";
 
 function makeTrace(overrides: Partial<EvalTrace> = {}): EvalTrace {
@@ -46,6 +50,12 @@ function makePlainCase(): PlainEvalCase {
     },
     criteria: { assertions: [] },
   };
+}
+
+function createSkillsRoot(prefix: string): string {
+  const root = mkdtempSync(join(tmpdir(), prefix));
+  mkdirSync(root, { recursive: true });
+  return root;
 }
 
 describe("scoreSkillUsageAssertion", () => {
@@ -160,6 +170,29 @@ describe("scoreSkillUsageAssertion", () => {
     assert.match(result.reason, /skill_resolution/);
   });
 
+  it("rejects skill_loaded-only assertions in inject mode with a configuration error", async () => {
+    const trace = makeTrace({
+      case_type: "skill",
+      skill_resolution: {
+        source: "cli",
+        root_dir: "/skills",
+        skill_name: "write-judge-prompt",
+        skill_path: "/skills/write-judge-prompt/SKILL.md",
+      },
+    });
+
+    const result = await scoreSkillUsageAssertion(
+      trace,
+      { type: "skill_usage", checks: ["skill_loaded"] },
+      makeSkillCase("inject"),
+    );
+
+    assert.equal(result.passed, false);
+    assert.equal(result.score, 0);
+    assert.match(result.reason, /configuration error/i);
+    assert.match(result.reason, /inject/i);
+  });
+
   it("semantic checks reach the judge path and fail cleanly without judge config", async () => {
     const trace = makeTrace({
       final_response: "I used the skill",
@@ -236,6 +269,128 @@ describe("scoreSkillUsageAssertion", () => {
           pass_threshold: 0.7,
         },
         makeSkillCase("discover"),
+      );
+
+      assert.equal(result.passed, false);
+      assert.equal(result.score, 0);
+      assert.match(result.reason, /no judge model configured/);
+    } finally {
+      if (originalJudgeModel === undefined) {
+        delete process.env["EVAL_JUDGE_MODEL"];
+      } else {
+        process.env["EVAL_JUDGE_MODEL"] = originalJudgeModel;
+      }
+
+      if (originalJudgeModels === undefined) {
+        delete process.env["EVAL_JUDGE_MODELS"];
+      } else {
+        process.env["EVAL_JUDGE_MODELS"] = originalJudgeModels;
+      }
+    }
+  });
+
+  it("falls back to disk skill content for old traces without skill_content", async () => {
+    const skillsRoot = createSkillsRoot("skill-usage-fallback-");
+    const skillName = "write-judge-prompt";
+    const skillDir = join(skillsRoot, skillName);
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, "SKILL.md"),
+      "---\nname: write-judge-prompt\ndescription: sample\n---\nSkill body from disk.",
+      "utf8",
+    );
+
+    const originalJudgeModel = process.env["EVAL_JUDGE_MODEL"];
+    const originalJudgeModels = process.env["EVAL_JUDGE_MODELS"];
+
+    delete process.env["EVAL_JUDGE_MODEL"];
+    delete process.env["EVAL_JUDGE_MODELS"];
+
+    try {
+      const result = await scoreSkillUsageAssertion(
+        makeTrace({
+          case_type: "skill",
+          final_response: "I used the skill",
+          skill_resolution: {
+            source: "cli",
+            root_dir: skillsRoot,
+            skill_name: skillName,
+            skill_path: join(skillsRoot, skillName, "SKILL.md"),
+          },
+        }),
+        {
+          type: "skill_usage",
+          checks: ["workflow_followed"],
+          pass_threshold: 0.7,
+        },
+        makeSkillCase("discover"),
+      );
+
+      assert.equal(result.passed, false);
+      assert.equal(result.score, 0);
+      assert.match(result.reason, /no judge model configured/);
+    } finally {
+      rmSync(skillsRoot, { recursive: true, force: true });
+      if (originalJudgeModel === undefined) {
+        delete process.env["EVAL_JUDGE_MODEL"];
+      } else {
+        process.env["EVAL_JUDGE_MODEL"] = originalJudgeModel;
+      }
+
+      if (originalJudgeModels === undefined) {
+        delete process.env["EVAL_JUDGE_MODELS"];
+      } else {
+        process.env["EVAL_JUDGE_MODELS"] = originalJudgeModels;
+      }
+    }
+  });
+
+  it("scores from embedded snapshot after the skills root is deleted", async () => {
+    const skillsRoot = createSkillsRoot("skill-usage-replay-");
+    const skillName = "write-judge-prompt";
+    const skillDir = join(skillsRoot, skillName);
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, "SKILL.md"),
+      "---\nname: write-judge-prompt\ndescription: sample\n---\nSnapshot skill body.",
+      "utf8",
+    );
+
+    const evalCase: SkillEvalCase = {
+      type: "skill",
+      id: "skill-replay-case",
+      description: "test",
+      input: {
+        skill: skillName,
+        model: "invalid-model-id",
+        evaluation_mode: "discover",
+        task: "discover skill",
+      },
+      criteria: {},
+    };
+
+    const trace = await runSkill(evalCase, {
+      mcpServerBaseURL: "http://fake-mcp",
+      skillsDir: skillsRoot,
+    });
+
+    rmSync(skillsRoot, { recursive: true, force: true });
+
+    const originalJudgeModel = process.env["EVAL_JUDGE_MODEL"];
+    const originalJudgeModels = process.env["EVAL_JUDGE_MODELS"];
+
+    delete process.env["EVAL_JUDGE_MODEL"];
+    delete process.env["EVAL_JUDGE_MODELS"];
+
+    try {
+      const result = await scoreSkillUsageAssertion(
+        trace,
+        {
+          type: "skill_usage",
+          checks: ["workflow_followed"],
+          pass_threshold: 0.7,
+        },
+        evalCase,
       );
 
       assert.equal(result.passed, false);
