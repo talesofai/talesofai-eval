@@ -170,6 +170,32 @@ describe("scoreSkillUsageAssertion", () => {
     assert.match(result.reason, /skill_resolution/);
   });
 
+  it("fast-fails on error traces and preserves the runner error", async () => {
+    const result = await scoreSkillUsageAssertion(
+      makeTrace({
+        status: "error",
+        final_response: null,
+        error: 'Model not found in registry: "gpt-4o-mini"',
+        skill_resolution: {
+          source: "cli",
+          root_dir: "/skills",
+          skill_name: "write-judge-prompt",
+          skill_path: "/skills/write-judge-prompt/SKILL.md",
+        },
+      }),
+      {
+        type: "skill_usage",
+        checks: ["workflow_followed", "skill_influenced_output"],
+      },
+      makeSkillCase("inject"),
+    );
+
+    assert.equal(result.passed, false);
+    assert.equal(result.score, 0);
+    assert.match(result.reason, /runner error/i);
+    assert.match(result.reason, /gpt-4o-mini/);
+  });
+
   it("rejects skill_loaded-only assertions in inject mode with a configuration error", async () => {
     const trace = makeTrace({
       case_type: "skill",
@@ -395,7 +421,8 @@ describe("scoreSkillUsageAssertion", () => {
 
       assert.equal(result.passed, false);
       assert.equal(result.score, 0);
-      assert.match(result.reason, /no judge model configured/);
+      assert.match(result.reason, /runner error/i);
+      assert.match(result.reason, /model registry not loaded/i);
     } finally {
       if (originalJudgeModel === undefined) {
         delete process.env["EVAL_JUDGE_MODEL"];

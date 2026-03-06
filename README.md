@@ -435,7 +435,7 @@ Assertions have a tier (1–3) that controls when they run. Use `--tier-max` to 
 | Tier | Default for | Meaning |
 |------|------------|---------|
 | 1 | `tool_usage`, `final_status`, `error_recovery` | Rule-based, no LLM needed. Fast CI. |
-| 2 | `llm_judge`, `task_success`, `tool_parameter_accuracy` | LLM-as-a-judge. Requires judge config. **Default `--tier-max`.** |
+| 2 | `llm_judge`, `task_success`, `tool_parameter_accuracy`, `skill_usage` | LLM-as-a-judge or hybrid scoring. Requires judge config for semantic checks. **Default `--tier-max`.** |
 | 3 | `human_review` | Flag for async human review. Never blocks automated scoring. |
 
 ```bash
@@ -507,6 +507,27 @@ An LLM checks whether the tool was called with correct and relevant parameters.
   expected_description: "Should include a cat in the prompt parameter"
   pass_threshold: 0.7
 ```
+
+### `skill_usage` (tier 2)
+
+Evaluates whether a skill case actually used the target skill. This combines deterministic trace inspection with semantic judging.
+
+```yaml
+- type: skill_usage
+  checks:
+    - skill_loaded
+    - workflow_followed
+    - skill_influenced_output
+  pass_threshold: 0.7
+```
+
+Checks:
+
+- `skill_loaded`: deterministic. Requires a successful `read` of `<skill-name>/SKILL.md`. Applies to `discover` mode only.
+- `workflow_followed`: judge-based. Checks whether the agent followed the skill workflow.
+- `skill_influenced_output`: judge-based. Checks whether the final output reflects the skill content.
+
+Skill traces embed the resolved `skill_content` snapshot so scoring and replay stay stable even if the skills directory changes later.
 
 ### `human_review` (tier 3)
 
@@ -716,6 +737,7 @@ agent-eval run --case all --replay ./records/run-001
 Replay behavior:
 - If a `<case-id>.result.json` exists → use cached result directly
 - If only `<case-id>.trace.json` exists → re-score the trace
+- Skill traces embed the exact resolved `skill_content`, so skill-aware scoring remains stable during replay even if the original skills directory changes later
 - Auto-record is enabled for runs with >1 case (saved to `.eval-records/run-<timestamp>/`)
 
 **Backfill metrics on older results:**

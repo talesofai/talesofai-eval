@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { unlink, writeFile } from "node:fs/promises";
 import {
   createServer,
@@ -135,7 +136,7 @@ describe("agent runtime oss flow", () => {
     cleanups.push(fakeServer.close);
 
     // Create temp models.json with test model pointing to fake server
-    modelsFile = join(tmpdir(), `models-test-${Date.now()}.json`);
+    modelsFile = join(tmpdir(), `models-test-${randomUUID()}.json`);
     await writeFile(
       modelsFile,
       JSON.stringify({
@@ -194,7 +195,7 @@ describe("agent runtime oss flow", () => {
     cleanups.push(fakeServer.close);
 
     // Create temp models.json with test model pointing to fake server
-    modelsFile = join(tmpdir(), `models-test-${Date.now()}.json`);
+    modelsFile = join(tmpdir(), `models-test-${randomUUID()}.json`);
     await writeFile(
       modelsFile,
       JSON.stringify({

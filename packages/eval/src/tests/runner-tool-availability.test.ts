@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { unlink, writeFile } from "node:fs/promises";
 import {
   createServer,
@@ -182,7 +183,7 @@ describe("runner tool availability behavior", () => {
   });
 
   async function setupTestModels(baseURL: string) {
-    modelsFile = join(tmpdir(), `models-test-${Date.now()}.json`);
+    modelsFile = join(tmpdir(), `models-test-${randomUUID()}.json`);
     await writeFile(
       modelsFile,
       JSON.stringify({

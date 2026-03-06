@@ -246,6 +246,15 @@ export const scoreSkillUsageAssertion = async (
     };
   }
 
+  if (trace.status === "error" || trace.error) {
+    return {
+      dimension: "skill_usage",
+      passed: false,
+      score: 0,
+      reason: `runner error: ${trace.error ?? "runner returned error trace"}`,
+    };
+  }
+
   const mode = getEvaluationMode(evalCase);
   if (!mode) {
     return {

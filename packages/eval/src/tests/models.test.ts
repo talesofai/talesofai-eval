@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -44,7 +45,7 @@ describe("models", () => {
 
     beforeEach(async () => {
       resetRegistry();
-      tempFile = join(tempDir, `models-test-${Date.now()}.json`);
+      tempFile = join(tempDir, `models-test-${randomUUID()}.json`);
     });
 
     afterEach(async () => {
@@ -155,7 +156,7 @@ describe("models", () => {
 
     beforeEach(async () => {
       resetRegistry();
-      tempFile = join(tempDir, `models-test-${Date.now()}.json`);
+      tempFile = join(tempDir, `models-test-${randomUUID()}.json`);
       const modelsData = {
         models: {
           "model-a": {
@@ -208,7 +209,7 @@ describe("models", () => {
 
     beforeEach(async () => {
       resetRegistry();
-      tempFile = join(tempDir, `models-test-${Date.now()}.json`);
+      tempFile = join(tempDir, `models-test-${randomUUID()}.json`);
       const modelsData = {
         models: {
           "model-a": {

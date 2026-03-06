@@ -75,7 +75,8 @@ Skill traces may include `skill_resolution`:
     "source": "home",
     "root_dir": "/home/test/.agents/skills",
     "skill_name": "write-judge-prompt",
-    "skill_path": "/home/test/.agents/skills/write-judge-prompt/SKILL.md"
+    "skill_path": "/home/test/.agents/skills/write-judge-prompt/SKILL.md",
+    "skill_content": "---\nname: write-judge-prompt\n..."
   }
 }
 ```
@@ -88,4 +89,27 @@ Skill traces may include `skill_resolution`:
 - `home`
 - `bundled`
 
-This records which source won and which concrete skill file the runner resolved.
+This records which source won, which concrete skill file the runner resolved, and the exact skill snapshot used during the run.
+
+## Skill usage scoring
+
+`skill_usage` is a dedicated assertion for evaluating whether the agent actually used the target skill instead of only producing a plausible answer.
+
+Supported checks:
+
+- `skill_loaded`: deterministic trace inspection of a successful `read` on `<skill-name>/SKILL.md`
+- `workflow_followed`: judge-based evaluation of whether the agent followed the skill workflow
+- `skill_influenced_output`: judge-based evaluation of whether the final output reflects the skill content
+
+Mode applicability:
+
+- `discover`: all three checks apply
+- `inject`: only `workflow_followed` and `skill_influenced_output` apply
+
+Scoring rules:
+
+- `skill_loaded` short-circuits failure when requested and not satisfied
+- semantic checks use the embedded `skill_content` snapshot first
+- filesystem fallback is only for backward compatibility with older traces that do not have `skill_content`
+
+This keeps replay stable even if the external skills directory changes after the original run.

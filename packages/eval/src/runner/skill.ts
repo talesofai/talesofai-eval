@@ -99,7 +99,7 @@ function buildSkillResolution(
     root_dir: resolvedRoot.rootDir,
     skill_name: skillName,
     skill_path: join(resolvedRoot.rootDir, skillName, "SKILL.md"),
-    skill_content: skillContent,
+    ...(skillContent !== undefined ? { skill_content: skillContent } : {}),
   };
 }
 

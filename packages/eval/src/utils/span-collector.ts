@@ -1,3 +1,4 @@
+import { performance } from "node:perf_hooks";
 import type { Span, SpanKind, TimingSummary } from "../types.ts";
 
 type ActiveSpan = {
@@ -55,7 +56,7 @@ export class SpanCollector {
 
   start(name: string, kind: SpanKind, parent?: string): void {
     this.activeSpans.set(name, {
-      start: Date.now(),
+      start: performance.now(),
       kind,
       ...(parent !== undefined ? { parent } : {}),
     });
@@ -65,13 +66,13 @@ export class SpanCollector {
     const active = this.activeSpans.get(name);
     if (!active) return null;
 
-    const end = Date.now();
+    const end = performance.now();
     const span: Span = {
       name,
       kind: active.kind,
       start_ms: active.start,
       end_ms: end,
-      duration_ms: end - active.start,
+      duration_ms: Math.max(0, Math.ceil(end - active.start)),
       ...(active.parent ? { parent: active.parent } : {}),
       ...(attributes ? { attributes } : {}),
     };
