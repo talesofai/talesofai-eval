@@ -107,6 +107,7 @@ function isDimensionKind(
   | "task_success"
   | "tool_parameter_accuracy"
   | "error_recovery"
+  | "skill_usage"
   | "human_review" {
   return (
     value === "tool_usage" ||
@@ -115,6 +116,7 @@ function isDimensionKind(
     value === "task_success" ||
     value === "tool_parameter_accuracy" ||
     value === "error_recovery" ||
+    value === "skill_usage" ||
     value === "human_review"
   );
 }
@@ -161,7 +163,9 @@ function isSkillResolutionTrace(value: unknown): boolean {
       value["source"] === "bundled") &&
     typeof value["root_dir"] === "string" &&
     typeof value["skill_name"] === "string" &&
-    typeof value["skill_path"] === "string"
+    typeof value["skill_path"] === "string" &&
+    (value["skill_content"] === undefined ||
+      typeof value["skill_content"] === "string")
   );
 }
 

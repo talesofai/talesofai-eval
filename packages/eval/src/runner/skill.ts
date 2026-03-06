@@ -92,12 +92,14 @@ function buildRunnableCase(
 function buildSkillResolution(
   resolvedRoot: ResolvedSkillsRoot,
   skillName: string,
+  skillContent?: string,
 ): SkillResolutionTrace {
   return {
     source: resolvedRoot.source,
     root_dir: resolvedRoot.rootDir,
     skill_name: skillName,
     skill_path: join(resolvedRoot.rootDir, skillName, "SKILL.md"),
+    skill_content: skillContent,
   };
 }
 
@@ -160,16 +162,31 @@ export const runSkill = async (
     return buildSkillErrorTrace({ evalCase, error: message });
   }
 
-  const skillResolution = buildSkillResolution(resolvedRoot, skillName);
+  let resolvedSkillContent: string | undefined;
+  let availableSkills: SkillMeta[] | undefined;
 
   if (mode === "discover") {
-    const skills = listSkillsFromRoot(resolvedRoot.rootDir);
-    const targetSkill = skills.find((skill) => skill.name === skillName);
+    availableSkills = listSkillsFromRoot(resolvedRoot.rootDir);
+    const targetSkill = availableSkills.find((skill) => skill.name === skillName);
     if (!targetSkill) {
       return buildSkillErrorTrace({
         evalCase,
         error: `Target skill not found: "${skillName}"`,
-        skillResolution,
+        skillResolution: buildSkillResolution(resolvedRoot, skillName),
+      });
+    }
+
+    try {
+      resolvedSkillContent = loadSkillContentFromRoot(
+        resolvedRoot.rootDir,
+        skillName,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return buildSkillErrorTrace({
+        evalCase,
+        error: message,
+        skillResolution: buildSkillResolution(resolvedRoot, skillName),
       });
     }
   }
@@ -177,9 +194,12 @@ export const runSkill = async (
   let systemPrompt: string;
   if (mode === "inject") {
     try {
-      const skillContent = loadSkillContentFromRoot(resolvedRoot.rootDir, skillName);
+      resolvedSkillContent = loadSkillContentFromRoot(
+        resolvedRoot.rootDir,
+        skillName,
+      );
       systemPrompt = buildInjectSystemPrompt(
-        skillContent,
+        resolvedSkillContent,
         evalCase.input.system_prompt_prefix,
       );
     } catch (error) {
@@ -187,15 +207,21 @@ export const runSkill = async (
       return buildSkillErrorTrace({
         evalCase,
         error: message,
-        skillResolution,
+        skillResolution: buildSkillResolution(resolvedRoot, skillName),
       });
     }
   } else {
     systemPrompt = buildDiscoverSystemPrompt(
-      listSkillsFromRoot(resolvedRoot.rootDir),
+      availableSkills ?? listSkillsFromRoot(resolvedRoot.rootDir),
       evalCase.input.system_prompt_prefix,
     );
   }
+
+  const skillResolution = buildSkillResolution(
+    resolvedRoot,
+    skillName,
+    resolvedSkillContent,
+  );
 
   const runnableCase = buildRunnableCase(evalCase, systemPrompt);
 

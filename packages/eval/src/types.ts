@@ -312,6 +312,7 @@ export type SkillResolutionTrace = {
   root_dir: string;
   skill_name: string;
   skill_path: string;
+  skill_content?: string;
 };
 
 export type EvalTrace = {

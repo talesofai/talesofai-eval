@@ -95,6 +95,7 @@ describe("traces", () => {
           root_dir: "/home/test/.agents/skills",
           skill_name: "write-judge-prompt",
           skill_path: "/home/test/.agents/skills/write-judge-prompt/SKILL.md",
+          skill_content: "---\nname: write-judge-prompt\n---\nbody",
         },
       };
       await saveTrace(trace, tempDir);
@@ -103,6 +104,10 @@ describe("traces", () => {
       assert.equal(
         loaded.skill_resolution?.skill_path,
         "/home/test/.agents/skills/write-judge-prompt/SKILL.md",
+      );
+      assert.equal(
+        loaded.skill_resolution?.skill_content,
+        "---\nname: write-judge-prompt\n---\nbody",
       );
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
@@ -160,6 +165,7 @@ describe("traces", () => {
             root_dir: "/home/test/.agents/skills",
             skill_name: "write-judge-prompt",
             skill_path: 123,
+            skill_content: 456,
           },
         }),
         "utf8",

@@ -98,6 +98,10 @@ describe("runSkill", () => {
         trace.skill_resolution?.skill_path,
         join(skillsRoot, skillName, "SKILL.md"),
       );
+      assert.equal(
+        trace.skill_resolution?.skill_content,
+        `---\nname: ${skillName}\ndescription: sample\n---\nSKILL BODY`,
+      );
     } finally {
       rmSync(skillsRoot, { recursive: true, force: true });
     }
@@ -138,6 +142,10 @@ describe("runSkill", () => {
       assert.equal(
         (trace.conversation[0]?.content as string).includes("<available_skills>"),
         true,
+      );
+      assert.equal(
+        trace.skill_resolution?.skill_content,
+        `---\nname: ${skillName}\ndescription: sample discover\n---\nbody`,
       );
     } finally {
       rmSync(skillsRoot, { recursive: true, force: true });
