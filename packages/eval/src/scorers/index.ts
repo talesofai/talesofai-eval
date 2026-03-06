@@ -18,6 +18,7 @@ const DEFAULT_TIER: Record<AssertionConfig["type"], EvalTier> = {
   llm_judge: 2,
   task_success: 2,
   tool_parameter_accuracy: 2,
+  skill_usage: 2,
   human_review: 3,
 };
 

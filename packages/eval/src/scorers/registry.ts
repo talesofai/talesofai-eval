@@ -12,6 +12,7 @@ import { scoreFinalStatusAssertion } from "./status.ts";
 import { scoreTaskSuccess } from "./task-success.ts";
 import { scoreToolUsageAssertion } from "./tool.ts";
 import { scoreToolParameterAccuracy } from "./tool-parameter-accuracy.ts";
+import { scoreSkillUsageAssertion } from "./skill-usage.ts";
 
 export type { ScorerFn };
 
@@ -37,6 +38,8 @@ export const SCORER_REGISTRY: Record<
     scoreTaskSuccess(trace, assertion, evalCase),
   tool_parameter_accuracy: (trace, assertion, evalCase) =>
     scoreToolParameterAccuracy(trace, assertion, evalCase),
+  skill_usage: (trace, assertion, evalCase) =>
+    scoreSkillUsageAssertion(trace, assertion, evalCase),
 };
 
 /**

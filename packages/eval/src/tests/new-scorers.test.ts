@@ -7,6 +7,7 @@ import type {
   AssertionConfig,
   EvalTrace,
   PlainEvalCase,
+  SkillEvalCase,
   ToolCallRecord,
 } from "../types.ts";
 
@@ -223,6 +224,43 @@ describe("scoreTrace tier filtering", () => {
     const result = await scoreTrace(evalCase, trace, { tierMax: 1 });
     assert.equal(result.passed, true);
     assert.equal(result.dimensions[0]?.tier, 1);
+  });
+
+  it("default tier for skill_usage is 2", async () => {
+    const evalCase: SkillEvalCase = {
+      type: "skill",
+      id: "skill-tier-test",
+      description: "test",
+      input: {
+        skill: "write-judge-prompt",
+        model: "qwen-plus",
+        task: "use the skill",
+        evaluation_mode: "discover",
+      },
+      criteria: {
+        assertions: [{ type: "skill_usage", checks: ["skill_loaded"] }],
+      },
+    };
+    const trace = makeTrace({
+      case_type: "skill",
+      tools_called: [
+        makeCall(
+          "read",
+          { path: "write-judge-prompt/SKILL.md" },
+          "---\nname: write-judge-prompt\n---\nbody",
+        ),
+      ],
+      skill_resolution: {
+        source: "cli",
+        root_dir: "/skills",
+        skill_name: "write-judge-prompt",
+        skill_path: "/skills/write-judge-prompt/SKILL.md",
+      },
+    });
+    const result = await scoreTrace(evalCase, trace, { tierMax: 2 });
+    assert.equal(result.passed, true);
+    assert.equal(result.dimensions[0]?.dimension, "skill_usage");
+    assert.equal(result.dimensions[0]?.tier, 2);
   });
 
   it("skips tier-2 assertions when tierMax=1", async () => {
