@@ -77,6 +77,13 @@ export function collectDoctorChecks(
       hint: "Set EVAL_UPSTREAM_X_TOKEN for upstream API auth (character/asset provider).",
       optional: true,
     },
+    {
+      key: "EVAL_SKILLS_DIR",
+      requiredFor: "skill run",
+      ok: isSet("EVAL_SKILLS_DIR"),
+      hint: "Optional: override skill lookup root. By default skill evals will try ~/.agents/skills, then bundled fixtures.",
+      optional: true,
+    },
   ];
 
   return checks;

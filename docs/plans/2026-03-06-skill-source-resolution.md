@@ -10,7 +10,7 @@
 - [x] Task 2: Add case-level and CLI-level skill root overrides ✅
 - [x] Task 3: Bind builtin `read` and `ls` to the resolved skills root ✅
 - [x] Task 4: Record resolved skill provenance in traces ✅
-- [ ] Task 5: Update doctor output, docs, and end-to-end cases
+- [x] Task 5: Update doctor output, docs, and end-to-end cases ✅
 - [ ] Task 6: Full verification
 
 ## Design Decisions

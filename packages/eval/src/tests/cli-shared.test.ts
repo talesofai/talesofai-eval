@@ -141,6 +141,17 @@ describe("collectDoctorChecks", () => {
       "EVAL_PLAIN_BASE_URL should be absent in all mode",
     );
   });
+
+  it("includes optional EVAL_SKILLS_DIR hint for skill runs", () => {
+    const checks = collectDoctorChecks({}, "all");
+    const skillCheck = checks.find((check) => check.key === "EVAL_SKILLS_DIR");
+
+    assert.ok(skillCheck);
+    assert.equal(skillCheck?.requiredFor, "skill run");
+    assert.equal(skillCheck?.optional, true);
+    assert.equal(skillCheck?.ok, false);
+    assert.equal(skillCheck?.hint.includes("~/.agents/skills"), true);
+  });
 });
 
 describe("shouldUseJsonErrors", () => {
