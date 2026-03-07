@@ -21,6 +21,7 @@ import {
   buildSkillCaseScaffold,
   generateSkillCases,
 } from "../skill-case-scaffold.ts";
+import { showConfirmUI } from "./skill-case-ui.ts";
 import {
   renderMatrixHtmlReport,
   renderRunHtmlReport,
@@ -217,6 +218,30 @@ export type WriteCasesResult = {
 };
 
 /**
+ * Extracts the workflow name from a case id.
+ * Format: skill-{skillName}-{mode}-{workflowName}
+ * Handles skill names with hyphens by finding the mode marker.
+ */
+export function extractWorkflowNameFromCaseId(caseId: string): string {
+  // Mode is always "discover" or "inject"
+  const discoverMarker = "-discover-";
+  const injectMarker = "-inject-";
+
+  const dIdx = caseId.indexOf(discoverMarker);
+  if (dIdx !== -1) {
+    return caseId.slice(dIdx + discoverMarker.length) || "auto";
+  }
+
+  const iIdx = caseId.indexOf(injectMarker);
+  if (iIdx !== -1) {
+    return caseId.slice(iIdx + injectMarker.length) || "auto";
+  }
+
+  // Fallback: last segment only
+  return caseId.split("-").pop() || "auto";
+}
+
+/**
  * Writes multiple skill cases to individual YAML files.
  * File naming: {workflow-name}.eval.yaml
  * Default output dir: cases/skills/{skill-name}/
@@ -231,9 +256,7 @@ export function writeSkillCases(
 
   const written: string[] = [];
   for (const evalCase of cases) {
-    // Extract workflow name from case id: skill-{skillName}-{mode}-{workflowName}
-    const parts = evalCase.id.split("-");
-    const workflowName = parts.slice(3).join("-") || "auto";
+    const workflowName = extractWorkflowNameFromCaseId(evalCase.id);
     const filename = `${workflowName}.eval.yaml`;
     const filepath = join(dir, filename);
 
@@ -340,7 +363,7 @@ export async function draftSkillCaseCommand(
         },
         cases: result.cases.map((c, i) => ({
           id: c.id,
-          file: writeResult?.written[i]?.split("/").pop() ?? `${c.id.split("-").pop()}.eval.yaml`,
+          file: writeResult?.written[i]?.split("/").pop() ?? `${extractWorkflowNameFromCaseId(c.id)}.eval.yaml`,
           description: c.description,
         })),
         skipped: result.skipped,
@@ -368,7 +391,27 @@ export async function draftSkillCaseCommand(
     return 0;
   }
 
-  // Print all cases to stdout
+  // Interactive UI for case selection (TTY only)
+  if (process.stdin.isTTY) {
+    try {
+      const selectedCases = await showConfirmUI(result.cases, options.skill);
+      if (selectedCases.length === 0) {
+        process.stderr.write(pc.yellow("No cases selected\n"));
+        return 0;
+      }
+      const writeResult = writeSkillCases(selectedCases, options.skill);
+      for (const filepath of writeResult.written) {
+        process.stderr.write(pc.green(`✓ saved: ${filepath}\n`));
+      }
+      return 0;
+    } catch (error) {
+      // User cancelled or quit
+      process.stderr.write(pc.dim("\nCancelled\n"));
+      return 1;
+    }
+  }
+
+  // Non-TTY: Print all cases to stdout
   for (const evalCase of result.cases) {
     const yaml = YAML.stringify(evalCase);
     process.stdout.write(`---\n${yaml}`);

@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
   parseWorkflowIdentificationResponse,
   type IdentifiedWorkflow,
 } from "../skill-case-scaffold.ts";
+import {
+  extractWorkflowNameFromCaseId,
+  writeSkillCases,
+} from "../cli/aux-commands.ts";
 
 describe("skill case generator", () => {
   describe("parseWorkflowIdentificationResponse", () => {
@@ -210,6 +217,89 @@ describe("skill case generator", () => {
 
       // Description length > 20 indicates complex workflow
       assert.ok(complexWorkflow.description.length > 20);
+    });
+  });
+
+  describe("extractWorkflowNameFromCaseId", () => {
+    it("extracts workflow name from simple skill id", () => {
+      assert.equal(
+        extractWorkflowNameFromCaseId("skill-neta-discover-character-to-image"),
+        "character-to-image",
+      );
+    });
+
+    it("handles hyphenated skill names in discover mode", () => {
+      // skill name "write-judge-prompt" has hyphens
+      assert.equal(
+        extractWorkflowNameFromCaseId("skill-write-judge-prompt-discover-workflow-quality"),
+        "workflow-quality",
+      );
+    });
+
+    it("handles hyphenated skill names in inject mode", () => {
+      assert.equal(
+        extractWorkflowNameFromCaseId("skill-error-analysis-inject-categorize-failures"),
+        "categorize-failures",
+      );
+    });
+
+    it("falls back gracefully when no mode marker found", () => {
+      const result = extractWorkflowNameFromCaseId("no-mode-here");
+      assert.ok(typeof result === "string" && result.length > 0);
+    });
+  });
+
+  describe("writeSkillCases file naming", () => {
+    it("writes files with correct workflow names for hyphenated skill names", () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), "skill-case-test-"));
+      try {
+        const cases = [
+          {
+            type: "skill" as const,
+            id: "skill-write-judge-prompt-discover-workflow-quality",
+            description: "Test workflow quality",
+            input: { skill: "write-judge-prompt", model: "test", evaluation_mode: "discover" as const, task: "test task" },
+            criteria: { assertions: [] },
+          },
+          {
+            type: "skill" as const,
+            id: "skill-write-judge-prompt-discover-tone-mismatch",
+            description: "Test tone mismatch",
+            input: { skill: "write-judge-prompt", model: "test", evaluation_mode: "discover" as const, task: "test task 2" },
+            criteria: { assertions: [] },
+          },
+        ];
+
+        const result = writeSkillCases(cases, "write-judge-prompt", tmpDir);
+
+        assert.equal(result.written.length, 2);
+        assert.ok(result.written[0]?.endsWith("workflow-quality.eval.yaml"));
+        assert.ok(result.written[1]?.endsWith("tone-mismatch.eval.yaml"));
+      } finally {
+        rmSync(tmpDir, { recursive: true });
+      }
+    });
+
+    it("writes files with type: skill field in YAML", async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), "skill-case-test-"));
+      try {
+        const cases = [
+          {
+            type: "skill" as const,
+            id: "skill-neta-discover-character-to-image",
+            description: "Character to image workflow",
+            input: { skill: "neta", model: "test", evaluation_mode: "discover" as const, task: "test" },
+            criteria: { assertions: [] },
+          },
+        ];
+
+        const result = writeSkillCases(cases, "neta", tmpDir);
+        const { readFileSync } = await import("node:fs");
+        const content = readFileSync(result.written[0]!, "utf8");
+        assert.ok(content.includes("type: skill"));
+      } finally {
+        rmSync(tmpDir, { recursive: true });
+      }
     });
   });
 });

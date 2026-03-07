@@ -156,7 +156,7 @@ function writeSkillCases(
 
 ## 里程碑 M3：交互界面与 CLI 命令
 
-### T3.1 实现终端确认界面
+### T3.1 实现终端确认界面 ✅
 
 **文件**: `packages/eval/src/cli/skill-case-ui.ts`（新文件）
 
@@ -198,7 +198,7 @@ Actions: [a]ll | [n]one | [1-5] toggle | [q]uit | [Enter] save selected
 
 ---
 
-### T3.2 实现非交互模式 JSON 输出
+### T3.2 实现非交互模式 JSON 输出 ✅
 
 **文件**: `packages/eval/src/cli/aux-commands.ts`
 
@@ -232,7 +232,7 @@ Actions: [a]ll | [n]one | [1-5] toggle | [q]uit | [Enter] save selected
 
 ---
 
-### T3.3 重构 `draftSkillCaseCommand`
+### T3.3 重构 `draftSkillCaseCommand` ✅
 
 **文件**: `packages/eval/src/cli/aux-commands.ts`
 

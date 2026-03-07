@@ -484,6 +484,7 @@ function mentionsSkillName(value: string, skillName: string): boolean {
 // ============================================================================
 
 export type GeneratedSkillCase = {
+  type: "skill";
   id: string;
   description: string;
   input: {
@@ -648,6 +649,7 @@ function buildCaseFromWorkflow(
   const assertions = designAssertionsForWorkflow(workflow, input.mode);
 
   return {
+    type: "skill",
     id: `skill-${input.skillName}-${input.mode}-${workflow.name}`,
     description: workflow.description,
     input: {
