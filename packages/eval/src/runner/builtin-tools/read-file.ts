@@ -2,7 +2,6 @@ import { Type } from "@mariozechner/pi-ai";
 import { readFileSync, realpathSync } from "node:fs";
 import { join, sep } from "node:path";
 import type { BuiltinTool } from "../minimal-agent/types.ts";
-import { BUNDLED_SKILLS_DIR } from "../../skills/index.ts";
 
 function isValidRelativePath(path: string): boolean {
   if (path.startsWith("/") || path.startsWith("\\")) {
@@ -71,5 +70,3 @@ export function createReadFileTool(skillsDir: string): BuiltinTool {
     },
   };
 }
-
-export const readFileTool = createReadFileTool(BUNDLED_SKILLS_DIR);

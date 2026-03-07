@@ -2,7 +2,6 @@ import { Type } from "@mariozechner/pi-ai";
 import { readdirSync, realpathSync } from "node:fs";
 import { join, sep } from "node:path";
 import type { BuiltinTool } from "../minimal-agent/types.ts";
-import { BUNDLED_SKILLS_DIR } from "../../skills/index.ts";
 
 function isValidRelativePath(path: string): boolean {
   if (path.startsWith("/") || path.startsWith("\\")) {
@@ -77,5 +76,3 @@ export function createListDirTool(skillsDir: string): BuiltinTool {
     },
   };
 }
-
-export const listDirTool = createListDirTool(BUNDLED_SKILLS_DIR);
