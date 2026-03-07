@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 import type { EvalResult } from "../types.ts";
 
 export type DoctorCheck = {
@@ -80,8 +81,10 @@ export function collectDoctorChecks(
     {
       key: "EVAL_SKILLS_DIR",
       requiredFor: "skill run",
-      ok: isSet("EVAL_SKILLS_DIR"),
-      hint: "Optional: override skill lookup root. By default skill evals will try ~/.agents/skills, then bundled fixtures.",
+      ok:
+        isSet("EVAL_SKILLS_DIR") ||
+        existsSync(join(homedir(), ".agents", "skills")),
+      hint: "Set EVAL_SKILLS_DIR or create ~/.agents/skills for skill evals.",
       optional: true,
     },
   ];
