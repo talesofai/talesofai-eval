@@ -113,9 +113,9 @@ async function identifyWorkflows(
 
 ---
 
-### T2.2 实现 Case 文件写入
+### T2.2 实现 Case 文件写入 ✅
 
-**文件**: `packages/eval/src/cli/aux-commands.ts` 或新文件
+**文件**: `packages/eval/src/cli/aux-commands.ts`
 
 函数：
 
@@ -141,7 +141,7 @@ function writeSkillCases(
 
 ---
 
-### T2.3 更新 CLI 参数解析
+### T2.3 更新 CLI 参数解析 ✅
 
 **文件**: `packages/eval/src/cli/options.ts`
 

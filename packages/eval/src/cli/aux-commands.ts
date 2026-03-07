@@ -207,6 +207,44 @@ function validateExplicitSkillsDir(skillsDir: string): string {
   return resolvedPath;
 }
 
+// ============================================================================
+// T2.2: Case File Writing
+// ============================================================================
+
+export type WriteCasesResult = {
+  output_dir: string;
+  written: string[]; // File paths
+};
+
+/**
+ * Writes multiple skill cases to individual YAML files.
+ * File naming: {workflow-name}.eval.yaml
+ * Default output dir: cases/skills/{skill-name}/
+ */
+export function writeSkillCases(
+  cases: Array<{ id: string; description: string; [key: string]: unknown }>,
+  skillName: string,
+  outputDir?: string,
+): WriteCasesResult {
+  const dir = outputDir ?? `cases/skills/${skillName}`;
+  mkdirSync(dir, { recursive: true });
+
+  const written: string[] = [];
+  for (const evalCase of cases) {
+    // Extract workflow name from case id: skill-{skillName}-{mode}-{workflowName}
+    const parts = evalCase.id.split("-");
+    const workflowName = parts.slice(3).join("-") || "auto";
+    const filename = `${workflowName}.eval.yaml`;
+    const filepath = join(dir, filename);
+
+    const yaml = YAML.stringify(evalCase);
+    writeFileSync(filepath, yaml, "utf8");
+    written.push(filepath);
+  }
+
+  return { output_dir: dir, written };
+}
+
 export async function draftSkillCaseCommand(
   options: DraftSkillCaseCommandOptions,
 ): Promise<number> {
@@ -269,35 +307,20 @@ export async function draftSkillCaseCommand(
     );
   }
 
-  // For now, output the first case (multi-case UI will be added in T3.1)
-  const firstCase = result.cases[0];
-  if (!firstCase) {
+  if (result.cases.length === 0) {
     throw new Error("No cases generated from identified workflows");
   }
 
-  const yaml = YAML.stringify(firstCase);
-  const suggestedOutput = `cases/skills/${options.skill}/${firstCase.id.split('-').pop() ?? 'auto'}.eval.yaml`;
-
+  // JSON output format
   if (options.format === "json") {
+    // Write files if --out is specified
+    let writeResult: WriteCasesResult | null = null;
     if (options.out) {
-      mkdirSync(dirname(options.out), { recursive: true });
-      writeFileSync(options.out, yaml, "utf8");
-      process.stdout.write(
-        `${JSON.stringify({
-          type: "draft-skill-case",
-          skill: options.skill,
-          mode: options.mode,
-          written: true,
-          output: options.out,
-          skills_source: resolvedRoot.source,
-          skills_root: resolvedRoot.rootDir,
-          workflows_detected: result.workflows.length,
-          cases_generated: result.cases.length,
-          cases_skipped: result.skipped.length,
-          case: firstCase,
-        })}\n`,
-      );
-      return 0;
+      // If --out is a directory, use it directly; otherwise use parent dir
+      const outDir = options.out.endsWith(".yaml") || options.out.endsWith(".yml")
+        ? dirname(options.out)
+        : options.out;
+      writeResult = writeSkillCases(result.cases, options.skill, outDir);
     }
 
     process.stdout.write(
@@ -305,33 +328,51 @@ export async function draftSkillCaseCommand(
         type: "draft-skill-case",
         skill: options.skill,
         mode: options.mode,
-        written: false,
-        suggested_output: suggestedOutput,
+        output_dir: writeResult?.output_dir ?? `cases/skills/${options.skill}`,
+        written: writeResult !== null,
         skills_source: resolvedRoot.source,
         skills_root: resolvedRoot.rootDir,
-        workflows_detected: result.workflows.length,
-        cases_generated: result.cases.length,
-        cases_skipped: result.skipped.length,
-        case: firstCase,
+        stats: {
+          total_workflows_detected: result.workflows.length,
+          cases_generated: result.cases.length,
+          cases_skipped: result.skipped.length,
+          retries: result.retries,
+        },
+        cases: result.cases.map((c, i) => ({
+          id: c.id,
+          file: writeResult?.written[i]?.split("/").pop() ?? `${c.id.split("-").pop()}.eval.yaml`,
+          description: c.description,
+        })),
+        skipped: result.skipped,
       })}\n`,
     );
     return 0;
   }
 
+  // Terminal output format
   process.stderr.write(
     pc.dim(
       `skills root: ${resolvedRoot.rootDir} (${resolvedRoot.source})\n`,
     ),
   );
 
+  // Write files if --out is specified
   if (options.out) {
-    mkdirSync(dirname(options.out), { recursive: true });
-    writeFileSync(options.out, yaml, "utf8");
-    process.stderr.write(`saved case yaml: ${options.out}\n`);
+    const outDir = options.out.endsWith(".yaml") || options.out.endsWith(".yml")
+      ? dirname(options.out)
+      : options.out;
+    const writeResult = writeSkillCases(result.cases, options.skill, outDir);
+    for (const filepath of writeResult.written) {
+      process.stderr.write(pc.green(`✓ saved: ${filepath}\n`));
+    }
     return 0;
   }
 
-  process.stdout.write(yaml);
+  // Print all cases to stdout
+  for (const evalCase of result.cases) {
+    const yaml = YAML.stringify(evalCase);
+    process.stdout.write(`---\n${yaml}`);
+  }
   return 0;
 }
 
