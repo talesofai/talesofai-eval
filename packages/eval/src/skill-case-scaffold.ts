@@ -6,6 +6,25 @@ import { resolveModel } from "./models/index.ts";
 import { parseFrontmatter } from "./utils/frontmatter.ts";
 import { safeParseJson } from "./utils/safe-parse-json.ts";
 
+// ============================================================================
+// T1.1: Workflow Identification Types
+// ============================================================================
+
+/**
+ * Represents an identified workflow/user scenario from a skill.
+ * A workflow is a complete user usage scenario that may contain multiple commands/steps.
+ */
+export type IdentifiedWorkflow = {
+  /** Workflow name in kebab-case, e.g., "character-to-image" */
+  name: string;
+  /** Brief description of the workflow */
+  description: string;
+  /** User task description that would trigger this workflow */
+  task: string;
+  /** Expected tools that should be used in this workflow */
+  expected_tools?: string[];
+};
+
 export type BuildSkillCaseScaffoldInput = {
   skillName: string;
   mode: "inject" | "discover";
@@ -45,6 +64,198 @@ export type SkillCaseScaffold = {
 };
 
 const DEFAULT_MODEL = "deepseek/deepseek-chat";
+
+// ============================================================================
+// T1.2: Workflow Identification Function
+// ============================================================================
+
+export type IdentifyWorkflowsInput = {
+  skillName: string;
+  skillContent: string;
+  mode: "inject" | "discover";
+  model?: string;
+};
+
+export type IdentifyWorkflowsResult = {
+  workflows: IdentifiedWorkflow[];
+};
+
+/**
+ * Identifies all user scenarios/workflows from a skill using LLM analysis.
+ * Uses meta-skills (error-analysis, write-judge-prompt) to guide the analysis.
+ */
+export async function identifyWorkflows(
+  input: IdentifyWorkflowsInput,
+  opts?: { modelId?: string },
+): Promise<IdentifyWorkflowsResult> {
+  // Load meta-skills for guidance
+  let errorAnalysisSkill: string;
+  let writeJudgeSkill: string;
+  try {
+    errorAnalysisSkill = loadMetaSkillContent("error-analysis");
+    writeJudgeSkill = loadMetaSkillContent("write-judge-prompt");
+  } catch (error) {
+    throw new Error(
+      `Failed to load meta-skills: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  // Build prompts
+  const systemPrompt = buildWorkflowIdentificationSystemPrompt({
+    errorAnalysisSkill,
+    writeJudgeSkill,
+  });
+
+  const userPrompt = buildWorkflowIdentificationUserPrompt({
+    skillName: input.skillName,
+    skillContent: input.skillContent,
+    mode: input.mode,
+  });
+
+  // Resolve model
+  const modelId = opts?.modelId ?? input.model ?? DEFAULT_MODEL;
+  const model = resolveModel(modelId);
+
+  // Call LLM
+  const context: Context = {
+    systemPrompt,
+    messages: [{ role: "user", content: userPrompt, timestamp: Date.now() }],
+  };
+
+  const response = await complete(model, context, { temperature: 0.3 });
+
+  // Parse response
+  const parsed = parseWorkflowIdentificationResponse(response);
+  if (parsed) {
+    return parsed;
+  }
+
+  throw new Error(
+    `Failed to parse LLM response as valid workflow list. Response: ${response.slice(0, 500)}...`,
+  );
+}
+
+function buildWorkflowIdentificationSystemPrompt(input: {
+  errorAnalysisSkill: string;
+  writeJudgeSkill: string;
+}): string {
+  return `You are an expert at analyzing AI skills and identifying user scenarios/workflows.
+
+You have access to these meta-skills (evaluation methods) that guide how to understand skill purposes:
+
+## error-analysis skill
+${input.errorAnalysisSkill.slice(0, 2000)}
+
+## write-judge-prompt skill
+${input.writeJudgeSkill.slice(0, 2000)}
+
+Your task is to analyze a skill and identify ALL possible user scenarios/workflows.
+
+A workflow is:
+- A complete user usage scenario
+- May contain multiple commands/steps
+- Represents how a user would naturally interact with the skill
+
+Return ONLY a JSON object with this EXACT structure (no markdown code blocks):
+
+{
+  "workflows": [
+    {
+      "name": "workflow-name-in-kebab-case",
+      "description": "Brief description of what this workflow accomplishes",
+      "task": "A concrete user request that would naturally trigger this workflow",
+      "expected_tools": ["tool1", "tool2"]
+    }
+  ]
+}
+
+Requirements:
+1. Identify ALL distinct workflows the skill supports
+2. Each workflow name must be in kebab-case (lowercase, hyphen-separated)
+3. The task should describe what the USER wants, NOT mention the skill name
+4. expected_tools should list the main tools/functions this workflow would use
+5. Do NOT set limits on the number of workflows - return all that exist
+6. Each workflow should be meaningfully different from others`;
+}
+
+function buildWorkflowIdentificationUserPrompt(input: {
+  skillName: string;
+  skillContent: string;
+  mode: "inject" | "discover";
+}): string {
+  return `Analyze this skill and identify all user scenarios/workflows:
+
+## Skill: ${input.skillName}
+
+${input.skillContent.slice(0, 6000)}
+
+Mode: ${input.mode}
+- For "discover" mode, the agent must discover and use the skill on its own
+- For "inject" mode, the skill is already loaded in context
+
+Identify all distinct workflows this skill supports. Return the JSON object.`;
+}
+
+export function parseWorkflowIdentificationResponse(
+  response: string,
+): IdentifyWorkflowsResult | null {
+  const parsed = safeParseJson<{ workflows: unknown[] }>(response);
+  if (!parsed || !Array.isArray(parsed.workflows)) {
+    return null;
+  }
+
+  const workflows: IdentifiedWorkflow[] = [];
+  for (const item of parsed.workflows) {
+    if (
+      !item ||
+      typeof item !== "object" ||
+      !("name" in item) ||
+      !("description" in item) ||
+      !("task" in item)
+    ) {
+      continue;
+    }
+
+    const workflow = item as Record<string, unknown>;
+    const name = String(workflow.name ?? "");
+    const description = String(workflow.description ?? "");
+    const task = String(workflow.task ?? "");
+
+    // Validate required fields
+    if (!name || !description || !task) {
+      continue;
+    }
+
+    // Validate kebab-case name
+    if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(name)) {
+      continue;
+    }
+
+    const identified: IdentifiedWorkflow = {
+      name,
+      description,
+      task,
+    };
+
+    // Add expected_tools if present
+    if (
+      "expected_tools" in workflow &&
+      Array.isArray(workflow.expected_tools)
+    ) {
+      identified.expected_tools = workflow.expected_tools.filter(
+        (t): t is string => typeof t === "string",
+      );
+    }
+
+    workflows.push(identified);
+  }
+
+  if (workflows.length === 0) {
+    return null;
+  }
+
+  return { workflows };
+}
 
 export function buildSkillCaseScaffold(
   input: BuildSkillCaseScaffoldInput,

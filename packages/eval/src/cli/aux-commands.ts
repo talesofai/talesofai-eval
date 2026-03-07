@@ -245,7 +245,7 @@ export async function draftSkillCaseCommand(
     );
   }
 
-  // Try intelligent generation first, fall back to deterministic scaffold
+  // Generate case using intelligent LLM-based generation
   let generatedCase;
   try {
     generatedCase = await generateSkillCase({
@@ -265,7 +265,7 @@ export async function draftSkillCaseCommand(
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw new Error(
       `Intelligent case generation failed: ${errorMessage}\n` +
-      `To use deterministic scaffold instead, run with --fallback`,
+      `Ensure models.json is configured with a valid model.`,
     );
   }
 
