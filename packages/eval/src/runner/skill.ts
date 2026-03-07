@@ -17,6 +17,7 @@ import type {
 import { join } from "node:path";
 import { SpanCollector } from "../utils/span-collector.ts";
 import {
+  createBashTool,
   createListDirTool,
   createReadFileTool,
 } from "./builtin-tools/index.ts";
@@ -50,6 +51,7 @@ export function buildDiscoverSystemPrompt(
     "Use ls to explore the skills directory and read to load files by relative path from that root.",
     'For example, first ls a skill directory, then read files like "write-judge-prompt/SKILL.md".',
     "Do not assume skill details before loading them.",
+    "Once you have loaded a skill, use bash to execute any commands it instructs you to run.",
   ].join("\n");
 
   return [prefix, availableSkills, instruction].filter(Boolean).join("\n\n");
@@ -246,6 +248,9 @@ export const runSkill = async (
       builtinTools: [
         createReadFileTool(resolvedRoot.rootDir),
         createListDirTool(resolvedRoot.rootDir),
+        // bash is only added in discover mode so the agent can execute
+        // the commands the loaded skill describes.
+        ...(mode === "discover" ? [createBashTool()] : []),
       ],
     });
   } catch (error) {
