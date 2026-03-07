@@ -17,7 +17,10 @@ import {
   loadSkillContentFromRoot,
   resolveSkillsRoot,
 } from "../skills/index.ts";
-import { buildSkillCaseScaffold } from "../skill-case-scaffold.ts";
+import {
+  buildSkillCaseScaffold,
+  generateSkillCase,
+} from "../skill-case-scaffold.ts";
 import {
   renderMatrixHtmlReport,
   renderRunHtmlReport,
@@ -242,15 +245,29 @@ export async function draftSkillCaseCommand(
     );
   }
 
-  const generatedCase = buildSkillCaseScaffold({
-    skillName: options.skill,
-    mode: options.mode,
-    skillContent,
-    ...(options.model !== undefined ? { model: options.model } : {}),
-    ...(options.skillsDir !== undefined
-      ? { explicitSkillsDir: options.skillsDir }
-      : {}),
-  });
+  // Try intelligent generation first, fall back to deterministic scaffold
+  let generatedCase;
+  try {
+    generatedCase = await generateSkillCase({
+      skillName: options.skill,
+      mode: options.mode,
+      skillContent,
+      skillsDir: resolvedRoot.rootDir,
+      ...(options.model !== undefined ? { model: options.model } : {}),
+      ...(options.skillsDir !== undefined
+        ? { explicitSkillsDir: options.skillsDir }
+        : {}),
+    });
+    if (options.format === "terminal") {
+      process.stderr.write(pc.dim("Generated intelligent case using meta-skills\n"));
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Intelligent case generation failed: ${errorMessage}\n` +
+      `To use deterministic scaffold instead, run with --fallback`,
+    );
+  }
 
   const yaml = YAML.stringify(generatedCase);
   const suggestedOutput = `cases/skills/${options.skill}/${options.mode}-auto.eval.yaml`;
