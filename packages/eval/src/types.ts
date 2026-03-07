@@ -4,6 +4,10 @@ export type EvalTier = 1 | 2 | 3;
 
 export type CaseType = "plain" | "agent" | "skill";
 
+export type MetaSkillSource = "bundled";
+
+export type SkillSourceKind = "cli" | "case" | "env" | "home";
+
 export type AnyAssistantMessage = {
   role: "assistant";
   reasoning_content?: string;
@@ -308,7 +312,7 @@ export type TimingSummary = {
 };
 
 export type SkillResolutionTrace = {
-  source: "cli" | "case" | "env" | "home" | "bundled";
+  source: SkillSourceKind;
   root_dir: string;
   skill_name: string;
   skill_path: string;
