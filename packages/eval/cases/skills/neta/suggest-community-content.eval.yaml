@@ -1,0 +1,30 @@
+type: skill
+id: skill-neta-discover-suggest-community-content
+description: Get curated community content recommendations filtered by scene,
+  intent, and taxonomy paths
+input:
+  skill: neta
+  model: doubao-2.0-mini
+  evaluation_mode: discover
+  task: get community content suggestions for [taxonomy-path] with page
+    [page-index] and [page-size] items
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - suggest_content
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "suggest-community-content"
+        workflow? Get curated community content recommendations filtered by
+        scene, intent, and taxonomy paths
+      pass_threshold: 0.7

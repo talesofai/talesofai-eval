@@ -70,13 +70,15 @@ function buildRunnableCase(
   evalCase: SkillEvalCase,
   systemPrompt: string,
 ): PlainRunnableCase {
+  // Fall back to EVAL_JUDGE_MODEL when model is not specified in the case
+  const model = evalCase.input.model ?? process.env["EVAL_JUDGE_MODEL"] ?? "";
   return {
     type: "skill",
     id: evalCase.id,
     description: evalCase.description,
     input: {
       system_prompt: systemPrompt,
-      model: evalCase.input.model,
+      model,
       messages: [
         {
           role: "user",

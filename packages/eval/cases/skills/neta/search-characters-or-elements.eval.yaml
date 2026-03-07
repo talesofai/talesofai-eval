@@ -1,0 +1,29 @@
+type: skill
+id: skill-neta-discover-search-characters-or-elements
+description: Search for characters or creative elements using keywords, with
+  filtering by parent type and sort order
+input:
+  skill: neta
+  model: doubao-2.0-mini
+  evaluation_mode: discover
+  task: find characters related to [keywords] sorted by [sort-scheme]
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - search_character_or_elementum
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "search-characters-or-elements"
+        workflow? Search for characters or creative elements using keywords,
+        with filtering by parent type and sort order
+      pass_threshold: 0.7

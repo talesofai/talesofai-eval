@@ -1,0 +1,30 @@
+type: skill
+id: skill-neta-discover-generate-ai-video
+description: Generate AI video content from an input image URL and action
+  description using a specified model
+input:
+  skill: neta
+  model: doubao-2.0-mini
+  evaluation_mode: discover
+  task: make a video from this image URL with [action prompt] using model
+    [model-name]
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - make_video
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "generate-ai-video" workflow?
+        Generate AI video content from an input image URL and action description
+        using a specified model
+      pass_threshold: 0.7

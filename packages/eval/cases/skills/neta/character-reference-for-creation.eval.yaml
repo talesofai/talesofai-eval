@@ -1,0 +1,30 @@
+type: skill
+id: skill-neta-discover-character-reference-for-creation
+description: Look up character details before creating content to ensure accuracy
+input:
+  skill: neta
+  evaluation_mode: discover
+  task: Before I create content featuring a character, I need to check their
+    official details and appearance
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - search_character_or_elementum
+        - request_character_or_elementum
+        - make_image
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the
+        "character-reference-for-creation" workflow? Look up character details
+        before creating content to ensure accuracy
+      pass_threshold: 0.7

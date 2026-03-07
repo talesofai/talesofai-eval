@@ -1,0 +1,31 @@
+type: skill
+id: skill-neta-discover-progressive-content-exploration
+description: Start with broad categories and gradually narrow down to specific content
+input:
+  skill: neta
+  evaluation_mode: discover
+  task: I want to explore content starting from broad categories and gradually
+    drill down to specific items
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - list_spaces
+        - get_hashtag_info
+        - suggest_content
+        - request_interactive_feed
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the
+        "progressive-content-exploration" workflow? Start with broad categories
+        and gradually narrow down to specific content
+      pass_threshold: 0.7

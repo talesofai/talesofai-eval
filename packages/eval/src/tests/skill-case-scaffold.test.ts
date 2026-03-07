@@ -50,7 +50,7 @@ User request: Draft a concise judge prompt for scoring customer support replies.
 
     const input = result.input as Record<string, unknown>;
     assert.equal(input.skill, "write-judge-prompt");
-    assert.equal(input.model, "deepseek/deepseek-chat");
+    assert.equal(input.model, undefined);
     assert.equal(input.evaluation_mode, "discover");
     assert.equal(typeof input.task, "string");
     assert.equal(typeof input.skills_dir, "undefined");
@@ -94,7 +94,7 @@ User request: Draft a concise judge prompt for scoring customer support replies.
 
     const input = result.input as Record<string, unknown>;
     assert.equal(input.skill, "write-judge-prompt");
-    assert.equal(input.model, "qwen-plus");
+    assert.equal(input.model, undefined);
     assert.equal(input.evaluation_mode, "inject");
 
     const assertions = (result.criteria as { assertions: Array<Record<string, unknown>> }).assertions;

@@ -1,0 +1,29 @@
+type: skill
+id: skill-neta-discover-get-character-details-by-uuid
+description: Fetch detailed information about a character or element using its
+  unique universal unique identifier
+input:
+  skill: neta
+  model: doubao-2.0-mini
+  evaluation_mode: discover
+  task: get details for the character with UUID [character-uuid]
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - request_character_or_elementum
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "get-character-details-by-uuid"
+        workflow? Fetch detailed information about a character or element using
+        its unique universal unique identifier
+      pass_threshold: 0.7

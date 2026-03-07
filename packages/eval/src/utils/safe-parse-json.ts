@@ -6,7 +6,7 @@ function stripMarkdownCodeBlock(value: string): string {
   // Match```json ... ``` or ``` ... ```
   const codeBlockMatch = value.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/);
   if (codeBlockMatch) {
-    return codeBlockMatch[1].trim();
+    return (codeBlockMatch[1] ?? "").trim();
   }
   return value.trim();
 }

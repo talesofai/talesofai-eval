@@ -1,0 +1,29 @@
+type: skill
+id: skill-neta-discover-create-ai-music-video
+description: Combine a generated AI song and video to produce a complete
+  official-style music video
+input:
+  skill: neta
+  model: doubao-2.0-mini
+  evaluation_mode: discover
+  task: create a full music video using my generated song and video
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - song-mv
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "create-ai-music-video"
+        workflow? Combine a generated AI song and video to produce a complete
+        official-style music video
+      pass_threshold: 0.7

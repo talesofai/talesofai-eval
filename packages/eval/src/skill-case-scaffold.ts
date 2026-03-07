@@ -1,7 +1,6 @@
 import type { Context } from "@mariozechner/pi-ai";
 import { complete } from "./inference/index.ts";
 import { loadMetaSkillContent } from "./skills/index.ts";
-import type { ModelConfig } from "./models/index.ts";
 import { resolveModel } from "./models/index.ts";
 import { parseFrontmatter } from "./utils/frontmatter.ts";
 import { safeParseJson } from "./utils/safe-parse-json.ts";
@@ -39,7 +38,7 @@ export type SkillCaseScaffold = {
   description: string;
   input: {
     skill: string;
-    model: string;
+    model?: string;
     evaluation_mode: "inject" | "discover";
     task: string;
     skills_dir?: string;
@@ -140,7 +139,7 @@ async function identifyWorkflowsOnce(
     skillName: input.skillName,
     skillContent: input.skillContent,
     mode: input.mode,
-    previousError,
+    ...(previousError != null ? { previousError } : {}),
   });
 
   // Resolve model
@@ -324,7 +323,6 @@ export function buildSkillCaseScaffold(
     description: `Auto-generated ${input.mode} skill case for ${input.skillName}`,
     input: {
       skill: input.skillName,
-      model: input.model ?? DEFAULT_MODEL,
       evaluation_mode: input.mode,
       ...(input.explicitSkillsDir
         ? { skills_dir: input.explicitSkillsDir }
@@ -489,7 +487,7 @@ export type GeneratedSkillCase = {
   description: string;
   input: {
     skill: string;
-    model: string;
+    model?: string;
     evaluation_mode: "inject" | "discover";
     task: string;
     skills_dir?: string;
@@ -502,8 +500,6 @@ export type GeneratedSkillCase = {
     }>;
   };
 };
-
-const CASE_GENERATOR_MODEL = "deepseek/deepseek-chat";
 
 // ============================================================================
 // T1.3: Assertion Auto-Design
@@ -610,7 +606,7 @@ export async function generateSkillCases(
       skillName: input.skillName,
       skillContent: input.skillContent,
       mode: input.mode,
-      model: input.model,
+      ...(input.model !== undefined ? { model: input.model } : {}),
     },
     opts,
   );
@@ -654,7 +650,6 @@ function buildCaseFromWorkflow(
     description: workflow.description,
     input: {
       skill: input.skillName,
-      model: input.model ?? DEFAULT_MODEL,
       evaluation_mode: input.mode,
       task: workflow.task,
       ...(input.explicitSkillsDir

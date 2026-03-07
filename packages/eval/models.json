@@ -1,4 +1,45 @@
 {
-	"$schema": "./models.schema.json",
-	"models": {}
+  "$schema": "./models.schema.json",
+  "models": {
+    "deepseek/deepseek-chat": {
+      "id": "deepseek/deepseek-chat",
+      "name": "DeepSeek Chat",
+      "api": "openai-completions",
+      "provider": "litellm",
+      "baseUrl": "${OPENAI_BASE_URL}/v1",
+      "apiKey": "${OPENAI_API_KEY}"
+    },
+    "ark/glm-4.7": {
+      "id": "ark/glm-4.7",
+      "name": "GLM 4.7",
+      "api": "openai-completions",
+      "provider": "litellm",
+      "baseUrl": "${OPENAI_BASE_URL}/v1",
+      "apiKey": "${OPENAI_API_KEY}"
+    },
+    "bailian/kimi-k2.5": {
+      "id": "bailian/kimi-k2.5",
+      "name": "Kimi K2.5",
+      "api": "openai-completions",
+      "provider": "litellm",
+      "baseUrl": "${OPENAI_BASE_URL}/v1",
+      "apiKey": "${OPENAI_API_KEY}"
+    },
+    "doubao-2.0-mini": {
+      "id": "doubao-2.0-mini",
+      "name": "Doubao 2.0 Mini",
+      "api": "openai-completions",
+      "provider": "litellm",
+      "baseUrl": "${OPENAI_BASE_URL}/v1",
+      "apiKey": "${OPENAI_API_KEY}"
+    },
+    "qwen3.5-flash": {
+      "id": "qwen3.5-flash",
+      "name": "Qwen 3.5 Flash",
+      "api": "openai-completions",
+      "provider": "litellm",
+      "baseUrl": "${OPENAI_BASE_URL}/v1",
+      "apiKey": "${OPENAI_API_KEY}"
+    }
+  }
 }

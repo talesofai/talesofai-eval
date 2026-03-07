@@ -1,0 +1,27 @@
+type: skill
+id: skill-neta-discover-explore-content-collections
+description: Browse curated collections of content to find inspiration and templates
+input:
+  skill: neta
+  evaluation_mode: discover
+  task: I'm looking for inspiration by browsing fantasy art collections
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - read_collection
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "explore-content-collections"
+        workflow? Browse curated collections of content to find inspiration and
+        templates
+      pass_threshold: 0.7

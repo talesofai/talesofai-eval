@@ -18,7 +18,6 @@ import {
   resolveSkillsRoot,
 } from "../skills/index.ts";
 import {
-  buildSkillCaseScaffold,
   generateSkillCases,
 } from "../skill-case-scaffold.ts";
 import { showConfirmUI } from "./skill-case-ui.ts";

@@ -214,8 +214,11 @@ export type SkillEvalCase = {
   input: {
     /** Skill name, corresponds to subdirectory name in skills/ */
     skill: string;
-    /** Model ID to execute the skill */
-    model: string;
+    /**
+     * Model ID to execute the skill (from models.json registry).
+     * If omitted, falls back to the EVAL_JUDGE_MODEL environment variable.
+     */
+    model?: string;
     /** Task description */
     task: string;
     /** Optional per-case override for the skills root directory */

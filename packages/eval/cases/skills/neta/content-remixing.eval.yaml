@@ -1,0 +1,29 @@
+type: skill
+id: skill-neta-discover-content-remixing
+description: Take existing community content and create new variations or adaptations
+input:
+  skill: neta
+  evaluation_mode: discover
+  task: I found a cool character pose and want to create my own version with
+    different styling
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - suggest_content
+        - read_collection
+        - make_image
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "content-remixing" workflow?
+        Take existing community content and create new variations or adaptations
+      pass_threshold: 0.7

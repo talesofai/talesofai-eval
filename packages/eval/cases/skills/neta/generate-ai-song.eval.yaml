@@ -1,0 +1,28 @@
+type: skill
+id: skill-neta-discover-generate-ai-song
+description: Create an original AI-generated song using style prompts and provided lyrics
+input:
+  skill: neta
+  model: doubao-2.0-mini
+  evaluation_mode: discover
+  task: "generate a song with [style description] and these lyrics: [lyrics-content]"
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - make_song
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "generate-ai-song" workflow?
+        Create an original AI-generated song using style prompts and provided
+        lyrics
+      pass_threshold: 0.7

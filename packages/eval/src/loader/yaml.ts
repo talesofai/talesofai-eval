@@ -256,7 +256,7 @@ const skillCaseSchemaRaw = z.object({
   description: z.string(),
   input: z.object({
     skill: z.string(),
-    model: z.string(),
+    model: z.string().optional(),
     task: z.string(),
     skills_dir: z.string().optional(),
     fixtures: z.record(z.string(), z.unknown()).optional(),

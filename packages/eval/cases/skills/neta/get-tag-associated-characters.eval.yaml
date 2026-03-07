@@ -1,0 +1,29 @@
+type: skill
+id: skill-neta-discover-get-tag-associated-characters
+description: List all characters associated with a specific tag, sorted by
+  popularity or other configurable criteria
+input:
+  skill: neta
+  model: doubao-2.0-mini
+  evaluation_mode: discover
+  task: show the characters tagged with [tag-name] sorted by [sort-option]
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - get_hashtag_characters
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "get-tag-associated-characters"
+        workflow? List all characters associated with a specific tag, sorted by
+        popularity or other configurable criteria
+      pass_threshold: 0.7

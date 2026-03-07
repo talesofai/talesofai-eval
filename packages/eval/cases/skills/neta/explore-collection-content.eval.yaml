@@ -1,0 +1,29 @@
+type: skill
+id: skill-neta-discover-explore-collection-content
+description: Read and explore the content of a specific collection or gameplay method
+input:
+  skill: neta
+  model: deepseek/deepseek-chat
+  evaluation_mode: discover
+  task: I found an interesting collection UUID and want to see all the content
+    inside it.
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - read_collection
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "explore-collection-content"
+        workflow? Read and explore the content of a specific collection or
+        gameplay method
+      pass_threshold: 0.7

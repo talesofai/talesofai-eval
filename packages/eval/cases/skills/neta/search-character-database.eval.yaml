@@ -1,0 +1,30 @@
+type: skill
+id: skill-neta-discover-search-character-database
+description: Find characters or elements by keywords to get accurate information
+  for content creation
+input:
+  skill: neta
+  evaluation_mode: discover
+  task: I'm looking for information about the 'Shadow Mage' character to ensure my
+    fan art is accurate
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - search_character_or_elementum
+        - request_character_or_elementum
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "search-character-database"
+        workflow? Find characters or elements by keywords to get accurate
+        information for content creation
+      pass_threshold: 0.7

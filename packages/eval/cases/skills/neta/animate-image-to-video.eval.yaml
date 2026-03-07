@@ -1,0 +1,27 @@
+type: skill
+id: skill-neta-discover-animate-image-to-video
+description: Turn an existing image into a short animated video with specified motion
+input:
+  skill: neta
+  evaluation_mode: discover
+  task: I have a character image and want to make it wave hello in a short video
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - make_video
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "animate-image-to-video"
+        workflow? Turn an existing image into a short animated video with
+        specified motion
+      pass_threshold: 0.7

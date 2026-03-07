@@ -1,0 +1,33 @@
+type: skill
+id: skill-neta-discover-character-creation-workflow
+description: Search for character references, then generate images/videos based
+  on official specifications
+input:
+  skill: neta
+  model: deepseek/deepseek-chat
+  evaluation_mode: discover
+  task: I need to create visual content for a character, but first I want to make
+    sure I'm using their official design.
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - search_character_or_elementum
+        - request_character_or_elementum
+        - make_image
+        - make_video
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "character-creation-workflow"
+        workflow? Search for character references, then generate images/videos
+        based on official specifications
+      pass_threshold: 0.7

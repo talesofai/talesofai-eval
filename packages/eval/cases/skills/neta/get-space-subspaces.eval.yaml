@@ -1,0 +1,28 @@
+type: skill
+id: skill-neta-discover-get-space-subspaces
+description: Retrieve all subspaces under a specified parent space using its unique UUID
+input:
+  skill: neta
+  model: doubao-2.0-mini
+  evaluation_mode: discover
+  task: show the subspaces of the space with UUID [space-uuid]
+  skills_dir: /home/ubuntu/projects/neta-skills/skills
+criteria:
+  assertions:
+    - type: tool_usage
+      tier: 1
+      expected_tools:
+        - list_space_topics
+    - type: skill_usage
+      tier: 2
+      checks:
+        - skill_loaded
+        - workflow_followed
+        - skill_influenced_output
+      pass_threshold: 0.7
+    - type: llm_judge
+      tier: 2
+      prompt: Did the agent successfully complete the "get-space-subspaces" workflow?
+        Retrieve all subspaces under a specified parent space using its unique
+        UUID
+      pass_threshold: 0.7
