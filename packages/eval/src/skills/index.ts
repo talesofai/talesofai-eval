@@ -8,6 +8,7 @@ import {
 import { homedir } from "node:os";
 import { join, resolve as resolvePath, sep } from "node:path";
 import { resolveSkillsDir } from "../config.ts";
+import type { SkillSourceKind } from "../types.ts";
 import { parseFrontmatter } from "../utils/frontmatter.ts";
 
 export type SkillMeta = {
@@ -17,15 +18,18 @@ export type SkillMeta = {
   baseDir: string;
 };
 
-export const BUNDLED_SKILLS_DIR = join(
+/**
+ * Meta-skills directory: bundled evaluation method skills used BY the framework.
+ * These are NOT skills to be evaluated - they are tools for case generation.
+ */
+export const META_SKILLS_DIR = join(
   import.meta.dirname,
   "evals-skills",
   "skills",
 );
 
-export const SKILLS_DIR = BUNDLED_SKILLS_DIR;
-
-export type SkillSourceKind = "cli" | "case" | "env" | "home" | "bundled";
+/** @deprecated Use META_SKILLS_DIR instead */
+export const BUNDLED_SKILLS_DIR = META_SKILLS_DIR;
 
 export type ResolvedSkillsRoot = {
   source: SkillSourceKind;
@@ -64,7 +68,10 @@ function isPathWithinRoot(pathValue: string, rootDir: string): boolean {
   return pathValue === rootDir || pathValue.startsWith(`${rootDir}${sep}`);
 }
 
-function validateSkillsRoot(rootDir: string): ResolvedSkillsRoot {
+function validateSkillsRoot(
+  rootDir: string,
+  source: SkillSourceKind = "cli",
+): ResolvedSkillsRoot {
   const resolvedRootDir = resolvePath(rootDir);
 
   if (!existsSync(resolvedRootDir)) {
@@ -77,7 +84,7 @@ function validateSkillsRoot(rootDir: string): ResolvedSkillsRoot {
   }
 
   return {
-    source: "bundled",
+    source,
     rootDir: resolvedRootDir,
     canonicalRootDir: realpathSync(resolvedRootDir),
   };
@@ -154,7 +161,7 @@ function loadSkillMetaFromFile(options: {
 }
 
 function getValidatedRoot(rootDir: string): ResolvedSkillsRoot {
-  return validateSkillsRoot(rootDir);
+  return validateSkillsRoot(rootDir, "cli");
 }
 
 export function resolveSkillsRoot(options: {
@@ -203,16 +210,15 @@ export function resolveSkillsRoot(options: {
   pushCandidate("case", options.caseSkillsDir);
   pushCandidate("env", envSkillsDir);
   pushCandidate("home", join(resolvedHomeDir, ".agents", "skills"));
-  pushCandidate("bundled", BUNDLED_SKILLS_DIR);
 
   const candidate = candidates[0];
   if (!candidate) {
     throw new Error(
-      `Unable to resolve skills root. Checked: ${checkedLocations.join(", ")}`,
+      `No skills root configured. Set --skills-dir, EVAL_SKILLS_DIR, or create ~/.agents/skills. Checked: ${checkedLocations.join(", ")}`,
     );
   }
 
-  const validated = validateSkillsRoot(candidate.rootDir);
+  const validated = validateSkillsRoot(candidate.rootDir, candidate.source);
   return {
     source: candidate.source,
     rootDir: candidate.rootDir,
@@ -313,6 +319,22 @@ export function listSkills(): SkillMeta[] {
 
 export function loadSkillContent(skillName: string): string {
   return loadSkillContentFromRoot(BUNDLED_SKILLS_DIR, skillName);
+}
+
+/**
+ * List bundled meta-skills (evaluation methods).
+ * These are skills used BY the evaluation framework, not skills being evaluated.
+ */
+export function listMetaSkills(): SkillMeta[] {
+  return listSkillsFromRoot(META_SKILLS_DIR);
+}
+
+/**
+ * Load a meta-skill by name.
+ * Used by draft-skill-case to generate intelligent test cases.
+ */
+export function loadMetaSkillContent(skillName: string): string {
+  return loadSkillContentFromRoot(META_SKILLS_DIR, skillName);
 }
 
 /**
