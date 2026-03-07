@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
+  createBashTool,
   createListDirTool,
   createReadFileTool,
 } from "../runner/builtin-tools/index.ts";
@@ -212,5 +213,67 @@ describe("createListDirTool", () => {
       }
       rmSync(rootDir, { recursive: true, force: true });
     }
+  });
+});
+
+// ── Bash tool tests ───────────────────────────────────────────────────────────
+
+describe("createBashTool", () => {
+  it("executes a simple command and returns stdout", async () => {
+    const tool = createBashTool();
+    const output = await tool.execute({ command: "echo hello" });
+    assert.ok(typeof output === "string");
+    assert.ok((output as string).includes("hello"));
+  });
+
+  it("returns output on command failure (non-zero exit)", async () => {
+    const tool = createBashTool();
+    const output = await tool.execute({ command: "ls /nonexistent_path_xyz_12345" });
+    assert.ok(typeof output === "string");
+    assert.ok((output as string).length > 0, "expected non-empty output on failure");
+  });
+
+  it("returns error string when command argument is missing", async () => {
+    const tool = createBashTool();
+    const output = await tool.execute({});
+    assert.ok(typeof output === "string");
+    assert.ok((output as string).startsWith("Error:"));
+  });
+
+  it("blocks a denylisted command", async () => {
+    const tool = createBashTool();
+    // rm -rf / is on the denylist
+    const output = await tool.execute({ command: "rm -rf /" });
+    assert.ok(typeof output === "string");
+    assert.ok((output as string).startsWith("Error:"));
+    assert.ok(
+      (output as string).toLowerCase().includes("block") ||
+        (output as string).toLowerCase().includes("denylist"),
+    );
+  });
+
+  it("respects timeout and returns an error for hanging commands", async () => {
+    const tool = createBashTool({ timeoutMs: 300 });
+    const start = Date.now();
+    const output = await tool.execute({ command: "sleep 10" });
+    const elapsed = Date.now() - start;
+    assert.ok(elapsed < 5000, `should have timed out well under 5 s, got ${elapsed}ms`);
+    assert.ok(typeof output === "string");
+    assert.ok(
+      (output as string).toLowerCase().includes("timeout") ||
+        (output as string).startsWith("Error:"),
+    );
+  });
+
+  it("caps output at maxOutputLength", async () => {
+    const tool = createBashTool({ maxOutputLength: 50 });
+    // printf repeats a pattern to generate >50 chars
+    const output = await tool.execute({
+      command: "printf '%0100d' 0",
+    });
+    assert.ok(typeof output === "string");
+    // capped output + truncation notice should be <= 50 + notice overhead
+    assert.ok((output as string).length <= 150, "output should be capped");
+    assert.ok((output as string).includes("truncated"));
   });
 });
