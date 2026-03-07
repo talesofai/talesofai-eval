@@ -284,3 +284,77 @@ description: Write concise judge prompts for structured eval rubrics.
     }
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// bash_execution auto-heuristic
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("designAssertionsForWorkflow — bash_execution heuristic", () => {
+  it("includes bash_execution when workflow task contains 'run'", () => {
+    const assertions = scaffoldModule.buildCaseFromWorkflow_testOnly(
+      {
+        name: "run-scaffold",
+        description: "Run the draft-skill-case command",
+        task: "run agent-eval draft-skill-case for this skill",
+      },
+      "inject",
+    );
+    const types = assertions.map((a) => a.type);
+    assert.ok(
+      types.includes("bash_execution"),
+      `expected bash_execution in [${types.join(", ")}]`,
+    );
+  });
+
+  it("includes bash_execution when workflow description contains 'execute'", () => {
+    const assertions = scaffoldModule.buildCaseFromWorkflow_testOnly(
+      {
+        name: "execute-command",
+        description: "Execute the CLI command to generate output",
+        task: "Generate eval cases for the skill",
+      },
+      "inject",
+    );
+    const types = assertions.map((a) => a.type);
+    assert.ok(
+      types.includes("bash_execution"),
+      `expected bash_execution in [${types.join(", ")}]`,
+    );
+  });
+
+  it("does not include bash_execution for a purely conceptual workflow", () => {
+    const assertions = scaffoldModule.buildCaseFromWorkflow_testOnly(
+      {
+        name: "review-output",
+        description: "Review the judge prompt for tone and accuracy",
+        task: "Review the judge prompt and give feedback",
+      },
+      "inject",
+    );
+    const types = assertions.map((a) => a.type);
+    assert.ok(
+      !types.includes("bash_execution"),
+      `unexpected bash_execution in [${types.join(", ")}]`,
+    );
+  });
+
+  it("bash_execution in discover mode has expected_goal set", () => {
+    const assertions = scaffoldModule.buildCaseFromWorkflow_testOnly(
+      {
+        name: "generate-case",
+        description: "Generate eval cases by running draft-skill-case",
+        task: "Run draft-skill-case to generate eval cases",
+      },
+      "discover",
+    );
+    const bashAssertion = assertions.find((a) => a.type === "bash_execution") as
+      | { type: "bash_execution"; expected_goal?: string }
+      | undefined;
+    assert.ok(bashAssertion, "expected bash_execution assertion to be present");
+    assert.ok(
+      typeof bashAssertion.expected_goal === "string" &&
+        bashAssertion.expected_goal.length > 0,
+      "expected_goal should be a non-empty string",
+    );
+  });
+});

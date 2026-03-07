@@ -506,10 +506,31 @@ export type GeneratedSkillCase = {
 // ============================================================================
 
 type AssertionDesign = {
-  type: "tool_usage" | "skill_usage" | "llm_judge" | "task_success";
+  type: "tool_usage" | "skill_usage" | "llm_judge" | "task_success" | "bash_execution";
   tier: 1 | 2;
   [key: string]: unknown;
 };
+
+/**
+ * Heuristic: returns true when the workflow's task or description contains
+ * language suggesting CLI / shell command execution.
+ */
+const COMMAND_SIGNAL_PATTERNS = [
+  /\brun\b/i,
+  /\bexecut/i,
+  /\bgenerat/i,
+  /\binvok/i,
+  /\bcall\b/i,
+  /\blaunch\b/i,
+  /\bcommand\b/i,
+  /\bcli\b/i,
+  /agent-eval\b/i,
+];
+
+function workflowInvolvesCommandExecution(workflow: IdentifiedWorkflow): boolean {
+  const text = `${workflow.task} ${workflow.description}`;
+  return COMMAND_SIGNAL_PATTERNS.some((pattern) => pattern.test(text));
+}
 
 /**
  * Designs assertions based on workflow characteristics.
@@ -550,6 +571,16 @@ function designAssertionsForWorkflow(
       tier: 2,
       prompt: llmJudgePrompt,
       pass_threshold: 0.7,
+    });
+  }
+
+  // Tier 2: bash_execution when the workflow involves running commands
+  if (workflowInvolvesCommandExecution(workflow)) {
+    assertions.push({
+      type: "bash_execution",
+      tier: 2,
+      pass_threshold: 0.7,
+      expected_goal: `Agent should run the commands described in the "${workflow.name}" workflow. ${workflow.description}`,
     });
   }
 
@@ -660,4 +691,19 @@ function buildCaseFromWorkflow(
       assertions,
     },
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test-only exports
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** @internal — used only in unit tests */
+export type { AssertionDesign };
+
+/** @internal — exposes designAssertionsForWorkflow for unit tests */
+export function buildCaseFromWorkflow_testOnly(
+  workflow: IdentifiedWorkflow,
+  mode: "inject" | "discover",
+): AssertionDesign[] {
+  return designAssertionsForWorkflow(workflow, mode);
 }
