@@ -19,7 +19,7 @@ import {
 } from "../skills/index.ts";
 import {
   buildSkillCaseScaffold,
-  generateSkillCase,
+  generateSkillCases,
 } from "../skill-case-scaffold.ts";
 import {
   renderMatrixHtmlReport,
@@ -245,10 +245,10 @@ export async function draftSkillCaseCommand(
     );
   }
 
-  // Generate case using intelligent LLM-based generation
-  let generatedCase;
+  // Generate cases using intelligent LLM-based workflow identification
+  let result;
   try {
-    generatedCase = await generateSkillCase({
+    result = await generateSkillCases({
       skillName: options.skill,
       mode: options.mode,
       skillContent,
@@ -259,7 +259,7 @@ export async function draftSkillCaseCommand(
         : {}),
     });
     if (options.format === "terminal") {
-      process.stderr.write(pc.dim("Generated intelligent case using meta-skills\n"));
+      process.stderr.write(pc.dim(`Identified ${result.workflows.length} workflow(s), generated ${result.cases.length} case(s)\n`));
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -269,8 +269,14 @@ export async function draftSkillCaseCommand(
     );
   }
 
-  const yaml = YAML.stringify(generatedCase);
-  const suggestedOutput = `cases/skills/${options.skill}/${options.mode}-auto.eval.yaml`;
+  // For now, output the first case (multi-case UI will be added in T3.1)
+  const firstCase = result.cases[0];
+  if (!firstCase) {
+    throw new Error("No cases generated from identified workflows");
+  }
+
+  const yaml = YAML.stringify(firstCase);
+  const suggestedOutput = `cases/skills/${options.skill}/${firstCase.id.split('-').pop() ?? 'auto'}.eval.yaml`;
 
   if (options.format === "json") {
     if (options.out) {
@@ -285,7 +291,10 @@ export async function draftSkillCaseCommand(
           output: options.out,
           skills_source: resolvedRoot.source,
           skills_root: resolvedRoot.rootDir,
-          case: generatedCase,
+          workflows_detected: result.workflows.length,
+          cases_generated: result.cases.length,
+          cases_skipped: result.skipped.length,
+          case: firstCase,
         })}\n`,
       );
       return 0;
@@ -300,7 +309,10 @@ export async function draftSkillCaseCommand(
         suggested_output: suggestedOutput,
         skills_source: resolvedRoot.source,
         skills_root: resolvedRoot.rootDir,
-        case: generatedCase,
+        workflows_detected: result.workflows.length,
+        cases_generated: result.cases.length,
+        cases_skipped: result.skipped.length,
+        case: firstCase,
       })}\n`,
     );
     return 0;

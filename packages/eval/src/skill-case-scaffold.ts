@@ -437,15 +437,6 @@ function mentionsSkillName(value: string, skillName: string): boolean {
 // Intelligent Case Generation using Meta-Skills
 // ============================================================================
 
-export type GenerateSkillCaseInput = {
-  skillName: string;
-  skillContent: string;
-  mode: "inject" | "discover";
-  model?: string;
-  skillsDir: string;
-  explicitSkillsDir?: string;
-};
-
 export type GeneratedSkillCase = {
   id: string;
   description: string;
@@ -467,169 +458,164 @@ export type GeneratedSkillCase = {
 
 const CASE_GENERATOR_MODEL = "deepseek/deepseek-chat";
 
+// ============================================================================
+// T1.3: Assertion Auto-Design
+// ============================================================================
+
+type AssertionDesign = {
+  type: "tool_usage" | "skill_usage" | "llm_judge" | "task_success";
+  tier: 1 | 2;
+  [key: string]: unknown;
+};
+
 /**
- * Generate an intelligent skill eval case using meta-skills.
- * Uses error-analysis and write-judge-prompt to create meaningful test cases.
- * 
- * @throws Error if meta-skills cannot be loaded, model resolution fails, or LLM response is invalid
+ * Designs assertions based on workflow characteristics.
+ * - discover mode: includes tool_usage (ls/read) + skill_usage
+ * - Adds llm_judge or task_success based on workflow description
  */
-export async function generateSkillCase(
-  input: GenerateSkillCaseInput,
-  opts?: { modelId?: string },
-): Promise<GeneratedSkillCase> {
-  // Load relevant meta-skills
-  let errorAnalysisSkill: string;
-  let writeJudgeSkill: string;
-  try {
-    errorAnalysisSkill = loadMetaSkillContent("error-analysis");
-    writeJudgeSkill = loadMetaSkillContent("write-judge-prompt");
-  } catch (error) {
-    throw new Error(
-      `Failed to load meta-skills: ${error instanceof Error ? error.message : String(error)}`,
-    );
+function designAssertionsForWorkflow(
+  workflow: IdentifiedWorkflow,
+  mode: "inject" | "discover",
+): AssertionDesign[] {
+  const assertions: AssertionDesign[] = [];
+
+  // Tier 1: tool_usage for discover mode
+  if (mode === "discover") {
+    assertions.push({
+      type: "tool_usage",
+      tier: 1,
+      expected_tools: workflow.expected_tools ?? ["ls", "read"],
+    });
   }
 
-  // Build prompt for LLM
-  const systemPrompt = buildCaseGeneratorSystemPrompt({
-    errorAnalysisSkill,
-    writeJudgeSkill,
+  // Tier 2: skill_usage (always included)
+  assertions.push({
+    type: "skill_usage",
+    tier: 2,
+    checks:
+      mode === "discover"
+        ? ["skill_loaded", "workflow_followed", "skill_influenced_output"]
+        : ["workflow_followed", "skill_influenced_output"],
+    pass_threshold: 0.7,
   });
 
-  const userPrompt = buildCaseGeneratorUserPrompt({
-    skillName: input.skillName,
-    skillContent: input.skillContent,
-    mode: input.mode,
-  });
-
-  // Resolve model for generation
-  const modelId = opts?.modelId ?? CASE_GENERATOR_MODEL;
-  const model = resolveModel(modelId);
-
-  // Call LLM to generate case
-  const context: Context = {
-    systemPrompt,
-    messages: [{ role: "user", content: userPrompt, timestamp: Date.now() }],
-  };
-
-  const response = await complete(model, context, { temperature: 0.3 });
-
-  // Parse and validate response
-  const parsed = parseGeneratedCase(response, input);
-  if (parsed) {
-    return parsed;
+  // Tier 2: Add llm_judge for quality evaluation
+  const llmJudgePrompt = buildLlmJudgePrompt(workflow);
+  if (llmJudgePrompt) {
+    assertions.push({
+      type: "llm_judge",
+      tier: 2,
+      prompt: llmJudgePrompt,
+      pass_threshold: 0.7,
+    });
   }
 
-  throw new Error(
-    `Failed to parse LLM response as valid skill case. Response: ${response.slice(0, 500)}...`,
-  );
+  return assertions;
 }
 
-function buildCaseGeneratorSystemPrompt(input: {
-  errorAnalysisSkill: string;
-  writeJudgeSkill: string;
-}): string {
-  return `You are an expert at generating evaluation test cases for AI skills.
+/**
+ * Builds an LLM judge prompt based on workflow description.
+ * Returns null if workflow is too simple for quality evaluation.
+ */
+function buildLlmJudgePrompt(workflow: IdentifiedWorkflow): string | null {
+  const desc = workflow.description.toLowerCase();
 
-You have access to these meta-skills (evaluation methods) that guide how to create good test cases:
-
-## error-analysis skill
-${input.errorAnalysisSkill.slice(0, 2000)}
-
-## write-judge-prompt skill
-${input.writeJudgeSkill.slice(0, 2000)}
-
-Use the patterns from these meta-skills to generate meaningful test cases that:
-1. Test realistic user scenarios
-2. Include meaningful assertions
-3. Are specific to the skill's purpose
-
-Return ONLY a JSON object with this EXACT structure (no markdown code blocks):
-
-{
-  "id": "skill-{skillName}-{mode}-generated",
-  "description": "Brief description of what this case tests",
-  "input": {
-    "skill": "{skillName}",
-    "model": "deepseek/deepseek-chat",
-    "evaluation_mode": "{mode}",
-    "task": "A concrete user request that would naturally trigger this skill"
-  },
-  "criteria": {
-    "assertions": [
-      {
-        "type": "tool_usage",
-        "tier": 1,
-        "expected_tools": ["ls", "read"]
-      },
-      {
-        "type": "skill_usage",
-        "tier": 2,
-        "checks": ["skill_loaded", "workflow_followed", "skill_influenced_output"],
-        "pass_threshold": 0.7
-      },
-      {
-        "type": "llm_judge",
-        "tier": 2,
-        "prompt": "Specific criterion to evaluate",
-        "pass_threshold": 0.7
-      }
-    ]
+  // Skip judge prompt for simple workflows
+  if (desc.length < 20) {
+    return null;
   }
+
+  // Build contextual judge prompt
+  return `Did the agent successfully complete the "${workflow.name}" workflow? ${workflow.description}`;
 }
 
-Assertion types:
-- tool_usage (tier 1): Check if specific tools were called
-- skill_usage (tier 2): Check if skill was properly loaded and followed
-- llm_judge (tier 2): Evaluate output quality with specific criteria
-- task_success (tier 2): Check if user's goal was achieved`;
-}
+// ============================================================================
+// T1.4: Multi-Case Generation
+// ============================================================================
 
-function buildCaseGeneratorUserPrompt(input: {
+export type GenerateSkillCasesInput = {
   skillName: string;
   skillContent: string;
   mode: "inject" | "discover";
-}): string {
-  return `Generate a ${input.mode} mode evaluation case for this skill:
+  skillsDir: string;
+  explicitSkillsDir?: string;
+  model?: string;
+};
 
-## Skill: ${input.skillName}
+export type GenerateSkillCasesResult = {
+  workflows: IdentifiedWorkflow[];
+  cases: GeneratedSkillCase[];
+  skipped: Array<{ workflow: string; reason: string }>;
+  retries: number;
+};
 
-${input.skillContent.slice(0, 4000)}
+/**
+ * Generate multiple skill eval cases from a single skill.
+ * Identifies all workflows and generates a case for each.
+ */
+export async function generateSkillCases(
+  input: GenerateSkillCasesInput,
+  opts?: { modelId?: string },
+): Promise<GenerateSkillCasesResult> {
+  // Step 1: Identify workflows
+  const workflowResult = await identifyWorkflows(
+    {
+      skillName: input.skillName,
+      skillContent: input.skillContent,
+      mode: input.mode,
+      model: input.model,
+    },
+    opts,
+  );
 
-Requirements:
-- The task should describe what the USER wants, not mention the skill name
-- For "discover" mode, the agent must discover and use the skill on its own
-- For "inject" mode, the skill is already loaded in context
-- Include appropriate assertions for the mode`;
+  const cases: GeneratedSkillCase[] = [];
+  const skipped: Array<{ workflow: string; reason: string }> = [];
+  let retries = 0;
+
+  // Step 2: Generate case for each workflow
+  for (const workflow of workflowResult.workflows) {
+    try {
+      const generatedCase = buildCaseFromWorkflow(workflow, input);
+      cases.push(generatedCase);
+    } catch (error) {
+      skipped.push({
+        workflow: workflow.name,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return {
+    workflows: workflowResult.workflows,
+    cases,
+    skipped,
+    retries,
+  };
 }
 
-function parseGeneratedCase(
-  response: string,
-  input: GenerateSkillCaseInput,
-): GeneratedSkillCase | null {
-  const parsed = safeParseJson<GeneratedSkillCase>(response);
-  if (!parsed) {
-    return null;
-  }
+/**
+ * Builds a GeneratedSkillCase from an identified workflow.
+ */
+function buildCaseFromWorkflow(
+  workflow: IdentifiedWorkflow,
+  input: GenerateSkillCasesInput,
+): GeneratedSkillCase {
+  const assertions = designAssertionsForWorkflow(workflow, input.mode);
 
-  // Validate required fields
-  if (
-    !parsed.id ||
-    !parsed.description ||
-    !parsed.input?.task ||
-    !parsed.criteria?.assertions
-  ) {
-    return null;
-  }
-
-  // Ensure skill name matches
-  parsed.input.skill = input.skillName;
-  parsed.input.model = input.model ?? DEFAULT_MODEL;
-  parsed.input.evaluation_mode = input.mode;
-
-  // Add skills_dir if explicitly provided
-  if (input.explicitSkillsDir) {
-    parsed.input.skills_dir = input.explicitSkillsDir;
-  }
-
-  return parsed;
+  return {
+    id: `skill-${input.skillName}-${input.mode}-${workflow.name}`,
+    description: workflow.description,
+    input: {
+      skill: input.skillName,
+      model: input.model ?? DEFAULT_MODEL,
+      evaluation_mode: input.mode,
+      task: workflow.task,
+      ...(input.explicitSkillsDir
+        ? { skills_dir: input.explicitSkillsDir }
+        : {}),
+    },
+    criteria: {
+      assertions,
+    },
+  };
 }

@@ -42,7 +42,7 @@ type IdentifiedWorkflow = {
 
 ---
 
-### T1.3 实现断言自动设计
+### T1.3 实现断言自动设计 ✅
 
 **文件**: `packages/eval/src/skill-case-scaffold.ts`
 
@@ -56,7 +56,7 @@ type IdentifiedWorkflow = {
 
 ---
 
-### T1.4 重构 `generateSkillCase` → `generateSkillCases`
+### T1.4 重构 `generateSkillCase` → `generateSkillCases` ✅
 
 **文件**: `packages/eval/src/skill-case-scaffold.ts`
 

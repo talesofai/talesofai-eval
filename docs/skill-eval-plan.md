@@ -8,9 +8,8 @@ Skill evals now resolve one concrete skills root per run with this precedence or
 2. `input.skills_dir`
 3. `EVAL_SKILLS_DIR`
 4. `~/.agents/skills`
-5. bundled fixtures at `packages/eval/src/skills/evals-skills/skills`
 
-The first existing directory wins. The runner canonicalizes it and uses that single root for:
+The first existing directory wins. If none exist, the runner throws an error. The runner canonicalizes the resolved root and uses that single root for:
 
 - skill discovery
 - skill content loading
@@ -61,10 +60,6 @@ export EVAL_SKILLS_DIR=~/.agents/skills
 
 The doctor output now includes this as an optional hint for skill runs.
 
-## Default user-installed compatibility
-
-If no override is provided, skill evals try `~/.agents/skills` before bundled fixtures. This matches the default user-installed layout without requiring project-local copies.
-
 ## Trace provenance
 
 Skill traces may include `skill_resolution`:
@@ -87,7 +82,6 @@ Skill traces may include `skill_resolution`:
 - `case`
 - `env`
 - `home`
-- `bundled`
 
 This records which source won, which concrete skill file the runner resolved, and the exact skill snapshot used during the run.
 
@@ -141,9 +135,8 @@ The command resolves one skills root with the same precedence as skill execution
 1. explicit `--skills-dir`
 2. `EVAL_SKILLS_DIR`
 3. `~/.agents/skills`
-4. bundled fixtures
 
-If `--skills-dir` is passed, it is validated first. Invalid explicit paths fail immediately. The command does not silently fall back to env, home, or bundled roots when that override is invalid.
+If `--skills-dir` is passed, it is validated first. Invalid explicit paths fail immediately. The command does not silently fall back to env or home roots when that override is invalid.
 
 ### Generated `input.skills_dir`
 

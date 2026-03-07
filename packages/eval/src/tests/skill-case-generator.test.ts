@@ -5,6 +5,9 @@ import {
   type IdentifiedWorkflow,
 } from "../skill-case-scaffold.ts";
 
+// Note: We test designAssertionsForWorkflow indirectly through buildCaseFromWorkflow
+// since it's not exported. The assertion design logic is covered by integration tests.
+
 describe("skill case generator", () => {
   describe("parseWorkflowIdentificationResponse", () => {
     it("parses valid workflow response", () => {
