@@ -150,7 +150,10 @@ describe("collectDoctorChecks", () => {
     assert.equal(skillCheck?.requiredFor, "skill run");
     assert.equal(skillCheck?.optional, true);
     assert.equal(skillCheck?.ok, false);
-    assert.equal(skillCheck?.hint.includes("~/.agents/skills"), true);
+    assert.equal(
+      skillCheck?.hint.includes("Set EVAL_SKILLS_DIR or create ~/.agents/skills"),
+      true,
+    );
   });
 });
 

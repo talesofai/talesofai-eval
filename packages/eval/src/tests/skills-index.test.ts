@@ -85,17 +85,20 @@ describe("skills root resolution", () => {
     }
   });
 
-  it("uses bundled root when no override roots exist", () => {
+  it("throws when no skills root is configured", () => {
     const homeDir = createTempDir("skills-home-missing-");
 
     try {
-      const resolved = resolveSkillsRoot({
-        env: { EVAL_SKILLS_DIR: "   " },
-        homeDir: join(homeDir, "missing-home"),
-      });
-
-      assert.equal(resolved.source, "bundled");
-      assert.equal(resolved.rootDir, BUNDLED_SKILLS_DIR);
+      assert.throws(
+        () =>
+          resolveSkillsRoot({
+            env: { EVAL_SKILLS_DIR: "   " },
+            homeDir: join(homeDir, "missing-home"),
+          }),
+        {
+          message: /No skills root configured/,
+        },
+      );
     } finally {
       rmSync(homeDir, { recursive: true, force: true });
     }
