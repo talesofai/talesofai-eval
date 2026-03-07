@@ -6,6 +6,10 @@ import type {
 } from "../../types.ts";
 import { RUNNER_DEFAULTS, type RunContext } from "./types.ts";
 
+function isBuiltinErrorResult(result: unknown): boolean {
+  return typeof result === "string" && result.startsWith("Error:");
+}
+
 function buildTraceToolOutput(result: unknown, isError: boolean): unknown {
   if (!isError) {
     return result;
@@ -71,6 +75,10 @@ export async function executeSingleToolCall(params: {
   try {
     if ("builtinTools" in ctx && ctx.builtinTools.has(tc.name)) {
       result = await ctx.builtinTools.get(tc.name)!.execute(toolArgs);
+      isError = isBuiltinErrorResult(result);
+      if (isError) {
+        spanError = "tool_error";
+      }
     } else if (ctx.mcpClient) {
       const toolResult = await ctx.mcpClient.callTool(tc.name, toolArgs, timeoutMs);
       result = toolResult.content;
