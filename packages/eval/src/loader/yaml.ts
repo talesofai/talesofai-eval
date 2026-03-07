@@ -261,6 +261,7 @@ const skillCaseSchemaRaw = z.object({
     skills_dir: z.string().optional(),
     fixtures: z.record(z.string(), z.unknown()).optional(),
     system_prompt_prefix: z.string().optional(),
+    allowed_tool_names: z.array(z.string()).optional(),
     evaluation_mode: z.enum(["inject", "discover"]).optional(),
   }),
   criteria: evalCriteriaSchemaRaw,

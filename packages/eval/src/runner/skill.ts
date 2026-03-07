@@ -85,7 +85,10 @@ function buildRunnableCase(
           content: buildUserPrompt(evalCase.input.task, evalCase.input.fixtures),
         },
       ],
-      allowed_tool_names: [],
+      // undefined = allow all MCP tools; [] = disable MCP; [...] = restrict to list
+      ...(evalCase.input.allowed_tool_names !== undefined
+        ? { allowed_tool_names: evalCase.input.allowed_tool_names }
+        : {}),
     },
     criteria: evalCase.criteria,
   };

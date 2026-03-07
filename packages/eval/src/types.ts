@@ -228,6 +228,13 @@ export type SkillEvalCase = {
     /** Additional system prompt prefix (optional) */
     system_prompt_prefix?: string;
     /**
+     * Limit which MCP tools are available to the agent.
+     * - undefined (default): all MCP tools available
+     * - []: no MCP tools (builtin ls/read only)
+     * - ["tool1", "tool2"]: only those tools
+     */
+    allowed_tool_names?: string[];
+    /**
      * Evaluation mode:
      * - "inject": Directly inject skill content (test skill doc quality)
      * - "discover": Only provide skill list, agent loads on demand (test real usage)
