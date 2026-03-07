@@ -13,6 +13,7 @@ import { scoreTaskSuccess } from "./task-success.ts";
 import { scoreToolUsageAssertion } from "./tool.ts";
 import { scoreToolParameterAccuracy } from "./tool-parameter-accuracy.ts";
 import { scoreSkillUsageAssertion } from "./skill-usage.ts";
+import { scoreBashExecutionAssertion } from "./bash-execution.ts";
 
 export type { ScorerFn };
 
@@ -40,6 +41,8 @@ export const SCORER_REGISTRY: Record<
     scoreToolParameterAccuracy(trace, assertion, evalCase),
   skill_usage: (trace, assertion, evalCase) =>
     scoreSkillUsageAssertion(trace, assertion, evalCase),
+  bash_execution: (trace, assertion, evalCase) =>
+    scoreBashExecutionAssertion(trace, assertion, evalCase),
 };
 
 /**

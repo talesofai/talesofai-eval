@@ -109,7 +109,14 @@ export type AssertionConfig =
       checks?: SkillUsageCheck[];
       pass_threshold?: number;
     }
-  | { type: "human_review"; tier?: EvalTier; reason?: string };
+  | { type: "human_review"; tier?: EvalTier; reason?: string }
+  | {
+      type: "bash_execution";
+      tier?: EvalTier;
+      pass_threshold?: number;
+      /** Optional free-text hint for the judge, e.g. the expected outcome. */
+      expected_goal?: string;
+    };
 
 export type EvalCriteria = {
   // --- Legacy compatibility fields ---
@@ -415,7 +422,8 @@ export type DimensionKind =
   | "tool_parameter_accuracy"
   | "error_recovery"
   | "skill_usage"
-  | "human_review";
+  | "human_review"
+  | "bash_execution";
 
 export type DimensionResult = {
   dimension: DimensionKind;
