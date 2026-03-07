@@ -12,7 +12,7 @@ export type ResolveCaseArgs = {
   caseId?: string;
   files?: string[];
   inline?: string;
-  typeFilter?: "plain" | "agent";
+  typeFilter?: "plain" | "agent" | "skill";
   flags?: Parameters<typeof buildFromFlags>[0];
 };
 
