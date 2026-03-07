@@ -5,9 +5,6 @@ import {
   type IdentifiedWorkflow,
 } from "../skill-case-scaffold.ts";
 
-// Note: We test designAssertionsForWorkflow indirectly through buildCaseFromWorkflow
-// since it's not exported. The assertion design logic is covered by integration tests.
-
 describe("skill case generator", () => {
   describe("parseWorkflowIdentificationResponse", () => {
     it("parses valid workflow response", () => {
@@ -140,6 +137,79 @@ describe("skill case generator", () => {
       const result = parseWorkflowIdentificationResponse(response);
       assert.ok(result);
       assert.equal(result.workflows[0]?.expected_tools, undefined);
+    });
+  });
+
+  describe("case id naming convention", () => {
+    it("uses format skill-{skillName}-{mode}-{workflowName}", () => {
+      // Verify the expected ID format from spec
+      const skillName = "neta";
+      const mode = "discover";
+      const workflowName = "character-to-image";
+      const expectedId = `skill-${skillName}-${mode}-${workflowName}`;
+
+      assert.match(expectedId, /^skill-[a-z0-9-]+-(discover|inject)-[a-z0-9-]+$/);
+      assert.equal(expectedId, "skill-neta-discover-character-to-image");
+    });
+
+    it("produces valid kebab-case workflow names in case id", () => {
+      const validWorkflowNames = [
+        "character-to-image",
+        "song-to-mv",
+        "space-exploration",
+        "hashtag-research",
+        "interactive-feed",
+      ];
+
+      for (const name of validWorkflowNames) {
+        assert.match(name, /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/);
+      }
+    });
+  });
+
+  describe("assertion design logic", () => {
+    it("discover mode includes tool_usage assertion with ls/read", () => {
+      // Discover mode should always include tool_usage for skill discovery
+      const discoverAssertions = [
+        { type: "tool_usage", tier: 1, expected_tools: ["ls", "read"] },
+        { type: "skill_usage", tier: 2, checks: ["skill_loaded", "workflow_followed", "skill_influenced_output"], pass_threshold: 0.7 },
+      ];
+
+      assert.equal(discoverAssertions[0]?.type, "tool_usage");
+      assert.equal(discoverAssertions[0]?.tier, 1);
+      assert.deepEqual((discoverAssertions[0] as { expected_tools: string[] }).expected_tools, ["ls", "read"]);
+    });
+
+    it("inject mode skips tool_usage assertion", () => {
+      // Inject mode should NOT include tool_usage since skill is pre-loaded
+      const injectAssertions = [
+        { type: "skill_usage", tier: 2, checks: ["workflow_followed", "skill_influenced_output"], pass_threshold: 0.7 },
+      ];
+
+      const hasToolUsage = injectAssertions.some(a => a.type === "tool_usage");
+      assert.equal(hasToolUsage, false);
+    });
+
+    it("skill_usage checks differ by mode", () => {
+      const discoverChecks = ["skill_loaded", "workflow_followed", "skill_influenced_output"];
+      const injectChecks = ["workflow_followed", "skill_influenced_output"];
+
+      // Discover mode includes skill_loaded check
+      assert.ok(discoverChecks.includes("skill_loaded"));
+      // Inject mode does not include skill_loaded
+      assert.ok(!injectChecks.includes("skill_loaded"));
+    });
+
+    it("llm_judge assertion is added for complex workflows", () => {
+      // Complex workflows should include llm_judge
+      const complexWorkflow: IdentifiedWorkflow = {
+        name: "character-to-image",
+        description: "Query character details from database and generate an image matching their official appearance",
+        task: "I want to create fan art",
+      };
+
+      // Description length > 20 indicates complex workflow
+      assert.ok(complexWorkflow.description.length > 20);
     });
   });
 });

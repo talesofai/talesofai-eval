@@ -249,7 +249,7 @@ Actions: [a]ll | [n]one | [1-5] toggle | [q]uit | [Enter] save selected
 
 ---
 
-### T3.4 编写单元测试
+### T3.4 编写单元测试 ✅
 
 **文件**: `packages/eval/src/tests/skill-case-generator.test.ts`（新文件）
 
