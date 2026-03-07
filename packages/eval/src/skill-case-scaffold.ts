@@ -78,6 +78,7 @@ export type IdentifyWorkflowsInput = {
 
 export type IdentifyWorkflowsResult = {
   workflows: IdentifiedWorkflow[];
+  retries: number;
 };
 
 /**
@@ -86,8 +87,37 @@ export type IdentifyWorkflowsResult = {
  */
 export async function identifyWorkflows(
   input: IdentifyWorkflowsInput,
-  opts?: { modelId?: string },
+  opts?: { modelId?: string; maxRetries?: number },
 ): Promise<IdentifyWorkflowsResult> {
+  const maxRetries = opts?.maxRetries ?? 2; // Default: 2 retries (3 total attempts)
+  let lastError: string | null = null;
+  let attempt = 0;
+
+  while (attempt <= maxRetries) {
+    attempt++;
+    try {
+      const result = await identifyWorkflowsOnce(input, opts, lastError);
+      return { workflows: result.workflows, retries: attempt - 1 };
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+      if (attempt > maxRetries) {
+        throw new Error(
+          `Workflow identification failed after ${attempt} attempts: ${lastError}`,
+        );
+      }
+      // Continue to retry with error feedback
+    }
+  }
+
+  // Should never reach here
+  throw new Error("Workflow identification failed unexpectedly");
+}
+
+async function identifyWorkflowsOnce(
+  input: IdentifyWorkflowsInput,
+  opts?: { modelId?: string },
+  previousError?: string | null,
+): Promise<{ workflows: IdentifiedWorkflow[] }> {
   // Load meta-skills for guidance
   let errorAnalysisSkill: string;
   let writeJudgeSkill: string;
@@ -110,6 +140,7 @@ export async function identifyWorkflows(
     skillName: input.skillName,
     skillContent: input.skillContent,
     mode: input.mode,
+    previousError,
   });
 
   // Resolve model
@@ -182,8 +213,9 @@ function buildWorkflowIdentificationUserPrompt(input: {
   skillName: string;
   skillContent: string;
   mode: "inject" | "discover";
+  previousError?: string | null;
 }): string {
-  return `Analyze this skill and identify all user scenarios/workflows:
+  let prompt = `Analyze this skill and identify all user scenarios/workflows:
 
 ## Skill: ${input.skillName}
 
@@ -194,11 +226,25 @@ Mode: ${input.mode}
 - For "inject" mode, the skill is already loaded in context
 
 Identify all distinct workflows this skill supports. Return the JSON object.`;
+
+  // Add error feedback for retry
+  if (input.previousError) {
+    prompt += `
+
+## Previous Attempt Failed
+
+Your previous response failed with this error:
+${input.previousError}
+
+Please fix the issue and return a valid JSON object with the workflow list.`;
+  }
+
+  return prompt;
 }
 
 export function parseWorkflowIdentificationResponse(
   response: string,
-): IdentifyWorkflowsResult | null {
+): { workflows: IdentifiedWorkflow[] } | null {
   const parsed = safeParseJson<{ workflows: unknown[] }>(response);
   if (!parsed || !Array.isArray(parsed.workflows)) {
     return null;
@@ -570,7 +616,6 @@ export async function generateSkillCases(
 
   const cases: GeneratedSkillCase[] = [];
   const skipped: Array<{ workflow: string; reason: string }> = [];
-  let retries = 0;
 
   // Step 2: Generate case for each workflow
   for (const workflow of workflowResult.workflows) {
@@ -589,7 +634,7 @@ export async function generateSkillCases(
     workflows: workflowResult.workflows,
     cases,
     skipped,
-    retries,
+    retries: workflowResult.retries,
   };
 }
 

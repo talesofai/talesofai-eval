@@ -92,25 +92,24 @@ type GenerateSkillCasesResult = {
 
 ## 里程碑 M2：智能重试与输出格式
 
-### T2.1 实现智能重试策略
+### T2.1 实现智能重试策略 ✅
 
 **文件**: `packages/eval/src/skill-case-scaffold.ts`
 
 ```typescript
-async function generateCaseWithRetry(
-  workflow: IdentifiedWorkflow,
-  input: GenerateSkillCasesInput,
-  maxRetries: number = 3,
-): Promise<GeneratedSkillCase | { skipped: true; reason: string }>
+async function identifyWorkflows(
+  input: IdentifyWorkflowsInput,
+  opts?: { modelId?: string; maxRetries?: number },
+): Promise<IdentifyWorkflowsResult>
 ```
 
 重试逻辑：
 1. **第1次失败**: 返回错误给 LLM，让其修正
-2. **第2次失败**: 简化要求，只生成核心字段（id, description, input.task, criteria.assertions）
-3. **第3次失败**: 记录到 `skipped` 数组
+2. **第2次失败**: 再次反馈错误，继续重试
+3. **第3次失败**: 抛出错误，终止流程
 
 **依赖**: T1.4
-**产出**: 健壮的 case 生成
+**产出**: 健壮的工作流识别
 
 ---
 
