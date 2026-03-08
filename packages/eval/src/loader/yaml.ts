@@ -116,6 +116,12 @@ const assertionConfigSchema = z.union([
     pass_threshold: z.number().min(0).max(1).optional(),
   }),
   z.object({
+    type: z.literal("bash_execution"),
+    tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+    pass_threshold: z.number().min(0).max(1).optional(),
+    expected_goal: z.string().optional(),
+  }),
+  z.object({
     type: z.literal("human_review"),
     tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
     reason: z.string().optional(),
