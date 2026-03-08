@@ -676,29 +676,147 @@ agent-eval doctor --format json # machine-readable output
 
 ---
 
-### `draft-skill-case` — generate a skill case scaffold
+### `draft-skill-case` — generate skill eval cases from SKILL.md
 
-Generate a deterministic `type: skill` eval case scaffold from a target `SKILL.md`.
+Automatically analyze a skill's `SKILL.md` and generate test cases for each identified workflow/user scenario.
+
+#### Quick start
 
 ```bash
-# Print YAML to stdout
-agent-eval draft-skill-case --skill write-judge-prompt
-
-# Write YAML to a file
+# Generate cases for a skill (requires --skills-dir and --out to save files)
 agent-eval draft-skill-case \
-  --skill write-judge-prompt \
-  --mode discover \
-  --out cases/skills/write-judge-prompt/discover-auto.eval.yaml
+  --skill neta \
+  --skills-dir ~/projects/neta-skills/skills \
+  --out cases/skills/neta
 
-# Machine-readable metadata + generated case object
-agent-eval draft-skill-case --skill write-judge-prompt --format json
+# View generated cases
+ls cases/skills/neta/
+# animate-image-to-video.eval.yaml
+# create-original-song.eval.yaml
+# explore-world-spaces.eval.yaml
+# ...
+
+# Run the generated cases
+agent-eval run --file "cases/skills/neta/*.eval.yaml"
 ```
 
-Notes:
-- v1 is deterministic and generates a scaffold, not a complete benchmark.
-- Generated tasks describe the user goal, not the mechanism.
-- `input.skills_dir` is only included when you explicitly pass `--skills-dir`.
-- Review the generated task and assertions before committing the case.
+#### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `--skill <name>` | ✅ | Skill name (subdirectory name in skills directory) |
+| `--skills-dir <path>` | ✅* | Path to skills root directory containing `<skill>/SKILL.md` |
+| `--out <path>` | ✅** | Output directory for generated YAML files. **Required to save files.** |
+| `--mode <mode>` | — | `discover` (default) or `inject`. See modes below. |
+| `--format <fmt>` | — | `terminal` (default) or `json`. Use `json` for scripting. |
+| `--model <id>` | — | Model id for generated case execution (from models.json) |
+
+`*` If not specified, falls back to `EVAL_SKILLS_ROOT` env var or `~/.agents/skills`.
+
+`**` Without `--out`, cases are only printed to stdout (or JSON metadata with `--format json`).
+
+#### Modes
+
+| Mode | Description | Use case |
+|------|-------------|----------|
+| `discover` | Agent must find and load the skill on its own | Test skill discoverability |
+| `inject` | Skill content is pre-loaded in context | Test skill execution quality |
+
+#### Output format
+
+**With `--out` and `--format json`:**
+
+```json
+{
+  "type": "draft-skill-case",
+  "skill": "neta",
+  "mode": "discover",
+  "output_dir": "cases/skills/neta",
+  "written": true,
+  "stats": {
+    "total_workflows_detected": 12,
+    "cases_generated": 12,
+    "cases_skipped": 0
+  },
+  "cases": [
+    {
+      "id": "skill-neta-discover-explore-world-spaces",
+      "file": "explore-world-spaces.eval.yaml",
+      "description": "Browse available fictional worlds/spaces"
+    }
+  ]
+}
+```
+
+#### Generated case structure
+
+Each generated case includes:
+
+```yaml
+type: skill
+id: skill-neta-discover-generate-character-image
+description: Create an image of a specific character with a particular style
+input:
+  skill: neta
+  evaluation_mode: discover
+  task: I need to generate a picture of a character named 'Luna' in a cyberpunk style.
+  skills_dir: /path/to/skills
+criteria:
+  assertions:
+    - type: tool_usage          # Tier 1: Check expected tools
+      tier: 1
+      expected_tools: [make_image]
+    - type: skill_usage         # Tier 2: Check skill was loaded and used
+      tier: 2
+      checks: [skill_loaded, workflow_followed, skill_influenced_output]
+      pass_threshold: 0.7
+    - type: llm_judge           # Tier 2: LLM evaluates output quality
+      tier: 2
+      prompt: Did the agent successfully complete the workflow?
+      pass_threshold: 0.7
+```
+
+#### Workflow detection
+
+The command uses LLM analysis to identify all user scenarios/workflows from the skill content:
+
+| Workflow | Description | Expected Tools |
+|----------|-------------|----------------|
+| `explore-world-spaces` | Browse worlds and subtopics | `list_spaces`, `get_hashtag_info` |
+| `generate-character-image` | Create character images | `make_image` |
+| `animate-image-to-video` | Turn images into videos | `make_video` |
+| `create-original-song` | Generate songs | `make_song` |
+| ... | ... | ... |
+
+#### Example: Full workflow
+
+```bash
+# 1. Clone or navigate to your skills repository
+git clone https://github.com/talesofai/neta-skills.git ~/projects/neta-skills
+
+# 2. Generate test cases
+agent-eval draft-skill-case \
+  --skill neta \
+  --skills-dir ~/projects/neta-skills/skills \
+  --out ./cases/skills/neta \
+  --format json
+
+# 3. Review generated cases
+cat cases/skills/neta/generate-character-image.eval.yaml
+
+# 4. Run all generated cases
+agent-eval run --file "cases/skills/neta/*.eval.yaml" --tier-max 2
+
+# 5. Run specific case
+agent-eval run --file cases/skills/neta/generate-character-image.eval.yaml --verbose
+```
+
+#### Notes
+
+- The command identifies workflows automatically using LLM analysis
+- Each workflow generates a separate `.eval.yaml` file
+- Review generated tasks and assertions before committing
+- Use `--format json` for CI/CD integration or scripting
 
 ### `report` — generate HTML from saved results
 

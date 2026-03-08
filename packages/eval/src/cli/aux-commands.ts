@@ -308,6 +308,8 @@ export async function draftSkillCaseCommand(
   // Generate cases using intelligent LLM-based workflow identification
   let result;
   try {
+    // Show progress hint in both terminal and json modes (to stderr, not stdout)
+    process.stderr.write(pc.dim(`Analyzing skill '${options.skill}'...\n`));
     result = await generateSkillCases({
       skillName: options.skill,
       mode: options.mode,
@@ -318,9 +320,7 @@ export async function draftSkillCaseCommand(
         ? { explicitSkillsDir: options.skillsDir }
         : {}),
     });
-    if (options.format === "terminal") {
-      process.stderr.write(pc.dim(`Identified ${result.workflows.length} workflow(s), generated ${result.cases.length} case(s)\n`));
-    }
+    process.stderr.write(pc.dim(`Identified ${result.workflows.length} workflow(s), generated ${result.cases.length} case(s)\n`));
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw new Error(
@@ -343,6 +343,9 @@ export async function draftSkillCaseCommand(
         ? dirname(options.out)
         : options.out;
       writeResult = writeSkillCases(result.cases, options.skill, outDir);
+    } else {
+      // Warn user that cases were not saved
+      process.stderr.write(pc.yellow(`Hint: Add --out <dir> to save cases to files\n`));
     }
 
     process.stdout.write(
@@ -352,6 +355,7 @@ export async function draftSkillCaseCommand(
         mode: options.mode,
         output_dir: writeResult?.output_dir ?? `cases/skills/${options.skill}`,
         written: writeResult !== null,
+        hint: writeResult === null ? "Add --out <dir> to save cases to files" : undefined,
         skills_source: resolvedRoot.source,
         skills_root: resolvedRoot.rootDir,
         stats: {
