@@ -189,6 +189,10 @@ A workflow is:
 Return ONLY a JSON object with this EXACT structure (no markdown code blocks):
 
 {
+  "data_flow": {
+    "produces": { "workflow-name": "asset type it outputs, e.g. image_url" },
+    "requires": { "workflow-name": ["list of asset types it needs as input"] }
+  },
   "workflows": [
     {
       "name": "workflow-name-in-kebab-case",
@@ -206,7 +210,7 @@ Requirements:
 4. expected_tools should list the main tools/functions this workflow would use
 5. Do NOT set limits on the number of workflows - return all that exist
 6. Each workflow should be meaningfully different from others
-7. Tasks must be immediately actionable: use concrete example values (specific names, keywords, styles), never vague placeholders; if the workflow needs an input asset the agent does not have, include a step to create it first`;
+7. Tasks must be immediately actionable using only data obtainable through the skill itself: use concrete example values (names, keywords, styles); never use placeholder URLs, fake UUIDs, or external assets; if a workflow requires an asset produced by another step (like an image URL), the task must include that prior step explicitly`;
 }
 
 function buildWorkflowIdentificationUserPrompt(input: {
@@ -224,6 +228,11 @@ ${input.skillContent.slice(0, 6000)}
 Mode: ${input.mode}
 - For "discover" mode, the agent must discover and use the skill on its own
 - For "inject" mode, the skill is already loaded in context
+
+Before generating tasks, reason about the skill's data flow:
+- Which workflows PRODUCE a reusable asset (image URL, video URL, character UUID, collection UUID, etc.)?
+- Which workflows CONSUME such an asset as input?
+- For any workflow that needs an input asset, its task must obtain that asset by calling the appropriate prior workflow step — never use a placeholder URL or fake ID.
 
 Identify all distinct workflows this skill supports. Return the JSON object.`;
 
