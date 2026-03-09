@@ -42,9 +42,14 @@ export function buildInjectSystemPrompt(
 export function buildDiscoverSystemPrompt(
   skills: SkillMeta[],
   systemPromptPrefix?: string,
+  skillsRootDir?: string,
 ): string {
   const prefix = systemPromptPrefix?.trim();
   const availableSkills = formatSkillsForPrompt(skills);
+
+  const cwdNote = skillsRootDir
+    ? `Bash commands run with working directory: ${skillsRootDir}`
+    : "";
 
   const instruction = [
     "You have access to optional skills listed below.",
@@ -52,7 +57,10 @@ export function buildDiscoverSystemPrompt(
     'For example, first ls a skill directory, then read files like "write-judge-prompt/SKILL.md".',
     "Do not assume skill details before loading them.",
     "Once you have loaded a skill, use bash to execute any commands it instructs you to run.",
-  ].join("\n");
+    cwdNote,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   return [prefix, availableSkills, instruction].filter(Boolean).join("\n\n");
 }
@@ -221,6 +229,7 @@ export const runSkill = async (
     systemPrompt = buildDiscoverSystemPrompt(
       availableSkills ?? listSkillsFromRoot(resolvedRoot.rootDir),
       evalCase.input.system_prompt_prefix,
+      resolvedRoot.rootDir,
     );
   }
 
@@ -250,7 +259,7 @@ export const runSkill = async (
         createListDirTool(resolvedRoot.rootDir),
         // bash is only added in discover mode so the agent can execute
         // the commands the loaded skill describes.
-        ...(mode === "discover" ? [createBashTool()] : []),
+        ...(mode === "discover" ? [createBashTool({ cwd: resolvedRoot.rootDir })] : []),
       ],
     });
   } catch (error) {
