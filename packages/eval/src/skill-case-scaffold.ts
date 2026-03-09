@@ -206,8 +206,7 @@ Requirements:
 4. expected_tools should list the main tools/functions this workflow would use
 5. Do NOT set limits on the number of workflows - return all that exist
 6. Each workflow should be meaningfully different from others
-7. IMPORTANT: Tasks must be self-contained. If a workflow needs an input asset (e.g. an image URL, video URL, or file), the task MUST describe getting or generating that asset first — do NOT write tasks that assume the user already has a specific file or URL (e.g. avoid "I have a picture of X", instead write "Generate an image of X, then animate it to Y")
-8. IMPORTANT: Tasks must include CONCRETE, SPECIFIC parameter values — not vague placeholders. Use real example values the agent can act on immediately without asking for clarification. Bad: "Search for a specific character by name". Good: "Search for characters related to '原神' and get details about the first result". Bad: "Research what's popular under a specific hashtag". Good: "Research what's popular under the '#赛博朋克' hashtag".`;
+7. Tasks must be immediately actionable: use concrete example values (specific names, keywords, styles), never vague placeholders; if the workflow needs an input asset the agent does not have, include a step to create it first`;
 }
 
 function buildWorkflowIdentificationUserPrompt(input: {
