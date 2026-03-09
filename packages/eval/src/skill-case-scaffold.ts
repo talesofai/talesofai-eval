@@ -205,7 +205,8 @@ Requirements:
 3. The task should describe what the USER wants, NOT mention the skill name
 4. expected_tools should list the main tools/functions this workflow would use
 5. Do NOT set limits on the number of workflows - return all that exist
-6. Each workflow should be meaningfully different from others`;
+6. Each workflow should be meaningfully different from others
+7. IMPORTANT: Tasks must be self-contained. If a workflow needs an input asset (e.g. an image URL, video URL, or file), the task MUST describe getting or generating that asset first — do NOT write tasks that assume the user already has a specific file or URL (e.g. avoid "I have a picture of X", instead write "Generate an image of X, then animate it to Y")`;
 }
 
 function buildWorkflowIdentificationUserPrompt(input: {
