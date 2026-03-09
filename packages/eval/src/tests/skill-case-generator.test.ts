@@ -175,26 +175,26 @@ describe("skill case generator", () => {
   });
 
   describe("assertion design logic", () => {
-    it("discover mode includes tool_usage assertion with ls/read", () => {
-      // Discover mode should always include tool_usage for skill discovery
+    it("discover mode does not include tool_usage assertion", () => {
+      // Discover mode: agent uses builtin bash/ls/read tools, not MCP tools.
+      // tool_usage checks MCP calls and would always fail in discover mode.
       const discoverAssertions = [
-        { type: "tool_usage", tier: 1, expected_tools: ["ls", "read"] },
         { type: "skill_usage", tier: 2, checks: ["skill_loaded", "workflow_followed", "skill_influenced_output"], pass_threshold: 0.7 },
       ];
 
-      assert.equal(discoverAssertions[0]?.type, "tool_usage");
-      assert.equal(discoverAssertions[0]?.tier, 1);
-      assert.deepEqual((discoverAssertions[0] as { expected_tools: string[] }).expected_tools, ["ls", "read"]);
+      const hasToolUsage = discoverAssertions.some(a => a.type === "tool_usage");
+      assert.equal(hasToolUsage, false);
     });
 
-    it("inject mode skips tool_usage assertion", () => {
-      // Inject mode should NOT include tool_usage since skill is pre-loaded
+    it("inject mode includes tool_usage assertion", () => {
+      // Inject mode: skill is pre-loaded in system prompt, agent may call MCP tools directly.
       const injectAssertions = [
+        { type: "tool_usage", tier: 1, expected_tools: ["ls", "read"] },
         { type: "skill_usage", tier: 2, checks: ["workflow_followed", "skill_influenced_output"], pass_threshold: 0.7 },
       ];
 
-      const hasToolUsage = injectAssertions.some(a => a.type === "tool_usage");
-      assert.equal(hasToolUsage, false);
+      assert.equal(injectAssertions[0]?.type, "tool_usage");
+      assert.equal(injectAssertions[0]?.tier, 1);
     });
 
     it("skill_usage checks differ by mode", () => {

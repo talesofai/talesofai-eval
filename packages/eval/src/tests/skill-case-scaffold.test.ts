@@ -58,14 +58,9 @@ User request: Draft a concise judge prompt for scoring customer support replies.
     const assertions = (result.criteria as { assertions: Array<Record<string, unknown>> }).assertions;
     assert.deepEqual(
       assertions.map((assertion) => assertion.type),
-      ["tool_usage", "skill_usage"],
+      ["skill_usage"],
     );
     assert.deepEqual(assertions[0], {
-      type: "tool_usage",
-      tier: 1,
-      expected_tools: ["ls", "read"],
-    });
-    assert.deepEqual(assertions[1], {
       type: "skill_usage",
       tier: 2,
       checks: ["skill_loaded", "workflow_followed", "skill_influenced_output"],
@@ -246,7 +241,7 @@ description: Write concise judge prompts for structured eval rubrics.
       }
       assert.deepEqual(
         parsed.criteria.assertions?.map((assertion) => assertion.type),
-        ["tool_usage", "skill_usage"],
+        ["skill_usage"],
       );
     } finally {
       rmSync(tempDir, { recursive: true, force: true });

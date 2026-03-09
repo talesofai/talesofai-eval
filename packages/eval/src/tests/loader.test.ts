@@ -133,7 +133,7 @@ describe("parseYamlFile", () => {
     }
   });
 
-  it("parses generated discover scaffold shape with tool_usage and skill_usage", () => {
+  it("parses generated discover scaffold shape with skill_usage", () => {
     const tempDir = mkdtempSync(join(tmpdir(), "skill-loader-"));
     const filePath = join(tempDir, "generated-discover.eval.yaml");
 
@@ -151,11 +151,6 @@ describe("parseYamlFile", () => {
           '  task: "Write a concise judge prompt for scoring a short customer support reply with a structured rubric."',
           "criteria:",
           "  assertions:",
-          "    - type: tool_usage",
-          "      tier: 1",
-          "      expected_tools:",
-          "        - ls",
-          "        - read",
           "    - type: skill_usage",
           "      tier: 2",
           "      checks:",
@@ -171,7 +166,7 @@ describe("parseYamlFile", () => {
       assert.equal(c.type, "skill");
       assert.deepEqual(
         c.criteria.assertions?.map((assertion) => assertion.type),
-        ["tool_usage", "skill_usage"],
+        ["skill_usage"],
       );
     } finally {
       rmSync(tempDir, { recursive: true, force: true });

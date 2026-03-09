@@ -334,11 +334,6 @@ export function buildSkillCaseScaffold(
         input.mode === "discover"
           ? [
               {
-                type: "tool_usage",
-                tier: 1,
-                expected_tools: ["ls", "read"],
-              },
-              {
                 type: "skill_usage",
                 tier: 2,
                 checks: [
@@ -534,8 +529,8 @@ function workflowInvolvesCommandExecution(workflow: IdentifiedWorkflow): boolean
 
 /**
  * Designs assertions based on workflow characteristics.
- * - discover mode: includes tool_usage (ls/read) + skill_usage
- * - Adds llm_judge or task_success based on workflow description
+ * - discover mode: skill_usage + llm_judge + bash_execution (no tool_usage — agent uses builtin bash, not MCP tools)
+ * - inject mode: tool_usage (ls/read) + skill_usage + llm_judge
  */
 function designAssertionsForWorkflow(
   workflow: IdentifiedWorkflow,
@@ -543,8 +538,10 @@ function designAssertionsForWorkflow(
 ): AssertionDesign[] {
   const assertions: AssertionDesign[] = [];
 
-  // Tier 1: tool_usage for discover mode
-  if (mode === "discover") {
+  // Tier 1: tool_usage only in inject mode.
+  // In discover mode the agent uses builtin bash/ls/read, not MCP tools,
+  // so a tool_usage assertion would always fail.
+  if (mode === "inject") {
     assertions.push({
       type: "tool_usage",
       tier: 1,
