@@ -10,4 +10,4 @@ coverage/
 models.json
 
 # Generated skill eval cases (depend on local skills directory)
-packages/eval/cases/skills/neta/
+packages/eval/cases/skills/
