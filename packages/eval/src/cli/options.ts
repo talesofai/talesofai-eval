@@ -1,5 +1,5 @@
 import { type ZodError, z } from "zod3";
-import { invalidArgs, invalidJson, validationError } from "../errors.ts";
+import { invalidArgs, invalidJson, mutuallyExclusiveFlags, validationError } from "../errors.ts";
 import { isValidSkillName } from "../skills/index.ts";
 import type { EvalTier, MatrixVariant } from "../types.ts";
 import { formatZodIssues, type OutputFormat } from "./helpers.ts";
@@ -147,6 +147,7 @@ export type RunCommandOptions = CaseResolveOptions & {
   verbose: boolean;
   tierMax?: EvalTier | undefined;
   concurrency?: number | undefined;
+  dryRun?: boolean | undefined;
 };
 
 export type DiffCommandOptions = {
@@ -251,15 +252,13 @@ export function parseRunCommandOptions(raw: unknown): RunCommandOptions {
       verbose: z.boolean().default(false),
       tierMax: z.unknown().optional(),
       concurrency: z.unknown().optional(),
+      dryRun: z.boolean().default(false),
     }),
     raw,
   );
 
   if (parsed.record && parsed.replay) {
-    throw invalidArgs(
-      "--record and --replay are mutually exclusive",
-      "Use either --record <dir> or --replay <dir>, not both.",
-    );
+    throw mutuallyExclusiveFlags(["--record", "--replay"], "run");
   }
 
   if (parsed.replayWriteMetrics && !parsed.replay) {
@@ -294,6 +293,7 @@ export function parseRunCommandOptions(raw: unknown): RunCommandOptions {
     verbose: parsed.verbose ?? false,
     tierMax: parseTierMaxOrThrow(parsed.tierMax, "run"),
     concurrency: parsePositiveConcurrency(parsed.concurrency),
+    dryRun: parsed.dryRun ?? false,
   };
 }
 

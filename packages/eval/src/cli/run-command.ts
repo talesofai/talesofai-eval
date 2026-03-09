@@ -304,8 +304,23 @@ export async function runCommand(options: RunCommandOptions): Promise<number> {
     caseCount: cases.length,
   });
 
+  if (format === "terminal") {
+    process.stderr.write(pc.dim(`concurrency: ${concurrency} (from ${cases.length} case${cases.length > 1 ? 's' : ''})\n`));
+  }
+
   if (!explicitRecordDir && recordDir && format === "terminal") {
     process.stderr.write(pc.dim(`auto-record: ${recordDir}\n`));
+  }
+
+  if (options.dryRun) {
+    console.log(pc.bold("\n🔍 Dry Run Mode\n"));
+    console.log(`Would run ${cases.length} case${cases.length > 1 ? 's' : ''} with concurrency=${concurrency}`);
+    console.log(`\nCases:`);
+    for (const c of cases) {
+      console.log(`  • ${c.id} (${c.type})${c.description ? ` - ${c.description}` : ''}`);
+    }
+    console.log(`\n${pc.dim("Use without --dry-run to execute")}\n`);
+    return 0;
   }
 
   // 3. Validate configuration

@@ -1,3 +1,4 @@
+import { invalidArgs } from "../errors.ts";
 import {
   DEFAULT_AGENT_PRESET_KEY,
   type EvalCase,
@@ -153,9 +154,10 @@ export const buildFromFlags = (flags: {
 /**
  * Parse --message "role:content" format.
  * Role defaults to "user" if omitted.
+ * Valid roles: user, assistant, system
  */
 function parseMessages(raw: string[]): EvalMessage[] {
-  return raw.map((m) => {
+  return raw.map((m, index) => {
     const colonIdx = m.indexOf(":");
     if (colonIdx === -1) {
       return { role: "user" as const, content: m };
@@ -171,7 +173,11 @@ function parseMessages(raw: string[]): EvalMessage[] {
       return { role: "user" as const, content };
     }
 
-    // No valid role prefix → entire string is content for user
-    return { role: "user" as const, content: m };
+    // Invalid role prefix
+    throw invalidArgs(
+      `Invalid message format at --message #${index + 1}`,
+      `Role must be "user" or "assistant". Got: "${prefix}"\n` +
+      `Format: --message "role:content" (e.g., --message "user:Hello" or --message "assistant:Hi")`,
+    );
   });
 }

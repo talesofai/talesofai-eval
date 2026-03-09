@@ -27,7 +27,8 @@ export type CliError =
       unmatchedFilePatterns?: string[];
     }
   | { kind: "InvalidFormat"; format: string; valid: string[] }
-  | { kind: "InvalidArgs"; message: string; hint: string };
+  | { kind: "InvalidArgs"; message: string; hint: string }
+  | { kind: "MutuallyExclusiveFlags"; flags: string[]; command: string };
 
 export type CliErrorInfo = {
   code: string;
@@ -48,6 +49,7 @@ const ERROR_CODES: Record<CliError["kind"], string> = {
   NoCases: "E_NO_CASES",
   InvalidFormat: "E_INVALID_FORMAT",
   InvalidArgs: "E_INVALID_ARGS",
+  MutuallyExclusiveFlags: "E_EXCLUSIVE_FLAGS",
 };
 
 export function formatCliError(error: CliError): CliErrorInfo {
@@ -159,6 +161,16 @@ export function formatCliError(error: CliError): CliErrorInfo {
         exitCode: 2,
       };
     }
+
+    case "MutuallyExclusiveFlags": {
+      const flags = error.flags.map((f) => `"${f}"`).join(" and ");
+      return {
+        code: ERROR_CODES.MutuallyExclusiveFlags,
+        message: `${flags} are mutually exclusive`,
+        hint: `Use either ${error.flags[0]} or ${error.flags[1]}, not both.`,
+        exitCode: 2,
+      };
+    }
   }
 }
 
@@ -177,7 +189,7 @@ export function printCliError(
       message: info.message,
       hint: info.hint,
     };
-    process.stdout.write(`${JSON.stringify(output)}\n`);
+    process.stderr.write(`${JSON.stringify(output)}\n`);
   } else {
     process.stderr.write(pc.red(`error[${info.code}]: ${info.message}\n`));
     process.stderr.write(pc.dim(`hint: ${info.hint}\n`));
@@ -248,6 +260,13 @@ export function invalidFormat(format: string, valid: string[]): CliError {
 
 export function invalidArgs(message: string, hint: string): CliError {
   return { kind: "InvalidArgs", message, hint };
+}
+
+export function mutuallyExclusiveFlags(
+  flags: string[],
+  command: string,
+): CliError {
+  return { kind: "MutuallyExclusiveFlags", flags, command };
 }
 
 // ─── Did You Mean ────────────────────────────────────────────────────────────

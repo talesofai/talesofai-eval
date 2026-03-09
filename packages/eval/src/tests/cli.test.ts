@@ -132,7 +132,7 @@ describe("agent-eval CLI UX", () => {
   it("reports invalid inline json in json format", () => {
     const result = runCli(["run", "--format", "json", "--inline", "{bad"]);
     assert.equal(result.status, 2);
-    const line = result.stdout.trim();
+    const line = result.stderr.trim();
     const parsed = JSON.parse(line);
     assert.equal(parsed.type, "error");
     assert.equal(parsed.code, "E_INVALID_JSON");
@@ -302,7 +302,7 @@ describe("agent-eval CLI UX", () => {
       "./tmp-replay",
     ]);
     assert.equal(result.status, 2);
-    assert.match(result.stderr, /E_INVALID_ARGS/);
+    assert.match(result.stderr, /E_EXCLUSIVE_FLAGS/);
   });
 
   it("requires --replay when using --replay-write-metrics", () => {
@@ -357,7 +357,7 @@ describe("agent-eval CLI UX", () => {
     ]);
 
     assert.equal(result.status, 2);
-    const payload = JSON.parse(result.stdout.trim());
+    const payload = JSON.parse(result.stderr.trim());
     assert.equal(payload.type, "error");
     assert.equal(payload.code, "E_INVALID_ARGS");
     assert.match(String(payload.message), /Invalid skill name/i);
@@ -375,7 +375,7 @@ describe("agent-eval CLI UX", () => {
     ]);
 
     assert.equal(result.status, 2);
-    const payload = JSON.parse(result.stdout.trim());
+    const payload = JSON.parse(result.stderr.trim());
     assert.equal(payload.type, "error");
     assert.equal(payload.code, "E_INVALID_ARGS");
     assert.match(String(payload.message), /does not exist|not a directory/i);
@@ -390,7 +390,7 @@ describe("agent-eval CLI UX", () => {
   it("pull-online requires --collection-uuid (json mode)", () => {
     const result = runCli(["pull-online", "--format", "json"]);
     assert.equal(result.status, 2);
-    const payload = JSON.parse(result.stdout.trim());
+    const payload = JSON.parse(result.stderr.trim());
     assert.equal(payload.type, "error");
     assert.equal(payload.code, "E_INVALID_ARGS");
     assert.match(String(payload.message), /collection-uuid/);
@@ -411,7 +411,7 @@ describe("agent-eval CLI UX", () => {
       "abc",
     ]);
     assert.equal(result.status, 2);
-    const payload = JSON.parse(result.stdout.trim());
+    const payload = JSON.parse(result.stderr.trim());
     assert.equal(payload.type, "error");
     assert.equal(payload.code, "E_INVALID_ARGS");
     assert.match(String(payload.message), /page-index/);
@@ -420,8 +420,8 @@ describe("agent-eval CLI UX", () => {
   it("doctor supports terminal output", () => {
     const result = runCli(["doctor"]);
     assert.match(result.stderr, /agent-eval doctor/);
-    assert.match(result.stderr, /✅|❌|⚠/);
-    assert.match(result.stderr, /do not use `eval run`/);
+    assert.match(result.stderr, /Ready|Optional|Missing/);
+    assert.match(result.stderr, /Legend:/);
   });
 
   it("doctor supports json output", () => {
@@ -648,7 +648,7 @@ describe("agent-eval CLI UX", () => {
       "{bad-json}",
     ]);
     assert.equal(result.status, 2);
-    const payload = JSON.parse(result.stdout.trim());
+    const payload = JSON.parse(result.stderr.trim());
     assert.equal(payload.type, "error");
     assert.equal(payload.code, "E_INVALID_JSON");
   });

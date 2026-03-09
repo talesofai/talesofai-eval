@@ -43,12 +43,12 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
   cli
     .command("run", "Run eval cases")
     .option("--case <id>", "Case id or 'all'")
-    .option("--file <paths>", "YAML/JSON file paths (glob supported)")
+    .option("--file <paths>", "YAML/JSON file paths (glob supported, e.g., 'cases/**/*.eval.yaml')")
     .option("--inline <json>", "Inline JSON case definition")
     .option("--type <type>", "Filter by case type (plain/agent)")
     .option("--system-prompt <prompt>", "System prompt (inline plain case)")
     .option("--model <model>", "Model name (inline plain case)")
-    .option("--preset-key <key>", "Preset key (inline agent case)")
+    .option("--preset-key <key>", "Preset key (inline agent case, deprecated)")
     .option("--message <msg>", "Message in role:content format (repeatable)")
     .option("--expected-tools <tools>", "Expected tool names (comma-separated)")
     .option(
@@ -97,6 +97,7 @@ function buildCli(setPending: (promise: Promise<number>) => void): CAC {
       "--concurrency <n>",
       "Number of concurrent executions (default: min(total cases, 8))",
     )
+    .option("--dry-run", "Show what would be executed without running")
     .action((options: Record<string, unknown>) => {
       setPending(runCommand(parseRunCommandOptions(options)));
     });

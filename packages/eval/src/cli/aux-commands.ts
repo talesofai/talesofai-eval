@@ -85,25 +85,58 @@ export function doctorCommand(options: DoctorCommandOptions): number {
       })}\n`,
     );
   } else {
-    process.stderr.write(`${pc.bold(`agent-eval doctor --mode ${mode}`)}\n`);
+    // Table header
+    process.stderr.write(`\n${pc.bold(`agent-eval doctor --mode ${mode}`)}\n\n`);
+    
+    // Calculate column widths
+    const maxKeyLen = Math.max(...checks.map(c => c.key.length), 20);
+    const maxStatusLen = 8;
+    
+    // Table header
+    const header = `┌${'─'.repeat(maxKeyLen + 2)}┬${'─'.repeat(maxStatusLen + 2)}┬${'─'.repeat(30)}┐`;
+    const separator = `├${'─'.repeat(maxKeyLen + 2)}┼${'─'.repeat(maxStatusLen + 2)}┼${'─'.repeat(30)}┤`;
+    const footer = `└${'─'.repeat(maxKeyLen + 2)}┴${'─'.repeat(maxStatusLen + 2)}┴${'─'.repeat(30)}┘`;
+    
+    process.stderr.write(`${header}\n`);
+    process.stderr.write(`│ ${pc.bold('Check'.padEnd(maxKeyLen))} │ ${pc.bold('Status'.padEnd(maxStatusLen))} │ ${pc.bold('Required For'.padEnd(28))} │\n`);
+    process.stderr.write(`${separator}\n`);
+    
     for (const check of checks) {
-      let icon: string;
-      let color: (s: string) => string;
+      let status: string;
+      let statusColor: (s: string) => string;
       if (check.ok) {
-        icon = pc.green("✅");
-        color = pc.green;
+        status = "Ready";
+        statusColor = pc.green;
       } else if (check.optional) {
-        icon = pc.yellow("⚠️ ");
-        color = pc.yellow;
+        status = "Optional";
+        statusColor = pc.yellow;
       } else {
-        icon = pc.red("❌");
-        color = pc.red;
+        status = "Missing";
+        statusColor = pc.red;
       }
+      
       process.stderr.write(
-        `${icon} ${color(check.key)} ${pc.dim(`[${check.requiredFor}]`)}\n`,
+        `│ ${check.key.padEnd(maxKeyLen)} │ ${statusColor(status.padEnd(maxStatusLen))} │ ${pc.dim(check.requiredFor.padEnd(28))} │\n`,
       );
-      process.stderr.write(`   ${pc.dim(`hint: ${check.hint}`)}\n`);
     }
+    process.stderr.write(`${footer}\n\n`);
+    
+    // Hints section
+    const needsHint = checks.filter(c => !c.ok);
+    if (needsHint.length > 0) {
+      process.stderr.write(`${pc.bold("Hints:")}\n`);
+      for (const check of needsHint) {
+        const icon = check.optional ? pc.yellow("⚠️ ") : pc.red("❌");
+        process.stderr.write(`  ${icon} ${pc.bold(check.key)}: ${check.hint}\n`);
+      }
+      process.stderr.write("\n");
+    }
+    
+    // Legend
+    process.stderr.write(`${pc.bold("Legend:")}\n`);
+    process.stderr.write(`  ${pc.green("Ready")}    - Configuration OK, feature available\n`);
+    process.stderr.write(`  ${pc.yellow("Optional")} - Can run with limited features\n`);
+    process.stderr.write(`  ${pc.red("Missing")}  - Cannot run, will cause errors\n\n`);
   }
 
   return failing.length === 0 ? 0 : 2;
